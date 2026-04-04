@@ -1,69 +1,85 @@
 # Branch Protection Rules Setup
 
-Branch protection rules are available on GitHub Pro for private repositories. Here's how to set them up manually:
+Branch protection rules are available on GitHub Pro for private repositories, or for free on public repositories.
 
-## Manual Setup via GitHub UI
+## Prerequisites
 
-### 1. Go to Branch Protection Settings
-- Navigate to your repo: https://github.com/sanjgha/md
-- Click **Settings** (top right)
-- Select **Branches** from the left sidebar
-- Click **Add rule** under "Branch protection rules"
+Your repository must be:
+- ✅ **Public** (free branch protection)
+- OR
+- ✅ **Private with GitHub Pro** ($4/month)
 
-### 2. Configure the Rule
+If your repo is private and you don't have GitHub Pro:
+- **Option A:** Upgrade to GitHub Pro
+- **Option B:** Make your repo public (free, but visible to everyone)
 
-**Branch name pattern:** `master`
+## Setup Options
 
-### 3. Require Pull Request Reviews
-✅ **Require a pull request before merging**
-- Required approving reviews: `1`
-- ✅ Dismiss stale pull request approvals when new commits are pushed
-- ✅ Require review from code owners (optional)
-- ❌ Require approval of the most recent push
+### Option 1: Detailed Step-by-Step (Recommended for First Time)
 
-### 4. Require Status Checks to Pass
-✅ **Require status checks to pass before merging**
-- ✅ Require branches to be up to date before merging
-- Select these status checks:
-  - `Lint & Format Check`
-  - `Type Check`
-  - `Tests (Python 3.11)`
-  - `Security Scan`
-  - `All Checks Status`
+For a complete walkthrough with screenshots and detailed explanations:
 
-### 5. Restrict Who Can Push
-✅ **Restrict who can push to matching branches**
-- Select yourself (only you can push directly)
+👉 **See: [BRANCH_PROTECTION_GITHUB_UI.md](BRANCH_PROTECTION_GITHUB_UI.md)**
 
-### 6. Additional Rules
-✅ **Require signed commits** (optional, recommended)
-✅ **Require conversation resolution before merging** (optional)
-❌ **Allow force pushes** (keep disabled)
-❌ **Allow deletions** (keep disabled)
+This guide includes:
+- Screenshots for each step
+- Explanations of each option
+- Common troubleshooting
+- How to test that protection works
 
-### 7. Save
-Click **Create** or **Update** to save the rules.
+**Time needed:** ~3 minutes
+
+### Option 2: Quick Reference
+
+**What to configure:**
+1. Go to Settings → Branches → Add rule
+2. Branch name pattern: `master`
+3. ✅ Require pull request before merging (1 approval)
+4. ✅ Require status checks to pass
+   - Select: `Lint & Format Check`, `Type Check`, `Tests (Python 3.11)`, `Security Scan`, `All Checks Status`
+5. ✅ Require branches to be up to date before merging
+6. Click **Create**
 
 ## What This Enforces
 
 Once enabled:
-- ✅ No commits directly to `master`
-- ✅ All PRs must have at least 1 approval (your own counts)
-- ✅ All CI checks must pass
-- ✅ Branch must be up-to-date before merge
-- ✅ Only you can push (no accidental pushes by collaborators)
-
-## Alternative: Make Repo Public
-
-If you prefer to avoid GitHub Pro, you can make the repo public:
-1. Go to **Settings** → **General**
-2. Scroll to **Danger Zone**
-3. Click **Change visibility**
-4. Select **Public**
-5. Confirm
-
-Public repos support branch protection for free.
+- ✅ No direct commits to `master`
+- ✅ All changes require a pull request
+- ✅ All CI checks must pass before merging
+- ✅ Branches must be up-to-date before merge
+- ✅ At least 1 approval required (your own counts)
 
 ## Verify Protection is Active
 
-After setup, you should see a green checkmark ✅ next to the branch name in the **Branches** tab.
+After setup:
+1. Go to your repo's **Branches** tab
+2. Look for a **shield icon** ✅ next to `master`
+3. Click it to view the protection rules
+
+## Next Steps
+
+After enabling branch protection, test it:
+
+```bash
+# This should FAIL (protected branch)
+git push origin master
+
+# Instead, use PR workflow
+git checkout -b feature/my-feature
+git push origin feature/my-feature
+# Create PR on GitHub, review, and merge through web UI
+```
+
+## Troubleshooting
+
+**Can't create rule (403 error)?**
+- Your repo is private without GitHub Pro
+- Upgrade to GitHub Pro OR make repo public
+
+**Status checks not showing in dropdown?**
+- Wait for CI to run at least once
+- Refresh the settings page
+- They should appear after CI completes
+
+**Need detailed instructions?**
+- See [BRANCH_PROTECTION_GITHUB_UI.md](BRANCH_PROTECTION_GITHUB_UI.md)
