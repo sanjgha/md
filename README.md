@@ -2,6 +2,9 @@
 
 A Python project with best practices for repository management, CI/CD, and security.
 
+[![Tests](https://github.com/sanjgha/md/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/sanjgha/md/actions/workflows/ci.yml)
+[![Codecov Coverage](https://img.shields.io/codecov/c/github/sanjgha/md/master?logo=codecov)](https://codecov.io/gh/sanjgha/md)
+
 ## Quick Start
 
 ### Setup
@@ -50,6 +53,16 @@ make coverage      # Generate coverage report (opens htmlcov/index.html)
 - **MyPy** — type checking
 - **Pytest** — test framework with markers
 - **Coverage** — test coverage reporting
+
+## Setup & Configuration
+
+### Branch Protection
+Branch protection rules prevent accidental commits to `master`.
+See [Branch Protection Setup](docs/BRANCH_PROTECTION_SETUP.md) for configuration.
+
+### Code Coverage
+Coverage tracking with Codecov shows test coverage trends and enforces minimum thresholds.
+See [Codecov Setup](docs/CODECOV_SETUP.md) for details.
 
 ## Contributing
 

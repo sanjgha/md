@@ -1,0 +1,27 @@
+coverage:
+  precision: 2
+  round: down
+  range: "70..100"
+
+comment:
+  layout: "reach,diff,flags,files,footer"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes
+
+# Ignore test files and __pycache__
+ignore:
+  - "tests"
+  - ".*/__pycache__"
+
+# Set coverage thresholds
+thresholds:
+  - type: patch
+    target: 80%
+  - type: project
+    target: 70%
+
+# Don't show codecov in PRs if coverage doesn't change much
+codecov:
+  require_ci_to_pass: true
