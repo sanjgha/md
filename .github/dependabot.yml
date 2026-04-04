@@ -1,0 +1,59 @@
+version: 2
+updates:
+  # Manage pip dependencies
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - sanjgha
+    labels:
+      - dependencies
+      - python
+    commit-message:
+      prefix: "chore(deps):"
+      include: "scope"
+    # Group dependency updates
+    groups:
+      dev-dependencies:
+        patterns:
+          - "black"
+          - "ruff"
+          - "mypy"
+          - "pytest*"
+          - "detect-secrets"
+          - "pydocstyle"
+          - "pre-commit"
+      runtime-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "black"
+          - "ruff"
+          - "mypy"
+          - "pytest*"
+          - "detect-secrets"
+          - "pydocstyle"
+          - "pre-commit"
+    # Allow auto-merge for patch and minor updates
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    # Rebase strategy
+    rebase-strategy: auto
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+    reviewers:
+      - sanjgha
+    labels:
+      - dependencies
+      - github-actions
