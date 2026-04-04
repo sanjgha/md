@@ -27,8 +27,7 @@ repos:
     rev: v1.4.0
     hooks:
       - id: detect-secrets
-        args: [--baseline, .secrets.baseline, --allow-multiple-files]
-        exclude: package.lock
+        args: ['--baseline', '.secrets.baseline']
 
   # YAML and JSON validation
   - repo: https://github.com/pre-commit/pre-commit-hooks
