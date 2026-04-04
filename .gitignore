@@ -37,8 +37,10 @@ env/
 # Testing
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
 .tox/
+coverage.xml
 
 # Env files (NEVER commit secrets)
 .env
