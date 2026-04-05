@@ -3,7 +3,7 @@ import numpy as np
 from datetime import datetime
 from src.data_provider.base import Candle
 from src.scanner.indicators.moving_averages import SMA, EMA, WMA
-from src.scanner.indicators.momentum import RSI
+from src.scanner.indicators.momentum import RSI, MACD
 from src.scanner.indicators.volatility import BollingerBands, ATR
 from src.scanner.indicators.support_resistance import SupportResistance
 from src.scanner.indicators.patterns.breakouts import BreakoutDetector
@@ -88,6 +88,28 @@ def test_rsi_too_few_candles():
     assert len(RSI().compute(candles, period=14)) == 0
 
 
+# --- MACD ---
+def test_macd_length():
+    closes = list(range(100, 160))
+    candles = make_candles(closes)
+    result = MACD().compute(candles)
+    assert len(result) > 0
+
+
+def test_macd_too_few_candles():
+    candles = make_candles(list(range(100, 110)))  # only 10 candles, slow_period=26
+    result = MACD().compute(candles)
+    assert len(result) == 0
+
+
+def test_macd_flat_prices_near_zero():
+    closes = [100.0] * 60
+    candles = make_candles(closes)
+    result = MACD().compute(candles)
+    assert len(result) > 0
+    assert np.all(np.abs(result) < 1e-9)  # flat prices → MACD ≈ 0
+
+
 # --- BollingerBands ---
 def test_bollinger_bands_shape():
     closes = [float(100 + i % 5) for i in range(30)]
@@ -131,7 +153,12 @@ def test_support_resistance_returns_values():
     closes = [100, 102, 99, 104, 101, 105, 100, 106, 102, 107]
     candles = make_candles(closes)
     result = SupportResistance().compute(candles)
-    assert len(result) > 0
+    assert len(result) == len(candles)
+    # midpoint should be between min_low and max_high
+    lows = [c - 1 for c in closes]
+    highs = [c + 1 for c in closes]
+    assert np.all(result >= min(lows))
+    assert np.all(result <= max(highs))
 
 
 # --- BreakoutDetector ---

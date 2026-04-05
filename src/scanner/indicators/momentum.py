@@ -23,7 +23,9 @@ class RSI(Indicator):
         avg_loss = np.mean(losses[:period])
 
         rsi_values = []
-        if avg_loss == 0:
+        if avg_gain == 0 and avg_loss == 0:
+            rsi_values.append(50.0)
+        elif avg_loss == 0:
             rsi_values.append(100.0)
         else:
             rsi_values.append(100 - (100 / (1 + avg_gain / avg_loss)))
@@ -31,7 +33,9 @@ class RSI(Indicator):
         for i in range(period, len(deltas)):
             avg_gain = (avg_gain * (period - 1) + gains[i]) / period
             avg_loss = (avg_loss * (period - 1) + losses[i]) / period
-            if avg_loss == 0:
+            if avg_gain == 0 and avg_loss == 0:
+                rsi_values.append(50.0)
+            elif avg_loss == 0:
                 rsi_values.append(100.0)
             else:
                 rsi_values.append(100 - (100 / (1 + avg_gain / avg_loss)))
@@ -54,6 +58,8 @@ class MACD(Indicator):
         closes = np.array([c.close for c in candles], dtype=float)
         fast_ema = self._ema(closes, fast_period)
         slow_ema = self._ema(closes, slow_period)
+        if len(fast_ema) == 0 or len(slow_ema) == 0:
+            return np.array([])
         min_len = min(len(fast_ema), len(slow_ema))
         return fast_ema[-min_len:] - slow_ema[-min_len:]
 
