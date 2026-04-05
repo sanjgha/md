@@ -1,6 +1,6 @@
 """Fixture helpers for generating test data."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from src.data_provider.base import Candle, Quote
 
@@ -26,7 +26,7 @@ def make_daily_candles(n: int = 250, base_price: float = 100.0) -> list:
 def make_quote(symbol: str = "AAPL", last: float = 150.0) -> Quote:
     """Create a Quote with given last price."""
     return Quote(
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         bid=last - 0.05,
         ask=last + 0.05,
         bid_size=100,

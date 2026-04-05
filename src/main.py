@@ -17,12 +17,11 @@ def app():
 def _get_db_session():
     """Lazy DB session factory — called at runtime, never at import time."""
     from src.config import get_config
-    from src.db.connection import get_engine, init_db
+    from src.db.connection import get_engine
     from sqlalchemy.orm import sessionmaker
 
     cfg = get_config()
     engine = get_engine(cfg.DATABASE_URL)
-    init_db(engine)
     return sessionmaker(bind=engine)()
 
 
