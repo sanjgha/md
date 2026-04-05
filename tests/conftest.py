@@ -26,9 +26,17 @@ def pg_engine(postgres_container):
 
 @pytest.fixture
 def db_session(pg_engine):
-    """Provide a transactional database session that rolls back after each test."""
+    """Provide a database session that truncates all tables after each test."""
+    from sqlalchemy import text
+    from src.db.models import Base
+
     SessionLocal = sessionmaker(bind=pg_engine)
     session = SessionLocal()
     yield session
     session.rollback()
     session.close()
+    # Truncate all tables to ensure full isolation between tests that commit
+    with pg_engine.connect() as conn:
+        table_names = ", ".join(f'"{t.name}"' for t in reversed(Base.metadata.sorted_tables))
+        conn.execute(text(f"TRUNCATE {table_names} RESTART IDENTITY CASCADE"))
+        conn.commit()
