@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
+from src.data_provider.base import Quote
+
 # ScanResult lives in scanner.base — single source of truth
 from src.scanner.base import ScanResult  # noqa: F401 (re-export for convenience)
 
@@ -15,7 +17,7 @@ class Alert:
 
     ticker: str
     reason: str
-    quote: object  # Quote dataclass — avoid circular import
+    quote: Quote
     timestamp: Optional[datetime] = field(default=None)
 
     def __post_init__(self):

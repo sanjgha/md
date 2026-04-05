@@ -13,7 +13,7 @@ class MomentumScanner(Scanner):
 
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Return matches when RSI-14 is below 30 (oversold) or above 70 (overbought)."""
-        matches = []
+        matches: List[ScanResult] = []
 
         if len(context.daily_candles) < 50:
             return matches

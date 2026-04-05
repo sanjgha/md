@@ -13,7 +13,7 @@ class PriceActionScanner(Scanner):
 
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Return matches when price is above SMA50 > SMA200 and touches SMA50."""
-        matches = []
+        matches: List[ScanResult] = []
 
         if len(context.daily_candles) < 200:
             return matches

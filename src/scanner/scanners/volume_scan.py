@@ -14,7 +14,7 @@ class VolumeScanner(Scanner):
 
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Return match when latest volume exceeds 2x the prior 20-day average."""
-        matches = []
+        matches: List[ScanResult] = []
 
         if len(context.daily_candles) < 21:
             return matches

@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 from typing import List, Optional
 
-import requests
+import requests  # type: ignore[import-untyped]
 
 from src.data_provider.base import Candle, DataProvider, Earning, NewsArticle, Quote
 from src.data_provider.exceptions import APIConnectionError, RateLimitError, SymbolNotFoundError
