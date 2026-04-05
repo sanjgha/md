@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 from sqlalchemy.orm import Session
 
 from src.data_provider.base import Candle
+from src.db.models import ScannerResult as ScannerResultModel
 from src.output.base import OutputHandler
 from src.scanner.base import ScanResult
 from src.scanner.context import ScanContext
@@ -83,8 +84,6 @@ class ScannerExecutor:
         """Batch insert scanner results into the database."""
         if not results or not self.db:
             return
-        from src.db.models import ScannerResult as ScannerResultModel
-
         self.db.add_all(
             [
                 ScannerResultModel(
