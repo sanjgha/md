@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 from typing import Optional, Set
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from src.data_provider.base import DataProvider
 from src.db.models import RealtimeQuote as RealtimeQuoteModel
@@ -38,6 +38,7 @@ class RealtimeMonitor:
         today = datetime.utcnow().date()
         results = (
             self.db.query(ScannerResult)
+            .options(joinedload(ScannerResult.stock))
             .filter(
                 ScannerResult.scanner_name == scanner_name,
                 ScannerResult.matched_at >= today,

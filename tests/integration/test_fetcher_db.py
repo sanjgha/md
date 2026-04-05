@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from src.data_fetcher.fetcher import DataFetcher
 from src.db.models import Stock
-from src.data_provider.base import DataProvider, Candle, NewsArticle
+from src.data_provider.base import DataProvider, Candle, Earning, NewsArticle
 
 
 def test_fetcher_bulk_upsert_daily_candles(db_session: Session):
@@ -87,3 +87,33 @@ def test_fetcher_sync_news(db_session: Session):
     nvda = db_session.query(Stock).filter_by(symbol="NVDA").first()
     assert len(nvda.news) == 1
     assert nvda.news[0].headline == "Nvidia releases new GPU"
+
+
+def test_fetcher_sync_earnings(db_session: Session):
+    """sync_earnings creates earnings rows without duplicates."""
+    stock = Stock(symbol="MSFT", name="Microsoft")
+    db_session.add(stock)
+    db_session.commit()
+
+    mock_provider = Mock(spec=DataProvider)
+    mock_provider.get_earnings_history.return_value = [
+        Earning(
+            symbol="MSFT",
+            fiscal_year=2024,
+            fiscal_quarter=1,
+            earnings_date=datetime(2024, 1, 25),
+            report_date=datetime(2024, 1, 25),
+            report_time="amc",
+            currency="USD",
+            reported_eps=2.93,
+            estimated_eps=2.78,
+        )
+    ]
+
+    fetcher = DataFetcher(provider=mock_provider, db=db_session, rate_limit_delay=0)
+    fetcher.sync_earnings(symbols=["MSFT"])
+    fetcher.sync_earnings(symbols=["MSFT"])  # idempotent — no duplicate
+
+    msft = db_session.query(Stock).filter_by(symbol="MSFT").first()
+    assert len(msft.earnings) == 1
+    assert msft.earnings[0].fiscal_year == 2024

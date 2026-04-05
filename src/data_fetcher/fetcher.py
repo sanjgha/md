@@ -143,10 +143,10 @@ class DataFetcher:
                     )
                     inserted = self._bulk_upsert_intraday_candles(stock.id, resolution, candles)
                     logger.info(f"sync_intraday {symbol} {resolution}: {inserted} new rows")
-                    time.sleep(self.rate_limit_delay)
                 except Exception as e:
                     logger.error(f"Failed to sync intraday {symbol} {resolution}: {e}")
                     self.db.rollback()
+            time.sleep(self.rate_limit_delay)  # Once per symbol, not per resolution
 
     def sync_news(
         self,
