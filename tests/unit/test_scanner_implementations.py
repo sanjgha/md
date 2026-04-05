@@ -59,6 +59,35 @@ def test_momentum_scanner_too_few_candles():
     assert results == []
 
 
+def test_momentum_scanner_detects_oversold():
+    # Alternating down then flat produces low RSI on final value
+    closes = [100.0 - i * 0.5 for i in range(60)]  # steadily falling → oversold
+    context = make_scan_context(closes=closes)
+    scanner = MomentumScanner()
+    results = scanner.scan(context)
+    assert len(results) == 1
+    assert results[0].metadata["reason"] == "oversold"
+    assert results[0].metadata["rsi"] < 30
+
+
+def test_momentum_scanner_no_match_neutral():
+    # Alternating up/down keeps RSI near 50
+    closes = [100.0 + (1 if i % 2 == 0 else -1) for i in range(60)]
+    context = make_scan_context(closes=closes)
+    scanner = MomentumScanner()
+    results = scanner.scan(context)
+    assert results == []
+
+
+def test_price_action_no_match_when_sma50_below_sma200():
+    # Steadily declining prices → SMA50 < SMA200
+    closes = [200.0 - i * 0.3 for i in range(220)]
+    context = make_scan_context(closes=closes)
+    scanner = PriceActionScanner()
+    results = scanner.scan(context)
+    assert results == []
+
+
 def test_volume_scanner_detects_spike():
     base_vol = 1_000_000
     closes = [100.0] * 21
