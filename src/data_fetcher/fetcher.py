@@ -173,7 +173,9 @@ class DataFetcher:
                             source=article.source,
                             publication_date=article.publication_date,
                         )
-                        .on_conflict_do_nothing()
+                        .on_conflict_do_nothing(
+                            index_elements=["stock_id", "source", "publication_date"]
+                        )
                     )
                     self.db.execute(stmt)
                 self.db.commit()

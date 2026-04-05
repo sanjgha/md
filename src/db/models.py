@@ -177,6 +177,12 @@ class StockNews(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (
+        UniqueConstraint(
+            "stock_id",
+            "source",
+            "publication_date",
+            name="uq_stock_news_stock_src_date",
+        ),
         Index("ix_stock_news_stock_pubdate", "stock_id", "publication_date"),
         Index("ix_stock_news_pubdate", "publication_date"),
     )
