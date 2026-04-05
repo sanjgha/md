@@ -63,11 +63,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+      - name: Install pip-audit
+        run: pip install pip-audit
 
-      - name: Install safety
-        run: pip install safety
-
-      - name: Run Safety check
-        run: safety scan
+      - name: Run pip-audit
+        run: pip-audit -r requirements-dev.txt
