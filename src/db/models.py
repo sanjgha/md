@@ -1,0 +1,263 @@
+"""SQLAlchemy ORM models for market data infrastructure."""
+
+from datetime import datetime
+
+from sqlalchemy import (
+    BigInteger,
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    NUMERIC,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import DeclarativeBase, relationship
+
+
+class Base(DeclarativeBase):
+    """Declarative base for all ORM models."""
+
+    pass
+
+
+class Stock(Base):
+    """Stock universe reference table."""
+
+    __tablename__ = "stocks"
+
+    id = Column(Integer, primary_key=True)
+    symbol = Column(String(10), unique=True, nullable=False, index=True)
+    name = Column(String(255))
+    sector = Column(String(100))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    daily_candles = relationship(
+        "DailyCandle", back_populates="stock", cascade="all, delete-orphan"
+    )
+    intraday_candles = relationship(
+        "IntradayCandle", back_populates="stock", cascade="all, delete-orphan"
+    )
+    realtime_quotes = relationship(
+        "RealtimeQuote", back_populates="stock", cascade="all, delete-orphan"
+    )
+    earnings = relationship(
+        "EarningsCalendar", back_populates="stock", cascade="all, delete-orphan"
+    )
+    news = relationship("StockNews", back_populates="stock", cascade="all, delete-orphan")
+    options = relationship("OptionsQuote", back_populates="stock", cascade="all, delete-orphan")
+    scanner_results = relationship(
+        "ScannerResult", back_populates="stock", cascade="all, delete-orphan"
+    )
+
+
+class DailyCandle(Base):
+    """Daily OHLCV data (1-year retention)."""
+
+    __tablename__ = "daily_candles"
+
+    id = Column(BigInteger, primary_key=True)
+    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
+    timestamp = Column(DateTime, nullable=False)
+    open = Column(NUMERIC(10, 2), nullable=False)
+    high = Column(NUMERIC(10, 2), nullable=False)
+    low = Column(NUMERIC(10, 2), nullable=False)
+    close = Column(NUMERIC(10, 2), nullable=False)
+    volume = Column(BigInteger, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # B-tree index — BRIN is unsuitable for concurrent multi-stock inserts
+    __table_args__ = (
+        UniqueConstraint("stock_id", "timestamp", name="uq_daily_candles_stock_ts"),
+        Index("ix_daily_candles_stock_ts", "stock_id", "timestamp"),
+    )
+
+    stock = relationship("Stock", back_populates="daily_candles")
+
+
+class IntradayCandle(Base):
+    """Intraday bars (5m, 15m, 1h; 7-day retention)."""
+
+    __tablename__ = "intraday_candles"
+
+    id = Column(BigInteger, primary_key=True)
+    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
+    resolution = Column(String(10), nullable=False)
+    timestamp = Column(DateTime, nullable=False)
+    open = Column(NUMERIC(10, 2), nullable=False)
+    high = Column(NUMERIC(10, 2), nullable=False)
+    low = Column(NUMERIC(10, 2), nullable=False)
+    close = Column(NUMERIC(10, 2), nullable=False)
+    volume = Column(BigInteger, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "stock_id",
+            "resolution",
+            "timestamp",
+            name="uq_intraday_candles_stock_res_ts",
+        ),
+        Index("ix_intraday_candles_stock_ts", "stock_id", "timestamp"),
+    )
+
+    stock = relationship("Stock", back_populates="intraday_candles")
+
+
+class RealtimeQuote(Base):
+    """Realtime quotes with intraday summary (7-day retention)."""
+
+    __tablename__ = "realtime_quotes"
+
+    id = Column(BigInteger, primary_key=True)
+    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
+    bid = Column(NUMERIC(10, 2))
+    ask = Column(NUMERIC(10, 2))
+    bid_size = Column(BigInteger)
+    ask_size = Column(BigInteger)
+    last = Column(NUMERIC(10, 2))
+    open = Column(NUMERIC(10, 2))
+    high = Column(NUMERIC(10, 2))
+    low = Column(NUMERIC(10, 2))
+    close = Column(NUMERIC(10, 2))
+    volume = Column(BigInteger)
+    change = Column(NUMERIC(10, 4))
+    change_pct = Column(NUMERIC(10, 4))
+    week_52_high = Column(NUMERIC(10, 2))
+    week_52_low = Column(NUMERIC(10, 2))
+    status = Column(String(50))
+    timestamp = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (Index("ix_realtime_quotes_stock_ts", "stock_id", "timestamp"),)
+
+    stock = relationship("Stock", back_populates="realtime_quotes")
+
+
+class EarningsCalendar(Base):
+    """Earnings calendar (no retention limit)."""
+
+    __tablename__ = "earnings_calendar"
+
+    id = Column(Integer, primary_key=True)
+    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
+    fiscal_year = Column(Integer)
+    fiscal_quarter = Column(Integer)
+    earnings_date = Column(DateTime, nullable=False)
+    report_date = Column(DateTime)
+    report_time = Column(String(50))
+    currency = Column(String(10))
+    reported_eps = Column(NUMERIC(10, 4))
+    estimated_eps = Column(NUMERIC(10, 4))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("stock_id", "earnings_date", name="uq_earnings_stock_date"),
+        Index("ix_earnings_date", "earnings_date"),
+    )
+
+    stock = relationship("Stock", back_populates="earnings")
+
+
+class StockNews(Base):
+    """Stock news articles."""
+
+    __tablename__ = "stock_news"
+
+    id = Column(Integer, primary_key=True)
+    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
+    headline = Column(Text, nullable=False)
+    content = Column(Text)
+    source = Column(String(255))
+    publication_date = Column(DateTime, nullable=False)
+    fetched_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "stock_id",
+            "source",
+            "publication_date",
+            name="uq_stock_news_stock_src_date",
+        ),
+        Index("ix_stock_news_stock_pubdate", "stock_id", "publication_date"),
+        Index("ix_stock_news_pubdate", "publication_date"),
+    )
+
+    stock = relationship("Stock", back_populates="news")
+
+
+class OptionsQuote(Base):
+    """Options quotes with Greeks (Phase 2; 7-day retention)."""
+
+    __tablename__ = "options_quotes"
+
+    id = Column(BigInteger, primary_key=True)
+    option_symbol = Column(String(50), nullable=False)
+    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
+    bid = Column(NUMERIC(10, 2))
+    ask = Column(NUMERIC(10, 2))
+    bid_size = Column(BigInteger)
+    ask_size = Column(BigInteger)
+    last = Column(NUMERIC(10, 2))
+    volume = Column(BigInteger)
+    open_interest = Column(BigInteger)
+    delta = Column(NUMERIC(10, 4))
+    gamma = Column(NUMERIC(10, 4))
+    theta = Column(NUMERIC(10, 4))
+    vega = Column(NUMERIC(10, 4))
+    iv = Column(NUMERIC(10, 4))
+    underlying_price = Column(NUMERIC(10, 2))
+    timestamp = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("option_symbol", "timestamp", name="uq_options_symbol_ts"),
+        Index("ix_options_stock_ts", "stock_id", "timestamp"),
+    )
+
+    stock = relationship("Stock", back_populates="options")
+
+
+class ScannerResult(Base):
+    """Scanner results (persistent audit trail)."""
+
+    __tablename__ = "scanner_results"
+
+    id = Column(BigInteger, primary_key=True)
+    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
+    scanner_name = Column(String(255), nullable=False)
+    result_metadata = Column(JSONB, default=dict)  # callable — not a shared mutable default
+    matched_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_scanner_results_name_ts", "scanner_name", "matched_at"),
+        Index("ix_scanner_results_stock_ts", "stock_id", "matched_at"),
+    )
+
+    stock = relationship("Stock", back_populates="scanner_results")
+
+
+class EconomicIndicator(Base):
+    """Macro economic indicator releases."""
+
+    __tablename__ = "economic_indicators"
+
+    id = Column(Integer, primary_key=True)
+    indicator_name = Column(String(255), nullable=False)
+    release_date = Column(DateTime, nullable=False)
+    value = Column(NUMERIC(15, 4))
+    unit = Column(String(50))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "indicator_name",
+            "release_date",
+            name="uq_economic_indicator_name_date",
+        ),
+    )
