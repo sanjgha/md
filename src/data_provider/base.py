@@ -28,16 +28,16 @@ class Quote:
     bid_size: int
     ask_size: int
     last: float
-    open: float
-    high: float
-    low: float
-    close: float
     volume: int
     change: float
     change_pct: float
-    week_52_high: float
-    week_52_low: float
-    status: str
+    open: float = 0.0
+    high: float = 0.0
+    low: float = 0.0
+    close: float = 0.0
+    week_52_high: float = 0.0
+    week_52_low: float = 0.0
+    status: str = ""
 
 
 @dataclass
