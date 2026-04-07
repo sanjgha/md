@@ -2,7 +2,7 @@
 
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import requests  # type: ignore[import-untyped]
@@ -30,6 +30,24 @@ class MarketDataAppProvider(DataProvider):
         self.session.headers.update({"Authorization": f"Bearer {api_token}"})
         self.max_retries = max_retries
         self.retry_backoff_base = retry_backoff_base
+
+    def _parse_candles(self, data: dict) -> List[Candle]:
+        """Parse columnar candle response: {s, t, o, h, l, c, v} into Candle list."""
+        if data.get("s") != "ok" or not data.get("t"):
+            return []
+        return [
+            Candle(
+                timestamp=datetime.fromtimestamp(ts, tz=timezone.utc).replace(tzinfo=None),
+                open=float(o),
+                high=float(h),
+                low=float(low),
+                close=float(c),
+                volume=int(v),
+            )
+            for ts, o, h, low, c, v in zip(
+                data["t"], data["o"], data["h"], data["l"], data["c"], data["v"]
+            )
+        ]
 
     def _request_with_retry(self, url: str, **kwargs) -> dict:
         """Make GET request with exponential backoff. Always uses timeout=(5, 30)."""
@@ -67,19 +85,9 @@ class MarketDataAppProvider(DataProvider):
         """Fetch daily OHLCV candles using cached feed."""
         validate_symbol(symbol)
         url = f"{self.base_url}/stocks/candles/1d/{symbol}"
-        params = {"from": from_date.isoformat(), "to": to_date.isoformat(), "feed": "cached"}
+        params = {"from": from_date.strftime("%Y-%m-%d"), "to": to_date.strftime("%Y-%m-%d")}
         data = self._request_with_retry(url, params=params)
-        return [
-            Candle(
-                timestamp=datetime.fromisoformat(r["t"]),
-                open=float(r["o"]),
-                high=float(r["h"]),
-                low=float(r["l"]),
-                close=float(r["c"]),
-                volume=int(r["v"]),
-            )
-            for r in data.get("results", [])
-        ]
+        return self._parse_candles(data)
 
     def get_intraday_candles(
         self,
@@ -92,43 +100,29 @@ class MarketDataAppProvider(DataProvider):
         validate_symbol(symbol)
         validate_resolution(resolution)
         url = f"{self.base_url}/stocks/candles/{resolution}/{symbol}"
-        params = {"from": from_date.isoformat(), "to": to_date.isoformat(), "feed": "cached"}
+        params = {"from": from_date.strftime("%Y-%m-%d"), "to": to_date.strftime("%Y-%m-%d")}
         data = self._request_with_retry(url, params=params)
-        return [
-            Candle(
-                timestamp=datetime.fromisoformat(r["t"]),
-                open=float(r["o"]),
-                high=float(r["h"]),
-                low=float(r["l"]),
-                close=float(r["c"]),
-                volume=int(r["v"]),
-            )
-            for r in data.get("results", [])
-        ]
+        return self._parse_candles(data)
 
     def get_realtime_quote(self, symbol: str) -> Quote:
         """Fetch current Level-1 quote with intraday summary."""
         validate_symbol(symbol)
         url = f"{self.base_url}/stocks/quotes/{symbol}"
-        data = self._request_with_retry(url, params={"feed": "live"})
-        result = data["results"][0]
+        data = self._request_with_retry(url)
+        if data.get("s") != "ok" or not data.get("updated"):
+            raise APIConnectionError(f"Unexpected quote response for {symbol}")
         return Quote(
-            timestamp=datetime.fromisoformat(result["updated"]),
-            bid=float(result["bid"]),
-            ask=float(result["ask"]),
-            bid_size=int(result["bidSize"]),
-            ask_size=int(result["askSize"]),
-            last=float(result["last"]),
-            open=float(result["o"]),
-            high=float(result["h"]),
-            low=float(result["l"]),
-            close=float(result["c"]),
-            volume=int(result["volume"]),
-            change=float(result["change"]),
-            change_pct=float(result["changepct"]),
-            week_52_high=float(result["52weekHigh"]),
-            week_52_low=float(result["52weekLow"]),
-            status=result["status"],
+            timestamp=datetime.fromtimestamp(data["updated"][0], tz=timezone.utc).replace(
+                tzinfo=None
+            ),
+            bid=float(data["bid"][0]),
+            ask=float(data["ask"][0]),
+            bid_size=int(data["askSize"][0]),
+            ask_size=int(data["askSize"][0]),
+            last=float(data["last"][0]),
+            volume=int(data["volume"][0]),
+            change=float(data["change"][0]),
+            change_pct=float(data["changepct"][0]),
         )
 
     def get_earnings_history(
@@ -142,23 +136,34 @@ class MarketDataAppProvider(DataProvider):
         url = f"{self.base_url}/stocks/earnings/{symbol}"
         params: dict = {}
         if from_date:
-            params["from"] = from_date.isoformat()
+            params["from"] = from_date.strftime("%Y-%m-%d")
         if to_date:
-            params["to"] = to_date.isoformat()
+            params["to"] = to_date.strftime("%Y-%m-%d")
         data = self._request_with_retry(url, params=params)
+        if data.get("s") != "ok" or not data.get("fiscalYear"):
+            return []
         return [
             Earning(
                 symbol=symbol,
-                fiscal_year=int(r["fiscalYear"]),
-                fiscal_quarter=int(r["fiscalQuarter"]),
-                earnings_date=datetime.fromisoformat(r["date"]),
-                report_date=datetime.fromisoformat(r["reportDate"]),
-                report_time=r["reportTime"],
-                currency=r["currency"],
-                reported_eps=float(r["reportedEPS"]),
-                estimated_eps=float(r["estimatedEPS"]),
+                fiscal_year=int(fy),
+                fiscal_quarter=int(fq),
+                earnings_date=datetime.fromtimestamp(d, tz=timezone.utc).replace(tzinfo=None),
+                report_date=datetime.fromtimestamp(rd, tz=timezone.utc).replace(tzinfo=None),
+                report_time=rt,
+                currency=cur,
+                reported_eps=float(eps) if eps is not None else 0.0,
+                estimated_eps=float(est) if est is not None else 0.0,
             )
-            for r in data.get("results", [])
+            for fy, fq, d, rd, rt, cur, eps, est in zip(
+                data["fiscalYear"],
+                data["fiscalQuarter"],
+                data["date"],
+                data["reportDate"],
+                data["reportTime"],
+                data["currency"],
+                data["reportedEPS"],
+                data["estimatedEPS"],
+            )
         ]
 
     def get_news(
@@ -173,23 +178,28 @@ class MarketDataAppProvider(DataProvider):
         url = f"{self.base_url}/stocks/news/{symbol}"
         params: dict = {}
         if from_date:
-            params["from"] = from_date.isoformat()
+            params["from"] = from_date.strftime("%Y-%m-%d")
         if to_date:
-            params["to"] = to_date.isoformat()
+            params["to"] = to_date.strftime("%Y-%m-%d")
         if countback:
             params["countback"] = countback
         data = self._request_with_retry(url, params=params)
-        headlines = data.get("headline", [])
-        contents = data.get("content", [])
-        sources = data.get("source", [])
-        pub_dates = data.get("publicationDate", [])
+        if data.get("s") != "ok" or not data.get("headline"):
+            return []
         return [
             NewsArticle(
                 symbol=symbol,
                 headline=headline,
-                content=contents[i] if i < len(contents) else "",
-                source=sources[i] if i < len(sources) else "",
-                publication_date=datetime.fromisoformat(pub_dates[i]),
+                content=content,
+                source=source,
+                publication_date=datetime.fromtimestamp(pub_date, tz=timezone.utc).replace(
+                    tzinfo=None
+                ),
             )
-            for i, headline in enumerate(headlines)
+            for headline, content, source, pub_date in zip(
+                data["headline"],
+                data.get("content", [""] * len(data["headline"])),
+                data.get("source", [""] * len(data["headline"])),
+                data["publicationDate"],
+            )
         ]

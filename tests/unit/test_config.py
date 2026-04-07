@@ -28,9 +28,11 @@ def test_config_raises_on_missing_required():
         import src.config as cfg_module
 
         reload(cfg_module)
-        cfg_module.get_config.cache_clear()
-        with pytest.raises(ValueError):
-            cfg_module.get_config()
+        # Patch after reload so the rebind from `from dotenv import load_dotenv` is overridden
+        with patch("src.config.load_dotenv"):
+            cfg_module.get_config.cache_clear()
+            with pytest.raises(ValueError):
+                cfg_module.get_config()
 
 
 def test_config_defaults():
