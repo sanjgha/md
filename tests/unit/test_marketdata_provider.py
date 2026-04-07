@@ -38,16 +38,13 @@ def test_get_daily_candles_parsing(mock_session_class):
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.json.return_value = {
-        "results": [
-            {
-                "t": "2024-01-01T00:00:00",
-                "o": 150.0,
-                "h": 152.0,
-                "l": 149.0,
-                "c": 151.0,
-                "v": 1000000,
-            }
-        ]
+        "s": "ok",
+        "t": [1704067200],  # 2024-01-01 00:00:00 UTC
+        "o": [150.0],
+        "h": [152.0],
+        "l": [149.0],
+        "c": [151.0],
+        "v": [1000000],
     }
     mock_response.raise_for_status = Mock()
     mock_session.get.return_value = mock_response
