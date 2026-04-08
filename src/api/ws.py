@@ -1,6 +1,7 @@
 """WebSocket infrastructure: PubSubRegistry, ws_endpoint, heartbeat_loop."""
 
 import asyncio
+import json
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -90,8 +91,6 @@ async def ws_endpoint(websocket: WebSocket) -> None:
         while True:
             raw = await websocket.receive_text()
             try:
-                import json
-
                 msg = json.loads(raw)
             except ValueError:
                 await websocket.send_json({"op": "error", "message": "invalid JSON"})
