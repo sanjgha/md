@@ -10,6 +10,7 @@ from src.api.auth import SessionMiddleware
 from src.api.routes.auth_routes import router as auth_router
 from src.api.routes.health import router as health_router
 from src.api.routes.me import router as me_router
+from src.api.routes.settings import router as settings_router
 
 FRONTEND_DIST = Path(__file__).parent.parent.parent / "frontend" / "dist"
 
@@ -27,6 +28,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix="/api")
     app.include_router(auth_router, prefix="/api/auth")
     app.include_router(me_router, prefix="/api")
+    app.include_router(settings_router, prefix="/api/settings")
     if FRONTEND_DIST.exists():
         app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
     return app
