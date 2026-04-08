@@ -32,6 +32,12 @@ class Config:
         self.QUOTE_RETENTION_DAYS = 7
         self.API_RATE_LIMIT_DELAY = 0.1
 
+        # API server settings (APP_USERNAME/APP_PASSWORD read only by migration)
+        self.APP_USERNAME = os.getenv("APP_USERNAME")
+        self.APP_PASSWORD = os.getenv("APP_PASSWORD")
+        self.APP_BIND_HOST = os.getenv("APP_BIND_HOST", "127.0.0.1")
+        self.APP_PORT = int(os.getenv("APP_PORT", "8000"))
+
 
 @lru_cache(maxsize=1)
 def get_config() -> Config:
