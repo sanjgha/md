@@ -6,6 +6,7 @@ export class ApiError extends Error {
     public readonly detail: string
   ) {
     super(`API error ${status}: ${detail}`);
+    this.name = "ApiError";
   }
 }
 
@@ -25,8 +26,10 @@ export async function apiFetch<T = unknown>(
   if (!response.ok) {
     let detail = response.statusText;
     try {
-      const body = await response.json();
-      detail = body.detail ?? detail;
+      const body: unknown = await response.json();
+      if (typeof body === "object" && body !== null && "detail" in body) {
+        detail = String((body as { detail: unknown }).detail);
+      }
     } catch {
       // ignore parse error
     }

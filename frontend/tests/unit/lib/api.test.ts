@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 describe("apiFetch", () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.resetModules();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
   it("sends credentials: include on every request", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
