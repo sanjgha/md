@@ -12,8 +12,10 @@ function RequireAuth(props: { children: any }) {
   const [user] = createResource(fetchCurrentUser);
   return (
     <Suspense fallback={<p>Loading\u2026</p>}>
-      <Show when={user()} fallback={<Navigate href="/login" />}>
-        {props.children}
+      <Show when={!user.loading}>
+        <Show when={user()} fallback={<Navigate href="/login" />}>
+          {props.children}
+        </Show>
       </Show>
     </Suspense>
   );
