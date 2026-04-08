@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from src.api.auth import SessionMiddleware
+from src.api.routes.auth_routes import router as auth_router
 from src.api.routes.health import router as health_router
 from src.api.routes.me import router as me_router
 
@@ -24,6 +25,7 @@ def create_app() -> FastAPI:
     app = FastAPI(lifespan=lifespan, title="market-data")
     app.add_middleware(SessionMiddleware)
     app.include_router(health_router, prefix="/api")
+    app.include_router(auth_router, prefix="/api/auth")
     app.include_router(me_router, prefix="/api")
     if FRONTEND_DIST.exists():
         app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
