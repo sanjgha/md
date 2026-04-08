@@ -30,11 +30,11 @@ def login(body: LoginRequest, request: Request, response: Response, db: Session 
         raise HTTPException(status_code=429, detail="too many failed attempts, try again later")
 
     user = db.execute(select(User).where(User.username == body.username)).scalar_one_or_none()
-    if user is None or not verify_password(body.password, user.password_hash):
+    if user is None or not verify_password(body.password, str(user.password_hash)):
         record_failure(client_ip)
         raise HTTPException(status_code=401, detail="invalid credentials")
 
-    token = create_session(user.id)
+    token = create_session(int(user.id))
     response.set_cookie(
         key="session",
         value=token,
