@@ -68,4 +68,5 @@ def test_config_api_fields_default():
         assert cfg.APP_USERNAME is None
         assert cfg.APP_PASSWORD is None
         assert cfg.APP_BIND_HOST == "127.0.0.1"
+        assert cfg.APP_PORT == 8000
     get_config.cache_clear()
