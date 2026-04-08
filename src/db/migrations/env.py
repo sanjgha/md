@@ -22,7 +22,12 @@ target_metadata = Base.metadata
 
 
 def get_url() -> str:
-    """Return database URL from application config."""
+    """Return database URL: prefer explicit sqlalchemy.url from config, else app config."""
+    # When tests (or CLI) set sqlalchemy.url explicitly via AlembicConfig.set_main_option,
+    # use that directly so we don't require DATABASE_URL / MARKETDATA_API_TOKEN env vars.
+    explicit_url = config.get_main_option("sqlalchemy.url")
+    if explicit_url:
+        return explicit_url
     return get_config().DATABASE_URL
 
 
