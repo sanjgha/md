@@ -39,4 +39,64 @@ describe("apiFetch", () => {
     const { apiFetch, ApiError } = await import("~/lib/api");
     await expect(apiFetch("/api/whatever")).rejects.toBeInstanceOf(ApiError);
   });
+
+  it("returns undefined on 204 No Content", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    );
+    const { apiFetch } = await import("~/lib/api");
+    const result = await apiFetch("/api/resource");
+    expect(result).toBeUndefined();
+  });
+
+  it("apiGet calls apiFetch with GET", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ data: 1 }), { status: 200 })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { apiGet } = await import("~/lib/api");
+    const result = await apiGet("/api/data");
+    expect(result).toEqual({ data: 1 });
+    expect(fetchMock).toHaveBeenCalledWith("/api/data", expect.objectContaining({ credentials: "include" }));
+  });
+
+  it("apiPost sends POST with JSON body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ created: true }), { status: 200 })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { apiPost } = await import("~/lib/api");
+    await apiPost("/api/items", { name: "test" });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/items",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ name: "test" }) })
+    );
+  });
+
+  it("apiPost without body sends no body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({}), { status: 200 })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { apiPost } = await import("~/lib/api");
+    await apiPost("/api/action");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/action",
+      expect.objectContaining({ method: "POST", body: undefined })
+    );
+  });
+
+  it("apiPut sends PUT with JSON body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ updated: true }), { status: 200 })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { apiPut } = await import("~/lib/api");
+    await apiPut("/api/items/1", { name: "updated" });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/items/1",
+      expect.objectContaining({ method: "PUT", body: JSON.stringify({ name: "updated" }) })
+    );
+  });
 });
