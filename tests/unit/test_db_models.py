@@ -71,3 +71,30 @@ def test_scanner_result_jsonb_default(db_session):
     # Verify the two rows have independent metadata dicts
     r1.result_metadata["key"] = "val"
     assert "key" not in (r2.result_metadata or {})
+
+
+def test_user_model_tablename():
+    from src.db.models import User
+
+    assert User.__tablename__ == "users"
+
+
+def test_ui_setting_model_tablename():
+    from src.db.models import UiSetting
+
+    assert UiSetting.__tablename__ == "ui_settings"
+
+
+def test_ui_setting_has_user_id_fk():
+    from src.db.models import UiSetting
+
+    col = UiSetting.__table__.c["user_id"]
+    assert col.nullable is False
+    assert len(col.foreign_keys) == 1
+
+
+def test_ui_setting_unique_constraint():
+    from src.db.models import UiSetting
+
+    constraint_names = {c.name for c in UiSetting.__table__.constraints}
+    assert "uq_ui_settings_user_key" in constraint_names

@@ -261,3 +261,36 @@ class EconomicIndicator(Base):
             name="uq_economic_indicator_name_date",
         ),
     )
+
+
+class User(Base):
+    """Application user (single-user now; forward-compatible with multi-user)."""
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String(64), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    ui_settings = relationship("UiSetting", back_populates="user", cascade="all, delete-orphan")
+
+
+class UiSetting(Base):
+    """Per-user UI preferences stored as key/JSONB-value pairs."""
+
+    __tablename__ = "ui_settings"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        server_default="1",
+    )
+    key = Column(String(64), nullable=False)
+    value = Column(JSONB, nullable=False)
+
+    __table_args__ = (UniqueConstraint("user_id", "key", name="uq_ui_settings_user_key"),)
+
+    user = relationship("User", back_populates="ui_settings")
