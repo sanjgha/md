@@ -35,7 +35,7 @@ sub-project gets its own spec → plan → implementation cycle.
 
 ## Status
 
-- [ ] 1. Foundation — *brainstorming in progress (2026-04-08)*
+- [x] 1. Foundation — *complete (2026-04-08)*
 - [ ] 2. Watchlists
 - [ ] 3. Scanner control panel
 - [ ] 4. Scheduler UI

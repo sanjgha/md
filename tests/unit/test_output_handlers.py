@@ -68,6 +68,6 @@ def test_composite_handler_logs_exception_not_silently_swallows(caplog):
     failing.emit_scan_result.side_effect = RuntimeError("handler crashed")
     composite = CompositeOutputHandler([failing])
     result = ScanResult(stock_id=1, scanner_name="test", metadata={})
-    with caplog.at_level(logging.ERROR):
+    with caplog.at_level(logging.ERROR, logger="src.output.composite"):
         composite.emit_scan_result(result)
     assert "handler crashed" in caplog.text or "failed" in caplog.text.lower()

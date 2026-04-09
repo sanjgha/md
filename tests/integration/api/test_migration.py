@@ -5,12 +5,20 @@ import pytest
 from alembic import command
 from alembic.config import Config as AlembicConfig
 from sqlalchemy import create_engine, inspect, text
+from testcontainers.postgres import PostgresContainer
 
 
 @pytest.fixture(scope="module")
-def migration_engine(postgres_container):
-    """Fresh engine on the testcontainers DB (no tables yet)."""
-    url = postgres_container.get_connection_url()
+def migration_container():
+    """Dedicated PostgreSQL container for migration tests (isolated from shared pg_engine)."""
+    with PostgresContainer("postgres:16-alpine") as pg:
+        yield pg
+
+
+@pytest.fixture(scope="module")
+def migration_engine(migration_container):
+    """Fresh engine on the isolated migration container (no tables pre-created)."""
+    url = migration_container.get_connection_url()
     engine = create_engine(url)
     yield engine
     engine.dispose()
@@ -22,8 +30,8 @@ def _alembic_cfg(db_url: str) -> AlembicConfig:
     return cfg
 
 
-def test_migration_creates_users_table(migration_engine, postgres_container):
-    url = postgres_container.get_connection_url()
+def test_migration_creates_users_table(migration_engine, migration_container):
+    url = migration_container.get_connection_url()
     os.environ["APP_USERNAME"] = "testadmin"
     os.environ["APP_PASSWORD"] = "testpassword123"
     try:
@@ -37,8 +45,8 @@ def test_migration_creates_users_table(migration_engine, postgres_container):
         del os.environ["APP_PASSWORD"]
 
 
-def test_migration_seeds_user_and_settings(migration_engine, postgres_container):
-    url = postgres_container.get_connection_url()
+def test_migration_seeds_user_and_settings(migration_engine, migration_container):
+    url = migration_container.get_connection_url()
     os.environ["APP_USERNAME"] = "testadmin"
     os.environ["APP_PASSWORD"] = "testpassword123"
     try:
@@ -60,8 +68,8 @@ def test_migration_seeds_user_and_settings(migration_engine, postgres_container)
         del os.environ["APP_PASSWORD"]
 
 
-def test_migration_downgrade_drops_tables(migration_engine, postgres_container):
-    url = postgres_container.get_connection_url()
+def test_migration_downgrade_drops_tables(migration_engine, migration_container):
+    url = migration_container.get_connection_url()
     os.environ["APP_USERNAME"] = "testadmin"
     os.environ["APP_PASSWORD"] = "testpassword123"
     try:
@@ -75,8 +83,8 @@ def test_migration_downgrade_drops_tables(migration_engine, postgres_container):
         del os.environ["APP_PASSWORD"]
 
 
-def test_migration_raises_without_credentials(postgres_container):
-    url = postgres_container.get_connection_url()
+def test_migration_raises_without_credentials(migration_container):
+    url = migration_container.get_connection_url()
     for key in ("APP_USERNAME", "APP_PASSWORD"):
         os.environ.pop(key, None)
     with pytest.raises(Exception, match="APP_USERNAME"):
