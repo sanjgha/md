@@ -59,6 +59,7 @@ class PubSubRegistry:
             try:
                 await ws.close()
             except Exception:
+                # Silently ignore errors during shutdown - connections are already being torn down
                 pass
 
 
