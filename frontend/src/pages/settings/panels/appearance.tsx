@@ -22,11 +22,6 @@ export default function AppearancePanel() {
     setTimezone(settings.timezone);
   });
 
-  function handleThemeChange(val: "light" | "dark") {
-    setTheme(val);
-    setDirty(true);
-  }
-
   function handleTimezoneChange(e: Event) {
     setTimezone((e.currentTarget as HTMLSelectElement).value);
     setDirty(true);
@@ -56,7 +51,7 @@ export default function AppearancePanel() {
             name="theme"
             value="dark"
             checked={theme() === "dark"}
-            onChange={() => handleThemeChange("dark")}
+            onClick={() => { setTheme("dark"); setDirty(true); }}
           />
           Dark
         </label>
@@ -67,7 +62,7 @@ export default function AppearancePanel() {
             name="theme"
             value="light"
             checked={theme() === "light"}
-            onChange={() => handleThemeChange("light")}
+            onClick={() => { setTheme("light"); setDirty(true); }}
           />
           Light
         </label>

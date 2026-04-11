@@ -9,7 +9,7 @@ export default defineConfig({
     {
       command:
         "APP_USERNAME=admin APP_PASSWORD=adminpass123 " +
-        "DATABASE_URL=postgresql://market_data:market_data@127.0.0.1:5432/market_data " +
+        "DATABASE_URL=postgresql://market_data:market_data@127.0.0.1:5433/market_data " +
         "MARKETDATA_API_TOKEN=dummy " +
         "uvicorn src.api.main:create_app --factory --host 127.0.0.1 --port 8001",
       url: "http://127.0.0.1:8001/api/health",
