@@ -7,17 +7,15 @@ Create Date: 2026-04-08
 
 import os
 
+import bcrypt
 import sqlalchemy as sa
 from alembic import op
-from passlib.context import CryptContext
 from sqlalchemy.dialects.postgresql import JSONB
 
 revision = "20260408_foundation"
 down_revision = "a1b2c3d4e5f6"
 branch_labels = None
 depends_on = None
-
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def upgrade() -> None:
@@ -50,9 +48,10 @@ def upgrade() -> None:
         sa.UniqueConstraint("user_id", "key", name="uq_ui_settings_user_key"),
     )
 
+    password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     op.bulk_insert(
         users,
-        [{"id": 1, "username": username, "password_hash": _pwd_context.hash(password)}],
+        [{"id": 1, "username": username, "password_hash": password_hash}],
     )
 
     op.bulk_insert(
