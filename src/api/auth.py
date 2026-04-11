@@ -7,12 +7,10 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
 
-from passlib.context import CryptContext
+import bcrypt
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 SESSION_TTL = timedelta(hours=12)
 RATE_LIMIT_MAX_ATTEMPTS = 5
@@ -36,12 +34,13 @@ _lockouts: dict[str, float] = {}  # ip → lockout_until epoch
 
 def hash_password(password: str) -> str:
     """Hash a plaintext password with bcrypt."""
-    return _pwd_context.hash(password)
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
 
 def verify_password(password: str, hashed: str) -> bool:
     """Return True if password matches the bcrypt hash (constant-time)."""
-    return _pwd_context.verify(password, hashed)
+    return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
 
 
 def create_session(user_id: int) -> str:
