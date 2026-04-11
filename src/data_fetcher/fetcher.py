@@ -58,7 +58,7 @@ class DataFetcher:
         )
         result = self.db.execute(stmt)
         self.db.commit()
-        return result.rowcount
+        return result.rowcount  # type: ignore[attr-defined]
 
     def _bulk_upsert_intraday_candles(self, stock_id: int, resolution: str, candles) -> int:
         """Bulk insert intraday candles using ON CONFLICT DO NOTHING."""
@@ -84,7 +84,7 @@ class DataFetcher:
         )
         result = self.db.execute(stmt)
         self.db.commit()
-        return result.rowcount
+        return result.rowcount  # type: ignore[attr-defined]
 
     def sync_daily(
         self,
@@ -93,7 +93,7 @@ class DataFetcher:
     ) -> None:
         """Sync daily candles for all (or specified) stocks."""
         if symbols is None:
-            symbols = [s.symbol for s in self.db.query(Stock).all()]
+            symbols = [str(s.symbol) for s in self.db.query(Stock).all()]
 
         to_date = datetime.utcnow()
         from_date = to_date - timedelta(days=days_back)
@@ -107,7 +107,7 @@ class DataFetcher:
                 candles = self.provider.get_daily_candles(
                     symbol=symbol, from_date=from_date, to_date=to_date
                 )
-                inserted = self._bulk_upsert_daily_candles(stock.id, candles)
+                inserted = self._bulk_upsert_daily_candles(int(stock.id), candles)
                 logger.info(f"sync_daily {symbol}: {inserted} new rows")
                 time.sleep(self.rate_limit_delay)
             except Exception as e:
@@ -124,7 +124,7 @@ class DataFetcher:
         if resolutions is None:
             resolutions = ["5m", "15m", "1h"]
         if symbols is None:
-            symbols = [s.symbol for s in self.db.query(Stock).all()]
+            symbols = [str(s.symbol) for s in self.db.query(Stock).all()]
 
         to_date = datetime.utcnow()
         from_date = to_date - timedelta(days=days_back)
@@ -141,7 +141,9 @@ class DataFetcher:
                         from_date=from_date,
                         to_date=to_date,
                     )
-                    inserted = self._bulk_upsert_intraday_candles(stock.id, resolution, candles)
+                    inserted = self._bulk_upsert_intraday_candles(
+                        int(stock.id), resolution, candles
+                    )
                     logger.info(f"sync_intraday {symbol} {resolution}: {inserted} new rows")
                 except Exception as e:
                     logger.error(f"Failed to sync intraday {symbol} {resolution}: {e}")
@@ -155,7 +157,7 @@ class DataFetcher:
     ) -> None:
         """Sync news articles for all stocks."""
         if symbols is None:
-            symbols = [s.symbol for s in self.db.query(Stock).all()]
+            symbols = [str(s.symbol) for s in self.db.query(Stock).all()]
 
         for symbol in symbols:
             stock = self.db.query(Stock).filter_by(symbol=symbol).first()
@@ -187,7 +189,7 @@ class DataFetcher:
     def sync_earnings(self, symbols: Optional[List[str]] = None) -> None:
         """Sync earnings calendar."""
         if symbols is None:
-            symbols = [s.symbol for s in self.db.query(Stock).all()]
+            symbols = [str(s.symbol) for s in self.db.query(Stock).all()]
 
         for symbol in symbols:
             stock = self.db.query(Stock).filter_by(symbol=symbol).first()

@@ -52,3 +52,21 @@ def test_config_defaults():
         assert config.LOG_LEVEL == "INFO"
         assert config.STOCK_UNIVERSE_SIZE == 500
         assert config.MAX_RETRIES == 5
+
+
+def test_config_api_fields_default():
+    """APP_USERNAME/PASSWORD are optional in config (migration-only)."""
+    from src.config import get_config
+
+    env = {
+        "DATABASE_URL": "postgresql://test:test@localhost/testdb",
+        "MARKETDATA_API_TOKEN": "tok",
+    }
+    with patch.dict(os.environ, env, clear=True):
+        get_config.cache_clear()
+        cfg = get_config()
+        assert cfg.APP_USERNAME is None
+        assert cfg.APP_PASSWORD is None
+        assert cfg.APP_BIND_HOST == "127.0.0.1"
+        assert cfg.APP_PORT == 8000
+    get_config.cache_clear()

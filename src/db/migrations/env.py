@@ -16,13 +16,18 @@ from src.db.models import Base  # noqa: E402
 config = context.config
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 
 
 def get_url() -> str:
-    """Return database URL from application config."""
+    """Return database URL: prefer explicit sqlalchemy.url from config, else app config."""
+    # When tests (or CLI) set sqlalchemy.url explicitly via AlembicConfig.set_main_option,
+    # use that directly so we don't require DATABASE_URL / MARKETDATA_API_TOKEN env vars.
+    explicit_url = config.get_main_option("sqlalchemy.url")
+    if explicit_url:
+        return explicit_url
     return get_config().DATABASE_URL
 
 
@@ -41,7 +46,7 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode (requires DB connection)."""
-    configuration = config.get_section(config.config_ini_section)
+    configuration = dict(config.get_section(config.config_ini_section) or {})
     configuration["sqlalchemy.url"] = get_url()
     connectable = engine_from_config(
         configuration,

@@ -1,6 +1,7 @@
 """SQLAlchemy ORM models for market data infrastructure."""
 
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     BigInteger,
@@ -62,10 +63,10 @@ class DailyCandle(Base):
     id = Column(BigInteger, primary_key=True)
     stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
     timestamp = Column(DateTime, nullable=False)
-    open = Column(NUMERIC(10, 2), nullable=False)
-    high = Column(NUMERIC(10, 2), nullable=False)
-    low = Column(NUMERIC(10, 2), nullable=False)
-    close = Column(NUMERIC(10, 2), nullable=False)
+    open: Column[Decimal] = Column(NUMERIC(10, 2), nullable=False)
+    high: Column[Decimal] = Column(NUMERIC(10, 2), nullable=False)
+    low: Column[Decimal] = Column(NUMERIC(10, 2), nullable=False)
+    close: Column[Decimal] = Column(NUMERIC(10, 2), nullable=False)
     volume = Column(BigInteger, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -87,10 +88,10 @@ class IntradayCandle(Base):
     stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
     resolution = Column(String(10), nullable=False)
     timestamp = Column(DateTime, nullable=False)
-    open = Column(NUMERIC(10, 2), nullable=False)
-    high = Column(NUMERIC(10, 2), nullable=False)
-    low = Column(NUMERIC(10, 2), nullable=False)
-    close = Column(NUMERIC(10, 2), nullable=False)
+    open: Column[Decimal] = Column(NUMERIC(10, 2), nullable=False)
+    high: Column[Decimal] = Column(NUMERIC(10, 2), nullable=False)
+    low: Column[Decimal] = Column(NUMERIC(10, 2), nullable=False)
+    close: Column[Decimal] = Column(NUMERIC(10, 2), nullable=False)
     volume = Column(BigInteger, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -114,20 +115,20 @@ class RealtimeQuote(Base):
 
     id = Column(BigInteger, primary_key=True)
     stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
-    bid = Column(NUMERIC(10, 2))
-    ask = Column(NUMERIC(10, 2))
+    bid: Column[Decimal | None] = Column(NUMERIC(10, 2))
+    ask: Column[Decimal | None] = Column(NUMERIC(10, 2))
     bid_size = Column(BigInteger)
     ask_size = Column(BigInteger)
-    last = Column(NUMERIC(10, 2))
-    open = Column(NUMERIC(10, 2))
-    high = Column(NUMERIC(10, 2))
-    low = Column(NUMERIC(10, 2))
-    close = Column(NUMERIC(10, 2))
+    last: Column[Decimal | None] = Column(NUMERIC(10, 2))
+    open: Column[Decimal | None] = Column(NUMERIC(10, 2))
+    high: Column[Decimal | None] = Column(NUMERIC(10, 2))
+    low: Column[Decimal | None] = Column(NUMERIC(10, 2))
+    close: Column[Decimal | None] = Column(NUMERIC(10, 2))
     volume = Column(BigInteger)
-    change = Column(NUMERIC(10, 4))
-    change_pct = Column(NUMERIC(10, 4))
-    week_52_high = Column(NUMERIC(10, 2))
-    week_52_low = Column(NUMERIC(10, 2))
+    change: Column[Decimal | None] = Column(NUMERIC(10, 4))
+    change_pct: Column[Decimal | None] = Column(NUMERIC(10, 4))
+    week_52_high: Column[Decimal | None] = Column(NUMERIC(10, 2))
+    week_52_low: Column[Decimal | None] = Column(NUMERIC(10, 2))
     status = Column(String(50))
     timestamp = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -150,8 +151,8 @@ class EarningsCalendar(Base):
     report_date = Column(DateTime)
     report_time = Column(String(50))
     currency = Column(String(10))
-    reported_eps = Column(NUMERIC(10, 4))
-    estimated_eps = Column(NUMERIC(10, 4))
+    reported_eps: Column[Decimal | None] = Column(NUMERIC(10, 4))
+    estimated_eps: Column[Decimal | None] = Column(NUMERIC(10, 4))
     created_at = Column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (
@@ -198,19 +199,19 @@ class OptionsQuote(Base):
     id = Column(BigInteger, primary_key=True)
     option_symbol = Column(String(50), nullable=False)
     stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
-    bid = Column(NUMERIC(10, 2))
-    ask = Column(NUMERIC(10, 2))
+    bid: Column[Decimal | None] = Column(NUMERIC(10, 2))
+    ask: Column[Decimal | None] = Column(NUMERIC(10, 2))
     bid_size = Column(BigInteger)
     ask_size = Column(BigInteger)
-    last = Column(NUMERIC(10, 2))
+    last: Column[Decimal | None] = Column(NUMERIC(10, 2))
     volume = Column(BigInteger)
     open_interest = Column(BigInteger)
-    delta = Column(NUMERIC(10, 4))
-    gamma = Column(NUMERIC(10, 4))
-    theta = Column(NUMERIC(10, 4))
-    vega = Column(NUMERIC(10, 4))
-    iv = Column(NUMERIC(10, 4))
-    underlying_price = Column(NUMERIC(10, 2))
+    delta: Column[Decimal | None] = Column(NUMERIC(10, 4))
+    gamma: Column[Decimal | None] = Column(NUMERIC(10, 4))
+    theta: Column[Decimal | None] = Column(NUMERIC(10, 4))
+    vega: Column[Decimal | None] = Column(NUMERIC(10, 4))
+    iv: Column[Decimal | None] = Column(NUMERIC(10, 4))
+    underlying_price: Column[Decimal | None] = Column(NUMERIC(10, 2))
     timestamp = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -230,7 +231,9 @@ class ScannerResult(Base):
     id = Column(BigInteger, primary_key=True)
     stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
     scanner_name = Column(String(255), nullable=False)
-    result_metadata = Column(JSONB, default=dict)  # callable — not a shared mutable default
+    result_metadata: Column[dict] = Column(
+        JSONB, default=dict
+    )  # callable — not a shared mutable default
     matched_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -250,7 +253,7 @@ class EconomicIndicator(Base):
     id = Column(Integer, primary_key=True)
     indicator_name = Column(String(255), nullable=False)
     release_date = Column(DateTime, nullable=False)
-    value = Column(NUMERIC(15, 4))
+    value: Column[Decimal | None] = Column(NUMERIC(15, 4))
     unit = Column(String(50))
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -261,3 +264,36 @@ class EconomicIndicator(Base):
             name="uq_economic_indicator_name_date",
         ),
     )
+
+
+class User(Base):
+    """Application user (single-user now; forward-compatible with multi-user)."""
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String(64), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    ui_settings = relationship("UiSetting", back_populates="user", cascade="all, delete-orphan")
+
+
+class UiSetting(Base):
+    """Per-user UI preferences stored as key/JSONB-value pairs."""
+
+    __tablename__ = "ui_settings"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        server_default="1",
+    )
+    key = Column(String(64), nullable=False)
+    value: Column[dict] = Column(JSONB, nullable=False)
+
+    __table_args__ = (UniqueConstraint("user_id", "key", name="uq_ui_settings_user_key"),)
+
+    user = relationship("User", back_populates="ui_settings")
