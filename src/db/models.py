@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -277,6 +278,10 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     ui_settings = relationship("UiSetting", back_populates="user", cascade="all, delete-orphan")
+    watchlists = relationship("Watchlist", back_populates="user", cascade="all, delete-orphan")
+    watchlist_categories = relationship(
+        "WatchlistCategory", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class UiSetting(Base):
@@ -297,3 +302,90 @@ class UiSetting(Base):
     __table_args__ = (UniqueConstraint("user_id", "key", name="uq_ui_settings_user_key"),)
 
     user = relationship("User", back_populates="ui_settings")
+
+
+class WatchlistCategory(Base):
+    """User-defined categories for organizing watchlists."""
+
+    __tablename__ = "watchlist_categories"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        server_default="1",
+    )
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    color = Column(String(7))  # Hex color code
+    icon = Column(String(50))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_watchlist_categories_user_name"),)
+
+    user = relationship("User", back_populates="watchlist_categories")
+    watchlists = relationship("Watchlist", back_populates="category")
+
+
+class Watchlist(Base):
+    """User-defined watchlists for tracking stock symbols."""
+
+    __tablename__ = "watchlists"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        server_default="1",
+    )
+    name = Column(String(100), nullable=False)
+    category_id = Column(Integer, ForeignKey("watchlist_categories.id", ondelete="SET NULL"))
+    description = Column(Text)
+    is_auto_generated = Column(Boolean, default=False, nullable=False)
+    scanner_name = Column(String(255))  # If auto-generated, which scanner created it
+    watchlist_mode = Column(String(50), default="static")  # static, dynamic, scanner_output
+    source_scan_date = Column(DateTime)  # When auto-generated watchlist was created
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_watchlists_user_name"),)
+
+    user = relationship("User", back_populates="watchlists")
+    category = relationship("WatchlistCategory", back_populates="watchlists")
+    symbols = relationship(
+        "WatchlistSymbol", back_populates="watchlist", cascade="all, delete-orphan"
+    )
+
+
+class WatchlistSymbol(Base):
+    """Individual stock symbols within a watchlist."""
+
+    __tablename__ = "watchlist_symbols"
+
+    id = Column(Integer, primary_key=True)
+    watchlist_id = Column(
+        Integer,
+        ForeignKey("watchlists.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    stock_id = Column(
+        Integer,
+        ForeignKey("stocks.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    notes = Column(Text)
+    added_at = Column(DateTime, default=datetime.utcnow)
+    priority = Column(Integer, default=0)  # For ordering/sorting
+
+    __table_args__ = (
+        UniqueConstraint(
+            "watchlist_id", "stock_id", name="uq_watchlist_symbols_watchlist_stock"
+        ),
+        Index("ix_watchlist_symbols_watchlist_priority", "watchlist_id", "priority"),
+    )
+
+    watchlist = relationship("Watchlist", back_populates="symbols")
+    stock = relationship("Stock")
