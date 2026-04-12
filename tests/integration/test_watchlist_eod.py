@@ -45,8 +45,9 @@ def test_eod_watchlist_generation_workflow(db_session: Session):
     fetcher = DataFetcher(provider=mock_provider, db=db_session, rate_limit_delay=0)
     fetcher.sync_daily(symbols=["E2E"])
 
-    refreshed = db_session.query(Stock).filter_by(symbol="E2E").first()  # type: ignore[union-attr]
-    assert len(refreshed.daily_candles) == 250  # type: ignore[union-attr]
+    refreshed = db_session.query(Stock).filter_by(symbol="E2E").first()
+    assert refreshed is not None, "Stock should exist after sync"
+    assert len(refreshed.daily_candles) == 250
 
     # 5. Build scanner machinery
     scanner_registry = ScannerRegistry()

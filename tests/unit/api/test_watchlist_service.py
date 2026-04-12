@@ -60,11 +60,11 @@ class TestCreateWatchlist:
         watchlist = service.create_watchlist(
             user_id=cast(int, user.id),
             name="Tech Watchlist",
-            category_id=cast(int, category.id),
+            category_id=cast(int, cast(int, cast(int, category.id))),
         )
 
         # Verify category was set
-        assert watchlist.category_id == cast(int, category.id)
+        assert watchlist.category_id == cast(int, cast(int, cast(int, category.id)))
         assert watchlist.name == "Tech Watchlist"
 
 
@@ -90,8 +90,8 @@ class TestGetUserWatchlists:
         # Verify ordering (most recent first)
         assert len(watchlists) == 3
         assert watchlists[0].id == cast(int, watchlist3.id)
-        assert watchlists[1].id == cast(int, watchlist2.id)
-        assert watchlists[2].id == cast(int, watchlist1.id)
+        assert watchlists[1].id == cast(int, cast(int, cast(int, watchlist2.id)))
+        assert watchlists[2].id == cast(int, cast(int, cast(int, watchlist1.id)))
 
     def test_get_user_watchlists_empty(self, db_session: Session):
         """Test getting watchlists for user with no watchlists."""
@@ -122,11 +122,13 @@ class TestGetWatchlist:
         created = service.create_watchlist(user_id=cast(int, user.id), name="My Watchlist")
 
         # Get the watchlist
-        watchlist = service.get_watchlist(watchlist_id=created.id, user_id=cast(int, user.id))
+        watchlist = service.get_watchlist(
+            watchlist_id=cast(int, cast(int, created.id)), user_id=cast(int, user.id)
+        )
 
         # Verify watchlist was retrieved
         assert watchlist is not None
-        assert cast(int, watchlist.id) == created.id
+        assert cast(int, watchlist.id) == cast(int, cast(int, created.id))
         assert watchlist.name == "My Watchlist"
         assert watchlist.user_id == cast(int, user.id)
 
@@ -148,11 +150,13 @@ class TestGetWatchlist:
         db_session.add(other_user)
         db_session.commit()
 
-        other_watchlist = service.create_watchlist(user_id=other_user.id, name="Other Watchlist")
+        other_watchlist = service.create_watchlist(
+            user_id=cast(int, other_user.id), name="Other Watchlist"
+        )
 
         # Try to get other user's watchlist
         watchlist = service.get_watchlist(
-            watchlist_id=other_watchlist.id, user_id=cast(int, user.id)
+            watchlist_id=cast(int, other_watchlist.id), user_id=cast(int, user.id)
         )
         assert watchlist is None
 
@@ -188,7 +192,7 @@ class TestUpdateWatchlist:
             return
         if updated is None:
             return
-        assert updated.id == cast(int, watchlist.id)
+        assert cast(int, cast(int, updated.id)) == cast(int, watchlist.id)
         assert updated.name == "Updated Name"
         assert updated.description == "Updated description"
 
@@ -214,6 +218,7 @@ class TestUpdateWatchlist:
         )
 
         # Verify only name changed
+        assert updated is not None
         assert updated.name == "New Name"
         assert updated.description == "Original description"
 
@@ -239,11 +244,13 @@ class TestUpdateWatchlist:
         db_session.add(other_user)
         db_session.commit()
 
-        other_watchlist = service.create_watchlist(user_id=other_user.id, name="Other Watchlist")
+        other_watchlist = service.create_watchlist(
+            user_id=cast(int, other_user.id), name="Other Watchlist"
+        )
 
         # Try to update other user's watchlist
         result = service.update_watchlist(
-            watchlist_id=other_watchlist.id,
+            watchlist_id=cast(int, other_watchlist.id),
             user_id=cast(int, user.id),
             name="Hacked",
         )
@@ -295,11 +302,13 @@ class TestDeleteWatchlist:
         db_session.add(other_user)
         db_session.commit()
 
-        other_watchlist = service.create_watchlist(user_id=other_user.id, name="Other Watchlist")
+        other_watchlist = service.create_watchlist(
+            user_id=cast(int, other_user.id), name="Other Watchlist"
+        )
 
         # Try to delete other user's watchlist
         result = service.delete_watchlist(
-            watchlist_id=other_watchlist.id, user_id=cast(int, user.id)
+            watchlist_id=cast(int, other_watchlist.id), user_id=cast(int, user.id)
         )
         assert result is False
 
@@ -379,19 +388,19 @@ class TestCloneWatchlist:
 
         # Add symbols to original watchlist
         symbol1 = WatchlistSymbol(
-            watchlist_id=original.id,
+            watchlist_id=cast(int, cast(int, original.id)),
             stock_id=stock1.id,
             notes="Original note 1",
             priority=1,
         )
         symbol2 = WatchlistSymbol(
-            watchlist_id=original.id,
+            watchlist_id=cast(int, cast(int, original.id)),
             stock_id=stock2.id,
             notes="Original note 2",
             priority=2,
         )
         symbol3 = WatchlistSymbol(
-            watchlist_id=original.id,
+            watchlist_id=cast(int, cast(int, original.id)),
             stock_id=stock3.id,
             notes="Original note 3",
             priority=3,
@@ -401,14 +410,14 @@ class TestCloneWatchlist:
 
         # Clone the watchlist
         cloned = service.clone_watchlist(
-            watchlist_id=original.id,
+            watchlist_id=cast(int, cast(int, original.id)),
             user_id=cast(int, user.id),
             new_name="Cloned Watchlist",
         )
 
         # Verify clone was created with different ID
         assert cloned is not None
-        assert cloned.id != original.id
+        assert cast(int, cast(int, cloned.id)) != cast(int, cast(int, original.id))
         assert cloned.name == "Cloned Watchlist"
         assert cloned.description == "Original description"
         assert cloned.user_id == cast(int, user.id)
@@ -418,7 +427,7 @@ class TestCloneWatchlist:
         # Verify all symbols were copied
         cloned_symbols = (
             db_session.query(WatchlistSymbol)
-            .filter(WatchlistSymbol.watchlist_id == cloned.id)
+            .filter(WatchlistSymbol.watchlist_id == cast(int, cast(int, cloned.id)))
             .all()
         )
         assert len(cloned_symbols) == 3
@@ -445,14 +454,14 @@ class TestCloneWatchlist:
 
         # Clone the watchlist
         cloned = service.clone_watchlist(
-            watchlist_id=original.id,
+            watchlist_id=cast(int, cast(int, original.id)),
             user_id=cast(int, user.id),
             new_name="Cloned Watchlist",
         )
 
         # Verify clone was created
         assert cloned is not None
-        assert cloned.id != original.id
+        assert cast(int, cast(int, cloned.id)) != cast(int, cast(int, original.id))
         assert cloned.name == "Cloned Watchlist"
 
         # Verify clone has no symbols
@@ -460,7 +469,7 @@ class TestCloneWatchlist:
 
         cloned_symbols = (
             db_session.query(WatchlistSymbol)
-            .filter(WatchlistSymbol.watchlist_id == cloned.id)
+            .filter(WatchlistSymbol.watchlist_id == cast(int, cast(int, cloned.id)))
             .all()
         )
         assert len(cloned_symbols) == 0
@@ -488,13 +497,13 @@ class TestCloneWatchlist:
         db_session.commit()
 
         other_watchlist = service.create_watchlist(
-            user_id=other_user.id,
+            user_id=cast(int, other_user.id),
             name="Other Watchlist",
         )
 
         # Try to clone other user's watchlist
         cloned = service.clone_watchlist(
-            watchlist_id=other_watchlist.id,
+            watchlist_id=cast(int, other_watchlist.id),
             user_id=cast(int, user.id),
             new_name="Hacked Clone",
         )
@@ -543,25 +552,31 @@ class TestGetWatchlistsGrouped:
         watchlist1 = service.create_watchlist(
             user_id=cast(int, user.id),
             name="Watchlist 1",
-            category_id=cat1.id,
+            category_id=cast(int, cat1.id),
         )
         watchlist2 = service.create_watchlist(
             user_id=cast(int, user.id),
             name="Watchlist 2",
-            category_id=cat1.id,
+            category_id=cast(int, cat1.id),
         )
         watchlist3 = service.create_watchlist(
             user_id=cast(int, user.id),
             name="Watchlist 3",
-            category_id=cat2.id,
+            category_id=cast(int, cat2.id),
         )
 
         # Add symbols to watchlists
         # Watchlist 1: 2 symbols
-        symbol1 = WatchlistSymbol(watchlist_id=cast(int, watchlist1.id), stock_id=stock1.id)
-        symbol2 = WatchlistSymbol(watchlist_id=cast(int, watchlist1.id), stock_id=stock2.id)
+        symbol1 = WatchlistSymbol(
+            watchlist_id=cast(int, cast(int, cast(int, watchlist1.id))), stock_id=stock1.id
+        )
+        symbol2 = WatchlistSymbol(
+            watchlist_id=cast(int, cast(int, cast(int, watchlist1.id))), stock_id=stock2.id
+        )
         # Watchlist 2: 1 symbol
-        symbol3 = WatchlistSymbol(watchlist_id=cast(int, watchlist2.id), stock_id=stock3.id)
+        symbol3 = WatchlistSymbol(
+            watchlist_id=cast(int, cast(int, cast(int, watchlist2.id))), stock_id=stock3.id
+        )
         # Watchlist 3: 0 symbols
         db_session.add_all([symbol1, symbol2, symbol3])
         db_session.commit()
@@ -594,9 +609,9 @@ class TestGetWatchlistsGrouped:
         assert len(cat1_group["watchlists"]) == 2
 
         # Verify watchlist ordering (most recent first)
-        assert cat1_group["watchlists"][0]["id"] == cast(int, watchlist2.id)
+        assert cat1_group["watchlists"][0]["id"] == cast(int, cast(int, cast(int, watchlist2.id)))
         assert cat1_group["watchlists"][0]["symbol_count"] == 1
-        assert cat1_group["watchlists"][1]["id"] == cast(int, watchlist1.id)
+        assert cat1_group["watchlists"][1]["id"] == cast(int, cast(int, cast(int, watchlist1.id)))
         assert cat1_group["watchlists"][1]["symbol_count"] == 2
 
     def test_get_watchlists_grouped_empty_user(self, db_session: Session):
@@ -789,11 +804,13 @@ class TestAddSymbol:
         db_session.add(other_user)
         db_session.commit()
 
-        other_watchlist = service.create_watchlist(user_id=other_user.id, name="Other Watchlist")
+        other_watchlist = service.create_watchlist(
+            user_id=cast(int, other_user.id), name="Other Watchlist"
+        )
 
         # Try to add to other user's watchlist
         symbol = service.add_symbol(
-            watchlist_id=other_watchlist.id,
+            watchlist_id=cast(int, other_watchlist.id),
             user_id=cast(int, user.id),
             symbol="AAPL",
         )
@@ -894,11 +911,13 @@ class TestRemoveSymbol:
         db_session.add(other_user)
         db_session.commit()
 
-        other_watchlist = service.create_watchlist(user_id=other_user.id, name="Other Watchlist")
+        other_watchlist = service.create_watchlist(
+            user_id=cast(int, other_user.id), name="Other Watchlist"
+        )
 
         # Try to remove from other user's watchlist
         result = service.remove_symbol(
-            watchlist_id=other_watchlist.id,
+            watchlist_id=cast(int, other_watchlist.id),
             user_id=cast(int, user.id),
             symbol="AAPL",
         )
@@ -999,11 +1018,13 @@ class TestGetWatchlistSymbols:
         db_session.add(other_user)
         db_session.commit()
 
-        other_watchlist = service.create_watchlist(user_id=other_user.id, name="Other Watchlist")
+        other_watchlist = service.create_watchlist(
+            user_id=cast(int, other_user.id), name="Other Watchlist"
+        )
 
         # Try to get other user's watchlist symbols
         symbols = service.get_watchlist_symbols(
-            watchlist_id=other_watchlist.id,
+            watchlist_id=cast(int, other_watchlist.id),
             user_id=cast(int, user.id),
         )
         assert symbols == []
@@ -1031,7 +1052,7 @@ class TestCreateCategory:
 
         # Verify category was created correctly
         assert category is not None
-        assert cast(int, category.id) is not None
+        assert cast(int, cast(int, cast(int, category.id))) is not None
         assert category.name == "Tech Stocks"
         assert category.icon == "💻"
         assert category.user_id == cast(int, user.id)
@@ -1084,28 +1105,32 @@ class TestGetOrCreateDefaultCategories:
         assert len(categories) == 4
 
         # Verify each category has correct properties
-        category_map = {cat.name: cat for cat in categories}
+        category_map = {str(cat.name): cat for cat in categories}
 
         # Active Trading
-        active_trading = category_map["Active Trading"]
+        active_trading = category_map.get("Active Trading")
+        assert active_trading is not None
         assert active_trading.icon == "🔥"
         assert active_trading.is_system is True
         assert active_trading.sort_order == 1
 
         # Scanner Results
-        scanner_results = category_map["Scanner Results"]
+        scanner_results = category_map.get("Scanner Results")
+        assert scanner_results is not None
         assert scanner_results.icon == "📊"
         assert scanner_results.is_system is True
         assert scanner_results.sort_order == 2
 
         # Research
-        research = category_map["Research"]
+        research = category_map.get("Research")
+        assert research is not None
         assert research.icon == "🔬"
         assert research.is_system is True
         assert research.sort_order == 3
 
         # Archived
-        archived = category_map["Archived"]
+        archived = category_map.get("Archived")
+        assert archived is not None
         assert archived.icon == "📦"
         assert archived.is_system is True
         assert archived.sort_order == 4
@@ -1155,15 +1180,15 @@ class TestGetUserCategories:
         # Create categories with different sort_order values
         service = WatchlistService(db_session)
         cat1 = service.create_category(user_id=cast(int, user.id), name="Category 1", icon="1️⃣")
-        cat1.sort_order = 3
+        cat1.sort_order = 3  # type: ignore[assignment]
         db_session.commit()
 
         cat2 = service.create_category(user_id=cast(int, user.id), name="Category 2", icon="2️⃣")
-        cat2.sort_order = 1
+        cat2.sort_order = 1  # type: ignore[assignment]
         db_session.commit()
 
         cat3 = service.create_category(user_id=cast(int, user.id), name="Category 3", icon="3️⃣")
-        cat3.sort_order = 2
+        cat3.sort_order = 2  # type: ignore[assignment]
         db_session.commit()
 
         # Get categories
@@ -1202,7 +1227,7 @@ class TestGetUserCategories:
 
         # Add a custom category
         custom = service.create_category(user_id=cast(int, user.id), name="Custom", icon="⭐")
-        custom.sort_order = 5
+        custom.sort_order = 5  # type: ignore[assignment]
         db_session.commit()
 
         # Get all categories
@@ -1357,6 +1382,7 @@ class TestGenerateFromScannerResults:
             user_id=cast(int, user.id),
         )
 
+        assert result is not None, "Result should not be None"
         today_watchlist_id_1 = result["today_watchlist_id"]
         history_watchlist_id_1 = result["history_watchlist_id"]
 
@@ -1385,6 +1411,7 @@ class TestGenerateFromScannerResults:
             user_id=cast(int, user.id),
         )
 
+        assert result is not None, "Result should not be None"
         today_watchlist_id_2 = result["today_watchlist_id"]
         history_watchlist_id_2 = result["history_watchlist_id"]
 

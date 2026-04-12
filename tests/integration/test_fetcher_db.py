@@ -41,8 +41,9 @@ def test_fetcher_daily_no_duplicate_on_resync(db_session: Session):
     fetcher.sync_daily(symbols=["GOOGL"])
     fetcher.sync_daily(symbols=["GOOGL"])  # second sync — same data
 
-    googl = db_session.query(Stock).filter_by(symbol="GOOGL").first()  # type: ignore[union-attr]
-    assert len(googl.daily_candles) == 1  # no duplicate  # type: ignore[union-attr]
+    googl = db_session.query(Stock).filter_by(symbol="GOOGL").first()
+    assert googl is not None, "Stock should exist after sync"
+    assert len(googl.daily_candles) == 1  # no duplicate
 
 
 def test_fetcher_sync_intraday(db_session: Session):

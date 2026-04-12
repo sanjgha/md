@@ -88,8 +88,9 @@ def test_bulk_upsert_idempotent(db_session: Session):
     fetcher.sync_daily(symbols=["IDEM"])
     fetcher.sync_daily(symbols=["IDEM"])  # second call — same data
 
-    idem = db_session.query(Stock).filter_by(symbol="IDEM").first()  # type: ignore[union-attr]
-    assert len(idem.daily_candles) == 50  # no duplicates  # type: ignore[union-attr]
+    idem = db_session.query(Stock).filter_by(symbol="IDEM").first()
+    assert idem is not None, "Stock should exist after sync"
+    assert len(idem.daily_candles) == 50  # no duplicates
 
 
 def test_orm_to_candle_conversion_preserves_precision(db_session: Session):
