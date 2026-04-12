@@ -85,6 +85,8 @@ class CategoryResponse(BaseModel):
     description: Optional[str]
     color: Optional[str]
     icon: Optional[str]
+    is_system: bool
+    sort_order: int
     created_at: datetime
     updated_at: datetime
 

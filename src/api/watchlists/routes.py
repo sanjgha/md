@@ -240,8 +240,8 @@ def update_watchlist(
 
     service = WatchlistService(db)
 
-    # Build update kwargs from non-None fields
-    update_data = payload.model_dump(exclude_none=True)
+    # Build update kwargs from fields explicitly set by caller (preserve sent nulls)
+    update_data = payload.model_dump(exclude_unset=True)
 
     watchlist = service.update_watchlist(
         watchlist_id=watchlist_id,
@@ -509,6 +509,15 @@ def clone_watchlist(
             detail=f"Watchlist with ID {watchlist_id} not found",
         )
 
+    # Validate category ownership BEFORE cloning (so we never create an orphan)
+    if clone_data.category_id is not None:
+        category = db.get(WatchlistCategory, clone_data.category_id)
+        if not category or category.user_id != user.id:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid category_id",
+            )
+
     # Check for duplicate name
     existing_watchlists = service.get_user_watchlists(cast(int, user.id))
     if any(wl.name == clone_data.name for wl in existing_watchlists):
@@ -530,7 +539,7 @@ def clone_watchlist(
             detail="Failed to clone watchlist",
         )
 
-    # Apply optional overrides
+    # Apply optional overrides (category already validated above)
     if clone_data.category_id is not None:
         cloned_watchlist.category_id = clone_data.category_id  # type: ignore[assignment]
     if clone_data.description is not None:

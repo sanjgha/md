@@ -1,6 +1,6 @@
 """Integration tests for EOD watchlist generation workflow."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import cast
 from unittest.mock import Mock
 
@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from src.api.watchlists.service import WatchlistGenerationService
 from src.data_fetcher.fetcher import DataFetcher
 from src.data_provider.base import DataProvider
-from src.db.models import ScannerResult, Stock, User, Watchlist
+from src.db.models import ScannerResult, Stock, User, Watchlist, WatchlistSymbol
 from src.output.cli import CLIOutputHandler
 from src.scanner.executor import ScannerExecutor
 from src.scanner.indicators.moving_averages import SMA
@@ -177,3 +177,78 @@ def test_watchlist_generation_handles_multiple_scanners(db_session: Session):
     # Verify they have different scanner names
     assert watchlist1.scanner_name == "price_action"
     assert watchlist2.scanner_name == "momentum"
+
+
+def test_generate_twice_replaces_today_and_appends_history(db_session: Session):
+    """Second EOD run replaces Today symbols and accumulates History symbols (no duplicates)."""
+    user = User(username="eod_user2", password_hash="hash")
+    db_session.add(user)
+    stock_a = Stock(symbol="RUN1", name="Run One")
+    stock_b = Stock(symbol="RUN2", name="Run Two")
+    db_session.add_all([stock_a, stock_b])
+    db_session.commit()
+
+    # First run: only stock_a matches (yesterday's scan)
+    yesterday = date.today() - timedelta(days=1)
+    result1 = ScannerResult(
+        stock_id=stock_a.id,
+        scanner_name="momentum",
+        result_metadata={"reason": "day1"},
+        matched_at=datetime.combine(yesterday, datetime.min.time()),
+    )
+    db_session.add(result1)
+    db_session.commit()
+
+    svc = WatchlistGenerationService(db_session)
+    svc.generate_from_scanner_results("momentum", yesterday, cast(int, user.id))
+
+    # Verify Today has 1 symbol, History has 1 symbol
+    today_wl = (
+        db_session.query(Watchlist)
+        .filter_by(user_id=user.id, scanner_name="momentum", watchlist_mode="replace")
+        .first()
+    )
+    history_wl = (
+        db_session.query(Watchlist)
+        .filter_by(user_id=user.id, scanner_name="momentum", watchlist_mode="append")
+        .first()
+    )
+    assert today_wl is not None
+    assert history_wl is not None
+    assert db_session.query(WatchlistSymbol).filter_by(watchlist_id=today_wl.id).count() == 1
+    assert db_session.query(WatchlistSymbol).filter_by(watchlist_id=history_wl.id).count() == 1
+
+    # Second run: only stock_b matches (different stock)
+    result2 = ScannerResult(
+        stock_id=stock_b.id,
+        scanner_name="momentum",
+        result_metadata={"reason": "day2"},
+        matched_at=datetime.now(),
+    )
+    db_session.add(result2)
+    db_session.commit()
+
+    svc.generate_from_scanner_results("momentum", date.today(), cast(int, user.id))
+
+    db_session.expire_all()
+    # Today must have exactly 1 symbol (stock_b only — replaced, not accumulated)
+    assert db_session.query(WatchlistSymbol).filter_by(watchlist_id=today_wl.id).count() == 1
+    today_sym = db_session.query(WatchlistSymbol).filter_by(watchlist_id=today_wl.id).first()
+    assert today_sym.stock_id == stock_b.id
+
+    # History must have 2 symbols (stock_a from run1, stock_b from run2)
+    assert db_session.query(WatchlistSymbol).filter_by(watchlist_id=history_wl.id).count() == 2
+
+    # No duplicate watchlists created
+    assert (
+        db_session.query(Watchlist)
+        .filter_by(user_id=user.id, scanner_name="momentum", watchlist_mode="replace")
+        .count()
+        == 1
+    )
+    assert (
+        db_session.query(Watchlist)
+        .filter_by(user_id=user.id, scanner_name="momentum", watchlist_mode="append")
+        .count()
+        == 1
+    )

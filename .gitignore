@@ -54,3 +54,10 @@ coverage.xml
 # Pre-commit
 .pre-commit-framework/
 .worktrees/
+
+# Editor artifacts
+*.bak
+*.backup
+
+# Runtime logs
+logs/

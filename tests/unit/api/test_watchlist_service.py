@@ -693,8 +693,11 @@ class TestGetWatchlistsGrouped:
         # Get grouped watchlists
         grouped = service.get_watchlists_grouped(user_id=cast(int, user.id))
 
-        # Should return empty list (no categories)
-        assert grouped == []
+        # Should return Uncategorized group for watchlists with no category
+        assert len(grouped) == 1
+        assert grouped[0]["category_name"] == "Uncategorized"
+        assert len(grouped[0]["watchlists"]) == 1
+        assert grouped[0]["watchlists"][0]["name"] == "Uncategorized Watchlist"
 
 
 class TestAddSymbol:
@@ -1165,6 +1168,31 @@ class TestGetOrCreateDefaultCategories:
         )
         assert len(all_categories) == 4
 
+    def test_get_or_create_default_categories_with_extra_system_category(self, db_session: Session):
+        """get_or_create_default_categories does not crash when user has 5+ system categories."""
+        from src.db.models import WatchlistCategory
+
+        user = User(username="cat5user", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        # Create 5 system categories (4 defaults + 1 extra)
+        names = ["Active Trading", "Scanner Results", "Research", "Archived", "Extra System"]
+        for i, name in enumerate(names, 1):
+            cat = WatchlistCategory(
+                user_id=user.id,
+                name=name,
+                is_system=True,
+                sort_order=i,
+            )
+            db_session.add(cat)
+        db_session.commit()
+
+        svc = WatchlistService(db_session)
+        # Must not raise IntegrityError
+        result = svc.get_or_create_default_categories(cast(int, user.id))
+        assert len(result) >= 4
+
 
 class TestGetUserCategories:
     """Test get_user_categories method."""
@@ -1240,264 +1268,3 @@ class TestGetUserCategories:
         assert categories[2].name == "Research"
         assert categories[3].name == "Archived"
         assert categories[4].name == "Custom"
-
-
-class TestGenerateFromScannerResults:
-    """Test generate_from_scanner_results method."""
-
-    def test_generate_watchlists_from_scanner_results(self, db_session: Session):
-        """Test generating Today and History watchlists from scanner results."""
-        from datetime import date
-        from src.db.models import ScannerResult
-
-        # Create user
-        user = User(username="testuser", password_hash="hash")
-        db_session.add(user)
-        db_session.commit()
-
-        # Create stocks
-        stock1 = Stock(symbol="AAPL", name="Apple Inc.")
-        stock2 = Stock(symbol="MSFT", name="Microsoft Corp.")
-        stock3 = Stock(symbol="GOOGL", name="Alphabet Inc.")
-        db_session.add_all([stock1, stock2, stock3])
-        db_session.commit()
-
-        # Create scanner results for today
-        scan_date = date.today()
-        result1 = ScannerResult(
-            stock_id=stock1.id,
-            scanner_name="momentum_scan",
-            result_metadata={"rsi": 75, "volume_surge": 1.5},
-            matched_at=scan_date,
-        )
-        result2 = ScannerResult(
-            stock_id=stock2.id,
-            scanner_name="momentum_scan",
-            result_metadata={"rsi": 68, "volume_surge": 1.3},
-            matched_at=scan_date,
-        )
-        result3 = ScannerResult(
-            stock_id=stock3.id,
-            scanner_name="momentum_scan",
-            result_metadata={"rsi": 72, "volume_surge": 1.4},
-            matched_at=scan_date,
-        )
-        db_session.add_all([result1, result2, result3])
-        db_session.commit()
-
-        # Generate watchlists from scanner results
-        service = WatchlistService(db_session)
-        result = service.generate_from_scanner_results(
-            scanner_name="momentum_scan",
-            scan_date=scan_date,
-            user_id=cast(int, user.id),
-        )
-
-        # Verify result is not None
-        assert result is not None
-        assert result["today_watchlist_id"] is not None
-        assert result["history_watchlist_id"] is not None
-        assert result["symbol_count"] == 3
-
-        # Verify Today watchlist was created with replace mode
-        today_watchlist = (
-            db_session.query(Watchlist).filter(Watchlist.id == result["today_watchlist_id"]).first()
-        )
-        assert today_watchlist is not None
-        assert today_watchlist.name == "Momentum Scan - Today"
-        assert today_watchlist.is_auto_generated is True
-        assert today_watchlist.scanner_name == "momentum_scan"
-        assert today_watchlist.watchlist_mode == "static"
-        assert today_watchlist.source_scan_date.date() == scan_date
-
-        # Verify Today watchlist has 3 symbols
-        today_symbols = (
-            db_session.query(WatchlistSymbol)
-            .filter(WatchlistSymbol.watchlist_id == today_watchlist.id)
-            .all()
-        )
-        assert len(today_symbols) == 3
-
-        # Verify History watchlist was created with append mode
-        history_watchlist = (
-            db_session.query(Watchlist)
-            .filter(Watchlist.id == result["history_watchlist_id"])
-            .first()
-        )
-        assert history_watchlist is not None
-        assert history_watchlist.name == "Momentum Scan - History"
-        assert history_watchlist.is_auto_generated is True
-        assert history_watchlist.scanner_name == "momentum_scan"
-        assert history_watchlist.watchlist_mode == "static"
-
-        # Verify History watchlist has 3 symbols
-        history_symbols = (
-            db_session.query(WatchlistSymbol)
-            .filter(WatchlistSymbol.watchlist_id == history_watchlist.id)
-            .all()
-        )
-        assert len(history_symbols) == 3
-
-    def test_generate_watchlists_replace_mode_today(self, db_session: Session):
-        """Test that Today watchlist is replaced (deleted and recreated) on subsequent runs."""
-        from datetime import date, timedelta
-        from src.db.models import ScannerResult, WatchlistCategory
-
-        # Create user and category
-        user = User(username="testuser", password_hash="hash")
-        db_session.add(user)
-        db_session.commit()
-
-        category = WatchlistCategory(
-            user_id=cast(int, user.id),
-            name="Scanner Results",
-            icon="📊",
-            is_system=True,
-            sort_order=2,
-        )
-        db_session.add(category)
-        db_session.commit()
-
-        # Create stocks
-        stock1 = Stock(symbol="AAPL", name="Apple Inc.")
-        stock2 = Stock(symbol="MSFT", name="Microsoft Corp.")
-        db_session.add_all([stock1, stock2])
-        db_session.commit()
-
-        # First scan date - create watchlists
-        scan_date1 = date.today() - timedelta(days=1)
-        result1 = ScannerResult(
-            stock_id=stock1.id,
-            scanner_name="momentum_scan",
-            result_metadata={"rsi": 75},
-            matched_at=scan_date1,
-        )
-        db_session.add(result1)
-        db_session.commit()
-
-        service = WatchlistService(db_session)
-        result = service.generate_from_scanner_results(
-            scanner_name="momentum_scan",
-            scan_date=scan_date1,
-            user_id=cast(int, user.id),
-        )
-
-        assert result is not None, "Result should not be None"
-        today_watchlist_id_1 = result["today_watchlist_id"]
-        history_watchlist_id_1 = result["history_watchlist_id"]
-
-        # Verify Today watchlist has 1 symbol
-        today_symbols_1 = (
-            db_session.query(WatchlistSymbol)
-            .filter(WatchlistSymbol.watchlist_id == today_watchlist_id_1)
-            .all()
-        )
-        assert len(today_symbols_1) == 1
-
-        # Second scan date - should replace Today but append to History
-        scan_date2 = date.today()
-        result2 = ScannerResult(
-            stock_id=stock2.id,
-            scanner_name="momentum_scan",
-            result_metadata={"rsi": 68},
-            matched_at=scan_date2,
-        )
-        db_session.add(result2)
-        db_session.commit()
-
-        result = service.generate_from_scanner_results(
-            scanner_name="momentum_scan",
-            scan_date=scan_date2,
-            user_id=cast(int, user.id),
-        )
-
-        assert result is not None, "Result should not be None"
-        today_watchlist_id_2 = result["today_watchlist_id"]
-        history_watchlist_id_2 = result["history_watchlist_id"]
-
-        # Verify Today watchlist ID changed (was replaced)
-        assert today_watchlist_id_2 != today_watchlist_id_1
-
-        # Verify Today watchlist has 1 symbol (new result only)
-        today_symbols_2 = (
-            db_session.query(WatchlistSymbol)
-            .filter(WatchlistSymbol.watchlist_id == today_watchlist_id_2)
-            .all()
-        )
-        assert len(today_symbols_2) == 1
-
-        # Verify History watchlist ID stayed the same (was appended to)
-        assert history_watchlist_id_2 == history_watchlist_id_1
-
-        # Verify History watchlist has 2 symbols (both scans)
-        history_symbols_2 = (
-            db_session.query(WatchlistSymbol)
-            .filter(WatchlistSymbol.watchlist_id == history_watchlist_id_2)
-            .all()
-        )
-        assert len(history_symbols_2) == 2
-
-    def test_generate_watchlists_no_results(self, db_session: Session):
-        """Test that None is returned when no scanner results found."""
-        from datetime import date
-
-        # Create user
-        user = User(username="testuser", password_hash="hash")
-        db_session.add(user)
-        db_session.commit()
-
-        # Try to generate watchlists with no scanner results
-        service = WatchlistService(db_session)
-        result = service.generate_from_scanner_results(
-            scanner_name="momentum_scan",
-            scan_date=date.today(),
-            user_id=cast(int, user.id),
-        )
-
-        # Verify None is returned
-        assert result is None
-
-    def test_format_scanner_name(self, db_session: Session):
-        """Test formatting scanner names for display."""
-        service = WatchlistService(db_session)
-
-        # Test various scanner name formats
-        assert service._format_scanner_name("momentum_scan") == "Momentum Scan"
-        assert service._format_scanner_name("price_action") == "Price Action"
-        assert service._format_scanner_name("volume_scan") == "Volume Scan"
-        assert service._format_scanner_name("rsi_divergence") == "Rsi Divergence"
-        assert service._format_scanner_name("macd_crossover") == "Macd Crossover"
-
-    def test_get_or_create_scanner_category(self, db_session: Session):
-        """Test getting or creating Scanner Results category."""
-        from src.db.models import WatchlistCategory
-
-        # Create user
-        user = User(username="testuser", password_hash="hash")
-        db_session.add(user)
-        db_session.commit()
-
-        service = WatchlistService(db_session)
-
-        # First call should create the category
-        category1 = service._get_or_create_scanner_category(user_id=cast(int, user.id))
-        assert category1 is not None
-        assert category1.name == "Scanner Results"
-        assert category1.icon == "📊"
-        assert category1.is_system is True
-        assert category1.sort_order == 2
-
-        # Second call should return the same category
-        category2 = service._get_or_create_scanner_category(user_id=cast(int, user.id))
-        assert category2.id == category1.id
-
-        # Verify no duplicate category was created
-        all_categories = (
-            db_session.query(WatchlistCategory)
-            .filter(
-                WatchlistCategory.user_id == cast(int, user.id),
-                WatchlistCategory.name == "Scanner Results",
-            )
-            .all()
-        )
-        assert len(all_categories) == 1

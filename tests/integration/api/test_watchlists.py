@@ -415,3 +415,83 @@ def test_delete_watchlist_not_owned_returns_404(authenticated_client, seeded_use
     # Verify original watchlist still exists
     still_exists = db_session.get(Watchlist, watchlist.id)
     assert still_exists is not None
+
+
+def test_get_watchlists_uncategorized_watchlist_is_visible(
+    authenticated_client, seeded_user, db_session
+):
+    """GET /api/watchlists includes watchlists with no category under 'Uncategorized'."""
+    user, _ = seeded_user
+
+    # Create a watchlist with no category
+    wl = Watchlist(
+        user_id=user.id,
+        name="No Category List",
+        category_id=None,
+        is_auto_generated=False,
+        watchlist_mode="static",
+    )
+    db_session.add(wl)
+    db_session.commit()
+
+    resp = authenticated_client.get("/api/watchlists")
+    assert resp.status_code == 200
+    data = resp.json()
+
+    uncategorized = next((g for g in data if g["category_name"] == "Uncategorized"), None)
+    assert uncategorized is not None, "Uncategorized group must appear"
+    assert any(w["name"] == "No Category List" for w in uncategorized["watchlists"])
+
+
+def test_update_watchlist_can_clear_category_id(authenticated_client, seeded_user, db_session):
+    """PUT /api/watchlists/{id} with category_id=null clears the category."""
+    user, _ = seeded_user
+
+    cat = WatchlistCategory(user_id=user.id, name="Temp Cat", is_system=False, sort_order=1)
+    db_session.add(cat)
+    db_session.commit()
+
+    wl = Watchlist(
+        user_id=user.id,
+        name="Categorized List",
+        category_id=cat.id,
+        is_auto_generated=False,
+        watchlist_mode="static",
+    )
+    db_session.add(wl)
+    db_session.commit()
+
+    resp = authenticated_client.put(f"/api/watchlists/{wl.id}", json={"category_id": None})
+    assert resp.status_code == 200
+    assert resp.json()["category_id"] is None
+
+    db_session.expire_all()
+    updated = db_session.get(Watchlist, wl.id)
+    assert updated.category_id is None
+
+
+def test_update_watchlist_partial_update_name_only_preserves_category(
+    authenticated_client, seeded_user, db_session
+):
+    """PUT /api/watchlists/{id} with name only does not clear category_id."""
+    user, _ = seeded_user
+
+    cat = WatchlistCategory(user_id=user.id, name="Keep Cat", is_system=False, sort_order=1)
+    db_session.add(cat)
+    db_session.commit()
+
+    wl = Watchlist(
+        user_id=user.id,
+        name="Original Name",
+        category_id=cat.id,
+        is_auto_generated=False,
+        watchlist_mode="static",
+    )
+    db_session.add(wl)
+    db_session.commit()
+
+    resp = authenticated_client.put(f"/api/watchlists/{wl.id}", json={"name": "New Name"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["name"] == "New Name"
+    assert data["category_id"] == cat.id

@@ -215,6 +215,8 @@ class TestCategoryResponseSchema:
             description = "Test description"
             color = "#123456"
             icon = "test-icon"
+            is_system = False
+            sort_order = 0
             created_at = datetime.now()
             updated_at = datetime.now()
 
@@ -270,6 +272,8 @@ class TestCategoryWatchlistsSchema:
             description = "Test"
             color = "#FFF"
             icon = "test"
+            is_system = False
+            sort_order = 0
             created_at = datetime.now()
             updated_at = datetime.now()
 

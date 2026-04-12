@@ -1,7 +1,7 @@
 """Watchlist service layer with business logic for CRUD operations."""
 
-from datetime import date, datetime, timedelta
-from typing import List, Optional, Dict, cast
+from datetime import date, timedelta
+from typing import List, Optional, cast
 
 from sqlalchemy.orm import Session
 
@@ -10,7 +10,6 @@ from src.db.models import (
     Watchlist,
     WatchlistCategory,
     WatchlistSymbol,
-    ScannerResult,
 )
 
 
@@ -108,10 +107,13 @@ class WatchlistService:
         if not watchlist:
             return None
 
-        # Update only allowed fields
+        # Update only allowed fields; category_id and description allow None to clear
         allowed_fields = {"name", "description", "category_id"}
+        nullable_fields = {"category_id", "description"}
         for field, value in kwargs.items():
-            if field in allowed_fields and value is not None:
+            if field not in allowed_fields:
+                continue
+            if field in nullable_fields or value is not None:
                 setattr(watchlist, field, value)
 
         self.db_session.commit()
@@ -357,8 +359,8 @@ class WatchlistService:
             .all()
         )
 
-        # If all 4 defaults exist, return them
-        if len(existing_categories) == 4:
+        # If all defaults exist (or more), return them
+        if len(existing_categories) >= len(defaults):
             # Return them ordered by sort_order
             return sorted(existing_categories, key=lambda x: cast(int, x.sort_order))
 
@@ -546,262 +548,46 @@ class WatchlistService:
                 }
             )
 
-        return result
-
-    def generate_from_scanner_results(
-        self,
-        scanner_name: str,
-        scan_date: date,
-        user_id: int,
-    ) -> Optional[Dict]:
-        """Generate watchlists from scanner results.
-
-        Creates two watchlists:
-        1. "{Scanner} - Today" - replace mode (deleted and recreated each day)
-        2. "{Scanner} - History" - append mode (accumulates all historical results)
-
-        Args:
-            scanner_name: Name of the scanner (e.g., "momentum_scan")
-            scan_date: Date of the scan results
-            user_id: ID of the user
-
-        Returns:
-            Dict with keys:
-                - today_watchlist_id: ID of the Today watchlist
-                - history_watchlist_id: ID of the History watchlist
-                - symbol_count: Number of symbols added
-            Returns None if no scanner results found
-        """
-        # Query scanner results for the given scanner and date
-        scan_datetime = datetime.combine(scan_date, datetime.min.time())
-        results = (
-            self.db_session.query(ScannerResult)
+        # Include watchlists with no category under a synthetic "Uncategorized" group
+        uncategorized_watchlists = (
+            self.db_session.query(Watchlist)
             .filter(
-                ScannerResult.scanner_name == scanner_name,
-                ScannerResult.matched_at >= scan_datetime,
-                ScannerResult.matched_at < scan_datetime.replace(hour=23, minute=59, second=59),
+                Watchlist.user_id == user_id,
+                Watchlist.category_id.is_(None),
             )
+            .order_by(Watchlist.created_at.desc())
             .all()
         )
 
-        # Return None if no results found
-        if not results:
-            return None
-
-        # Get or create the Scanner Results category
-        category = self._get_or_create_scanner_category(user_id=user_id)
-
-        # Format scanner name for display
-        display_name = self._format_scanner_name(scanner_name)
-
-        # Create or replace the Today watchlist
-        today_watchlist = self._create_or_replace_watchlist(
-            user_id=user_id,
-            scanner_name=scanner_name,
-            display_name=display_name,
-            category_id=cast(int, category.id),
-            scan_date=scan_date,
-        )
-
-        # Create or append to the History watchlist
-        history_watchlist = self._create_or_append_watchlist(
-            user_id=user_id,
-            scanner_name=scanner_name,
-            display_name=display_name,
-            category_id=cast(int, category.id),
-        )
-
-        # Add symbols to both watchlists
-        stock_ids = [result.stock_id for result in results]
-        for stock_id in stock_ids:
-            # Add to Today watchlist
-            existing_today = (
-                self.db_session.query(WatchlistSymbol)
-                .filter(
-                    WatchlistSymbol.watchlist_id == today_watchlist.id,
-                    WatchlistSymbol.stock_id == stock_id,
+        if uncategorized_watchlists:
+            uncategorized_data = []
+            for watchlist in uncategorized_watchlists:
+                symbol_count = (
+                    self.db_session.query(WatchlistSymbol)
+                    .filter(WatchlistSymbol.watchlist_id == watchlist.id)
+                    .count()
                 )
-                .first()
-            )
-            if not existing_today:
-                symbol_today = WatchlistSymbol(
-                    watchlist_id=today_watchlist.id,
-                    stock_id=stock_id,
+                uncategorized_data.append(
+                    {
+                        "id": watchlist.id,
+                        "name": watchlist.name,
+                        "description": watchlist.description,
+                        "symbol_count": symbol_count,
+                        "created_at": watchlist.created_at,
+                        "updated_at": watchlist.updated_at,
+                    }
                 )
-                self.db_session.add(symbol_today)
-
-            # Add to History watchlist (check for duplicates)
-            existing_history = (
-                self.db_session.query(WatchlistSymbol)
-                .filter(
-                    WatchlistSymbol.watchlist_id == history_watchlist.id,
-                    WatchlistSymbol.stock_id == stock_id,
-                )
-                .first()
+            result.append(
+                {
+                    "category_id": None,
+                    "category_name": "Uncategorized",
+                    "category_icon": "",
+                    "is_system": False,
+                    "watchlists": uncategorized_data,
+                }
             )
-            if not existing_history:
-                symbol_history = WatchlistSymbol(
-                    watchlist_id=history_watchlist.id,
-                    stock_id=stock_id,
-                )
-                self.db_session.add(symbol_history)
 
-        self.db_session.commit()
-
-        return {
-            "today_watchlist_id": today_watchlist.id,
-            "history_watchlist_id": history_watchlist.id,
-            "symbol_count": len(stock_ids),
-        }
-
-    def _get_or_create_scanner_category(self, user_id: int) -> WatchlistCategory:
-        """Get or create the 'Scanner Results' category for a user.
-
-        Args:
-            user_id: ID of the user
-
-        Returns:
-            WatchlistCategory instance for Scanner Results
-        """
-        # Try to get existing category
-        category = (
-            self.db_session.query(WatchlistCategory)
-            .filter(
-                WatchlistCategory.user_id == user_id,
-                WatchlistCategory.name == "Scanner Results",
-            )
-            .first()
-        )
-
-        # Create if it doesn't exist
-        if not category:
-            category = WatchlistCategory(
-                user_id=user_id,
-                name="Scanner Results",
-                icon="📊",
-                is_system=True,
-                sort_order=2,
-            )
-            self.db_session.add(category)
-            self.db_session.commit()
-            self.db_session.refresh(category)
-
-        return category
-
-    def _create_or_replace_watchlist(
-        self,
-        user_id: int,
-        scanner_name: str,
-        display_name: str,
-        category_id: int,
-        scan_date: date,
-    ) -> Watchlist:
-        """Create or replace a watchlist for scanner results (Today mode).
-
-        Args:
-            user_id: ID of the user
-            scanner_name: Name of the scanner (e.g., "momentum_scan")
-            display_name: Formatted display name (e.g., "Momentum Scan")
-            category_id: ID of the Scanner Results category
-            scan_date: Date of the scan
-
-        Returns:
-            Watchlist instance (newly created or replaced)
-        """
-        watchlist_name = f"{display_name} - Today"
-
-        # Check if watchlist already exists
-        existing = (
-            self.db_session.query(Watchlist)
-            .filter(
-                Watchlist.user_id == user_id,
-                Watchlist.name == watchlist_name,
-            )
-            .first()
-        )
-
-        # Delete existing watchlist if found (replace mode)
-        if existing:
-            self.db_session.delete(existing)
-            self.db_session.commit()
-
-        # Create new watchlist
-        watchlist = Watchlist(
-            user_id=user_id,
-            name=watchlist_name,
-            category_id=category_id,
-            is_auto_generated=True,
-            scanner_name=scanner_name,
-            watchlist_mode="static",
-            source_scan_date=datetime.combine(scan_date, datetime.min.time()),
-        )
-        self.db_session.add(watchlist)
-        self.db_session.commit()
-        self.db_session.refresh(watchlist)
-
-        return watchlist
-
-    def _create_or_append_watchlist(
-        self,
-        user_id: int,
-        scanner_name: str,
-        display_name: str,
-        category_id: int,
-    ) -> Watchlist:
-        """Create or get a watchlist for scanner results (History mode).
-
-        Args:
-            user_id: ID of the user
-            scanner_name: Name of the scanner (e.g., "momentum_scan")
-            display_name: Formatted display name (e.g., "Momentum Scan")
-            category_id: ID of the Scanner Results category
-
-        Returns:
-            Watchlist instance (newly created or existing)
-        """
-        watchlist_name = f"{display_name} - History"
-
-        # Check if watchlist already exists
-        existing = (
-            self.db_session.query(Watchlist)
-            .filter(
-                Watchlist.user_id == user_id,
-                Watchlist.name == watchlist_name,
-            )
-            .first()
-        )
-
-        # Return existing if found (append mode)
-        if existing:
-            return existing
-
-        # Create new watchlist if it doesn't exist
-        watchlist = Watchlist(
-            user_id=user_id,
-            name=watchlist_name,
-            category_id=category_id,
-            is_auto_generated=True,
-            scanner_name=scanner_name,
-            watchlist_mode="static",
-        )
-        self.db_session.add(watchlist)
-        self.db_session.commit()
-        self.db_session.refresh(watchlist)
-
-        return watchlist
-
-    def _format_scanner_name(self, scanner_name: str) -> str:
-        """Format scanner name for display in watchlist names.
-
-        Converts snake_case to Title Case.
-
-        Args:
-            scanner_name: Scanner name (e.g., "momentum_scan")
-
-        Returns:
-            Formatted name (e.g., "Momentum Scan")
-        """
-        return scanner_name.replace("_", " ").title()
+        return result
 
 
 class WatchlistGenerationService:
