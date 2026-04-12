@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+# Pre-push hook to prevent direct pushes to master branch
+# This enforces the use of feature branches and pull requests
+
+REMOTE="$1"
+URL="$2"
+
+echo "Checking branches to be pushed..."
+
+# Get the list of refs being pushed
+while read LOCAL_REF LOCAL_SHA REMOTE_REF REMOTE_SHA
+do
+    # Check if the remote ref is master
+    if [[ "$REMOTE_REF" == *"refs/heads/master"* ]]; then
+        echo ""
+        echo "❌ ERROR: Attempting to push directly to master branch!"
+        echo ""
+        echo "Direct pushes to master are not allowed."
+        echo ""
+        echo "Please follow this workflow:"
+        echo "  1. Create or switch to a feature branch:"
+        echo "     git checkout -b feature/your-feature-name"
+        echo "  2. Commit your changes to the feature branch"
+        echo "  3. Push the feature branch:"
+        echo "     git push origin feature/your-feature-name"
+        echo "  4. Create a pull request on GitHub"
+        echo "  5. After review, merge the PR into master"
+        echo ""
+        echo "If you need to update master, pull from origin instead:"
+        echo "  git pull origin master"
+        echo ""
+        exit 1
+    fi
+done
+
+echo "✅ Push pre-checks passed"
+exit 0

@@ -7,6 +7,8 @@ A Python project with best practices for repository management, CI/CD, and secur
 
 ## Quick Start
 
+> **Note**: This project includes a Foundation sub-project with FastAPI backend and SolidJS frontend.
+
 ### Setup
 ```bash
 make install       # Install development dependencies
