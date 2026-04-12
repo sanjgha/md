@@ -390,7 +390,7 @@ def schedule_analyze_cmd():
     logger.info("Starting analysis scheduler...")
 
     def run_analyze():
-        """Callback invoked by scheduler."""
+        """Invoke the analysis callback."""
         runner = CliRunner()
         result = runner.invoke(analyze_cmd, ["--days", "1"])
         if result.exit_code != 0:
@@ -726,7 +726,7 @@ def schedule_fetch_cmd():
     logger.info("Starting data fetch scheduler...")
 
     def run_fetch():
-        """Callback invoked by scheduler."""
+        """Invoke the fetch callback."""
         runner = CliRunner()
         result = runner.invoke(fetch_data, [])
         if result.exit_code != 0:
@@ -772,7 +772,7 @@ def schedule_scan_cmd():
     logger.info("Starting scan scheduler...")
 
     def run_scan():
-        """Callback invoked by scheduler."""
+        """Invoke the scan callback."""
         runner = CliRunner()
         result = runner.invoke(scan, [])
         if result.exit_code != 0:
@@ -816,7 +816,7 @@ def schedule_cmd():
     logger.info("Starting APScheduler...")
 
     def run_eod():
-        """Callback invoked by scheduler."""
+        """Invoke the EOD callback."""
         from click.testing import CliRunner
 
         runner = CliRunner()
