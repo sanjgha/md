@@ -240,8 +240,8 @@ def update_watchlist(
 
     service = WatchlistService(db)
 
-    # Build update kwargs from non-None fields
-    update_data = payload.model_dump(exclude_none=True)
+    # Build update kwargs from fields explicitly set by caller (preserve sent nulls)
+    update_data = payload.model_dump(exclude_unset=True)
 
     watchlist = service.update_watchlist(
         watchlist_id=watchlist_id,
