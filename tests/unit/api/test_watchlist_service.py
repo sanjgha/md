@@ -1168,6 +1168,31 @@ class TestGetOrCreateDefaultCategories:
         )
         assert len(all_categories) == 4
 
+    def test_get_or_create_default_categories_with_extra_system_category(self, db_session: Session):
+        """get_or_create_default_categories does not crash when user has 5+ system categories."""
+        from src.db.models import WatchlistCategory
+
+        user = User(username="cat5user", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        # Create 5 system categories (4 defaults + 1 extra)
+        names = ["Active Trading", "Scanner Results", "Research", "Archived", "Extra System"]
+        for i, name in enumerate(names, 1):
+            cat = WatchlistCategory(
+                user_id=user.id,
+                name=name,
+                is_system=True,
+                sort_order=i,
+            )
+            db_session.add(cat)
+        db_session.commit()
+
+        svc = WatchlistService(db_session)
+        # Must not raise IntegrityError
+        result = svc.get_or_create_default_categories(cast(int, user.id))
+        assert len(result) >= 4
+
 
 class TestGetUserCategories:
     """Test get_user_categories method."""

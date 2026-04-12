@@ -358,8 +358,8 @@ class WatchlistService:
             .all()
         )
 
-        # If all 4 defaults exist, return them
-        if len(existing_categories) == 4:
+        # If all defaults exist (or more), return them
+        if len(existing_categories) >= len(defaults):
             # Return them ordered by sort_order
             return sorted(existing_categories, key=lambda x: cast(int, x.sort_order))
 
