@@ -443,9 +443,7 @@ def test_get_watchlists_uncategorized_watchlist_is_visible(
     assert any(w["name"] == "No Category List" for w in uncategorized["watchlists"])
 
 
-def test_update_watchlist_can_clear_category_id(
-    authenticated_client, seeded_user, db_session
-):
+def test_update_watchlist_can_clear_category_id(authenticated_client, seeded_user, db_session):
     """PUT /api/watchlists/{id} with category_id=null clears the category."""
     user, _ = seeded_user
 

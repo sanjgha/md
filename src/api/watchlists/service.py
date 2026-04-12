@@ -1,7 +1,7 @@
 """Watchlist service layer with business logic for CRUD operations."""
 
-from datetime import date, datetime, timedelta
-from typing import List, Optional, Dict, cast
+from datetime import date, timedelta
+from typing import List, Optional, cast
 
 from sqlalchemy.orm import Session
 

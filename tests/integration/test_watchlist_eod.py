@@ -203,12 +203,16 @@ def test_generate_twice_replaces_today_and_appends_history(db_session: Session):
     svc.generate_from_scanner_results("momentum", yesterday, cast(int, user.id))
 
     # Verify Today has 1 symbol, History has 1 symbol
-    today_wl = db_session.query(Watchlist).filter_by(
-        user_id=user.id, scanner_name="momentum", watchlist_mode="replace"
-    ).first()
-    history_wl = db_session.query(Watchlist).filter_by(
-        user_id=user.id, scanner_name="momentum", watchlist_mode="append"
-    ).first()
+    today_wl = (
+        db_session.query(Watchlist)
+        .filter_by(user_id=user.id, scanner_name="momentum", watchlist_mode="replace")
+        .first()
+    )
+    history_wl = (
+        db_session.query(Watchlist)
+        .filter_by(user_id=user.id, scanner_name="momentum", watchlist_mode="append")
+        .first()
+    )
     assert today_wl is not None
     assert history_wl is not None
     assert db_session.query(WatchlistSymbol).filter_by(watchlist_id=today_wl.id).count() == 1
@@ -236,9 +240,15 @@ def test_generate_twice_replaces_today_and_appends_history(db_session: Session):
     assert db_session.query(WatchlistSymbol).filter_by(watchlist_id=history_wl.id).count() == 2
 
     # No duplicate watchlists created
-    assert db_session.query(Watchlist).filter_by(
-        user_id=user.id, scanner_name="momentum", watchlist_mode="replace"
-    ).count() == 1
-    assert db_session.query(Watchlist).filter_by(
-        user_id=user.id, scanner_name="momentum", watchlist_mode="append"
-    ).count() == 1
+    assert (
+        db_session.query(Watchlist)
+        .filter_by(user_id=user.id, scanner_name="momentum", watchlist_mode="replace")
+        .count()
+        == 1
+    )
+    assert (
+        db_session.query(Watchlist)
+        .filter_by(user_id=user.id, scanner_name="momentum", watchlist_mode="append")
+        .count()
+        == 1
+    )
