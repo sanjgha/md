@@ -22,8 +22,8 @@ def test_fetcher_bulk_upsert_daily_candles(db_session: Session):
     fetcher = DataFetcher(provider=mock_provider, db=db_session, rate_limit_delay=0)
     fetcher.sync_daily(symbols=["AAPL"])
 
-    aapl = db_session.query(Stock).filter_by(symbol="AAPL").first()
-    assert len(aapl.daily_candles) == 5
+    aapl = db_session.query(Stock).filter_by(symbol="AAPL").first()  # type: ignore[union-attr]
+    assert len(aapl.daily_candles) == 5  # type: ignore[union-attr]
 
 
 def test_fetcher_daily_no_duplicate_on_resync(db_session: Session):
@@ -42,6 +42,7 @@ def test_fetcher_daily_no_duplicate_on_resync(db_session: Session):
     fetcher.sync_daily(symbols=["GOOGL"])  # second sync — same data
 
     googl = db_session.query(Stock).filter_by(symbol="GOOGL").first()
+    assert googl is not None, "Stock should exist after sync"
     assert len(googl.daily_candles) == 1  # no duplicate
 
 
@@ -60,8 +61,8 @@ def test_fetcher_sync_intraday(db_session: Session):
     fetcher = DataFetcher(provider=mock_provider, db=db_session, rate_limit_delay=0)
     fetcher.sync_intraday(symbols=["TSLA"], resolutions=["5m"], days_back=1)
 
-    tsla = db_session.query(Stock).filter_by(symbol="TSLA").first()
-    assert len(tsla.intraday_candles) == 2
+    tsla = db_session.query(Stock).filter_by(symbol="TSLA").first()  # type: ignore[union-attr]
+    assert len(tsla.intraday_candles) == 2  # type: ignore[union-attr]
 
 
 def test_fetcher_sync_news(db_session: Session):
@@ -84,9 +85,9 @@ def test_fetcher_sync_news(db_session: Session):
     fetcher = DataFetcher(provider=mock_provider, db=db_session, rate_limit_delay=0)
     fetcher.sync_news(symbols=["NVDA"])
 
-    nvda = db_session.query(Stock).filter_by(symbol="NVDA").first()
-    assert len(nvda.news) == 1
-    assert nvda.news[0].headline == "Nvidia releases new GPU"
+    nvda = db_session.query(Stock).filter_by(symbol="NVDA").first()  # type: ignore[union-attr]
+    assert len(nvda.news) == 1  # type: ignore[union-attr]
+    assert nvda.news[0].headline == "Nvidia releases new GPU"  # type: ignore[union-attr]
 
 
 def test_fetcher_sync_earnings(db_session: Session):
@@ -114,6 +115,6 @@ def test_fetcher_sync_earnings(db_session: Session):
     fetcher.sync_earnings(symbols=["MSFT"])
     fetcher.sync_earnings(symbols=["MSFT"])  # idempotent — no duplicate
 
-    msft = db_session.query(Stock).filter_by(symbol="MSFT").first()
-    assert len(msft.earnings) == 1
-    assert msft.earnings[0].fiscal_year == 2024
+    msft = db_session.query(Stock).filter_by(symbol="MSFT").first()  # type: ignore[union-attr]
+    assert len(msft.earnings) == 1  # type: ignore[union-attr]
+    assert msft.earnings[0].fiscal_year == 2024  # type: ignore[union-attr]

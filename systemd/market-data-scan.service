@@ -1,0 +1,17 @@
+[Unit]
+Description=Market Data Scan Scheduler (5:00 PM ET)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/projects/md
+Environment="PATH=/usr/bin:/usr/local/bin"
+ExecStart=/usr/bin/python3 -m src.main schedule-scan
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/ubuntu/projects/md/logs/scan-scheduler.log
+StandardError=append:/home/ubuntu/projects/md/logs/scan-scheduler.error.log
+
+[Install]
+WantedBy=multi-user.target

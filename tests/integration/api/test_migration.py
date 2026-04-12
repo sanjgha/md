@@ -74,7 +74,7 @@ def test_migration_downgrade_drops_tables(migration_engine, migration_container)
     os.environ["APP_PASSWORD"] = "testpassword123"
     try:
         command.upgrade(_alembic_cfg(url), "head")
-        command.downgrade(_alembic_cfg(url), "-1")
+        command.downgrade(_alembic_cfg(url), "base")
         inspector = inspect(migration_engine)
         assert "users" not in inspector.get_table_names()
         assert "ui_settings" not in inspector.get_table_names()
@@ -83,8 +83,11 @@ def test_migration_downgrade_drops_tables(migration_engine, migration_container)
         del os.environ["APP_PASSWORD"]
 
 
-def test_migration_raises_without_credentials(migration_container):
+def test_migration_raises_without_credentials(migration_container, migration_engine):
     url = migration_container.get_connection_url()
+    # Start from a clean state by downgrading to base first
+    command.downgrade(_alembic_cfg(url), "base")
+    # Clear environment variables
     for key in ("APP_USERNAME", "APP_PASSWORD"):
         os.environ.pop(key, None)
     with pytest.raises(Exception, match="APP_USERNAME"):
