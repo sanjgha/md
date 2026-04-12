@@ -270,7 +270,7 @@ class WatchlistService:
         self,
         user_id: int,
         name: str,
-        icon: str,
+        icon: Optional[str] = None,
         is_system: bool = False,
         description: Optional[str] = None,
         color: Optional[str] = None,
@@ -280,7 +280,7 @@ class WatchlistService:
         Args:
             user_id: ID of the user creating the category
             name: Name of the category
-            icon: Emoji icon for the category
+            icon: Emoji icon for the category (optional)
             is_system: Whether this is a system category (default False)
             description: Optional description
             color: Optional hex color code
@@ -288,10 +288,13 @@ class WatchlistService:
         Returns:
             Created WatchlistCategory instance
         """
+        # Convert empty string to None for icon
+        icon_value = icon if icon else None
+
         category = WatchlistCategory(
             user_id=user_id,
             name=name,
-            icon=icon,
+            icon=icon_value,
             is_system=is_system,
             description=description,
             color=color,
