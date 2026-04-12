@@ -107,12 +107,13 @@ class WatchlistService:
         if not watchlist:
             return None
 
-        # Update only allowed fields; category_id explicitly allows None (to unassign)
+        # Update only allowed fields; category_id and description allow None to clear
         allowed_fields = {"name", "description", "category_id"}
+        nullable_fields = {"category_id", "description"}
         for field, value in kwargs.items():
             if field not in allowed_fields:
                 continue
-            if field == "category_id" or value is not None:
+            if field in nullable_fields or value is not None:
                 setattr(watchlist, field, value)
 
         self.db_session.commit()
