@@ -16,6 +16,7 @@ class Config:
         self.MARKETDATA_API_TOKEN = os.getenv("MARKETDATA_API_TOKEN")
         self.LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
         self.LOG_FILE = os.getenv("LOG_FILE", "logs/market_data.log")
+        self.GLM_API_KEY = os.getenv("GLM_API_KEY")  # Optional: for GLM-5.1 trading analysis
 
         if not self.DATABASE_URL:
             raise ValueError("DATABASE_URL environment variable is required")
