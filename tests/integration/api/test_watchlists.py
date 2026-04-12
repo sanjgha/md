@@ -415,3 +415,29 @@ def test_delete_watchlist_not_owned_returns_404(authenticated_client, seeded_use
     # Verify original watchlist still exists
     still_exists = db_session.get(Watchlist, watchlist.id)
     assert still_exists is not None
+
+
+def test_get_watchlists_uncategorized_watchlist_is_visible(
+    authenticated_client, seeded_user, db_session
+):
+    """GET /api/watchlists includes watchlists with no category under 'Uncategorized'."""
+    user, _ = seeded_user
+
+    # Create a watchlist with no category
+    wl = Watchlist(
+        user_id=user.id,
+        name="No Category List",
+        category_id=None,
+        is_auto_generated=False,
+        watchlist_mode="static",
+    )
+    db_session.add(wl)
+    db_session.commit()
+
+    resp = authenticated_client.get("/api/watchlists")
+    assert resp.status_code == 200
+    data = resp.json()
+
+    uncategorized = next((g for g in data if g["category_name"] == "Uncategorized"), None)
+    assert uncategorized is not None, "Uncategorized group must appear"
+    assert any(w["name"] == "No Category List" for w in uncategorized["watchlists"])

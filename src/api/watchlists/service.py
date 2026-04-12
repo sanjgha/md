@@ -545,6 +545,45 @@ class WatchlistService:
                 }
             )
 
+        # Include watchlists with no category under a synthetic "Uncategorized" group
+        uncategorized_watchlists = (
+            self.db_session.query(Watchlist)
+            .filter(
+                Watchlist.user_id == user_id,
+                Watchlist.category_id.is_(None),
+            )
+            .order_by(Watchlist.created_at.desc())
+            .all()
+        )
+
+        if uncategorized_watchlists:
+            uncategorized_data = []
+            for watchlist in uncategorized_watchlists:
+                symbol_count = (
+                    self.db_session.query(WatchlistSymbol)
+                    .filter(WatchlistSymbol.watchlist_id == watchlist.id)
+                    .count()
+                )
+                uncategorized_data.append(
+                    {
+                        "id": watchlist.id,
+                        "name": watchlist.name,
+                        "description": watchlist.description,
+                        "symbol_count": symbol_count,
+                        "created_at": watchlist.created_at,
+                        "updated_at": watchlist.updated_at,
+                    }
+                )
+            result.append(
+                {
+                    "category_id": None,
+                    "category_name": "Uncategorized",
+                    "category_icon": "",
+                    "is_system": False,
+                    "watchlists": uncategorized_data,
+                }
+            )
+
         return result
 
 

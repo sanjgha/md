@@ -693,8 +693,11 @@ class TestGetWatchlistsGrouped:
         # Get grouped watchlists
         grouped = service.get_watchlists_grouped(user_id=cast(int, user.id))
 
-        # Should return empty list (no categories)
-        assert grouped == []
+        # Should return Uncategorized group for watchlists with no category
+        assert len(grouped) == 1
+        assert grouped[0]["category_name"] == "Uncategorized"
+        assert len(grouped[0]["watchlists"]) == 1
+        assert grouped[0]["watchlists"][0]["name"] == "Uncategorized Watchlist"
 
 
 class TestAddSymbol:
