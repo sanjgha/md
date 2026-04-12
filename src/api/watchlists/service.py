@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
-from src.db.models import Watchlist
+from src.db.models import Stock, Watchlist, WatchlistCategory, WatchlistSymbol
 
 
 class WatchlistService:
@@ -128,3 +128,281 @@ class WatchlistService:
         self.db_session.delete(watchlist)
         self.db_session.commit()
         return True
+
+    def add_symbol(
+        self,
+        watchlist_id: int,
+        user_id: int,
+        symbol: str,
+        notes: Optional[str] = None,
+    ) -> Optional[WatchlistSymbol]:
+        """Add a symbol to a watchlist.
+
+        Args:
+            watchlist_id: ID of the watchlist
+            user_id: ID of the user requesting the addition
+            symbol: Stock symbol to add (must exist in stocks table)
+            notes: Optional notes for the symbol
+
+        Returns:
+            Created WatchlistSymbol instance if successful, None if:
+            - Watchlist not found or not owned by user
+            - Stock symbol doesn't exist in stocks table
+            - Symbol already exists in the watchlist (duplicate)
+        """
+        # Verify watchlist ownership
+        watchlist = self.get_watchlist(watchlist_id, user_id)
+        if not watchlist:
+            return None
+
+        # Verify stock exists
+        stock = (
+            self.db_session.query(Stock)
+            .filter(Stock.symbol == symbol.upper())
+            .first()
+        )
+        if not stock:
+            return None
+
+        # Check for duplicate
+        existing = (
+            self.db_session.query(WatchlistSymbol)
+            .filter(
+                WatchlistSymbol.watchlist_id == watchlist_id,
+                WatchlistSymbol.stock_id == stock.id,
+            )
+            .first()
+        )
+        if existing:
+            return None
+
+        # Create and return the symbol
+        watchlist_symbol = WatchlistSymbol(
+            watchlist_id=watchlist_id,
+            stock_id=stock.id,
+            notes=notes,
+        )
+        self.db_session.add(watchlist_symbol)
+        self.db_session.commit()
+        self.db_session.refresh(watchlist_symbol)
+        return watchlist_symbol
+
+    def remove_symbol(
+        self,
+        watchlist_id: int,
+        user_id: int,
+        symbol: str,
+    ) -> bool:
+        """Remove a symbol from a watchlist.
+
+        Args:
+            watchlist_id: ID of the watchlist
+            user_id: ID of the user requesting the removal
+            symbol: Stock symbol to remove
+
+        Returns:
+            True if removed, False if:
+            - Watchlist not found or not owned by user
+            - Symbol not found in the watchlist
+        """
+        # Verify watchlist ownership
+        watchlist = self.get_watchlist(watchlist_id, user_id)
+        if not watchlist:
+            return False
+
+        # Find the stock
+        stock = (
+            self.db_session.query(Stock)
+            .filter(Stock.symbol == symbol.upper())
+            .first()
+        )
+        if not stock:
+            return False
+
+        # Find and delete the symbol
+        watchlist_symbol = (
+            self.db_session.query(WatchlistSymbol)
+            .filter(
+                WatchlistSymbol.watchlist_id == watchlist_id,
+                WatchlistSymbol.stock_id == stock.id,
+            )
+            .first()
+        )
+        if not watchlist_symbol:
+            return False
+
+        self.db_session.delete(watchlist_symbol)
+        self.db_session.commit()
+        return True
+
+    def get_watchlist_symbols(
+        self,
+        watchlist_id: int,
+        user_id: int,
+    ) -> List[WatchlistSymbol]:
+        """Get all symbols in a watchlist with stock information.
+
+        Args:
+            watchlist_id: ID of the watchlist
+            user_id: ID of the user requesting the symbols
+
+        Returns:
+            List of WatchlistSymbol instances with loaded Stock relationships,
+            ordered by priority. Returns empty list if watchlist not found or
+            not owned by user.
+        """
+        # Verify watchlist ownership
+        watchlist = self.get_watchlist(watchlist_id, user_id)
+        if not watchlist:
+            return []
+
+        # Query symbols with stock info, ordered by priority
+        symbols = (
+            self.db_session.query(WatchlistSymbol)
+            .filter(WatchlistSymbol.watchlist_id == watchlist_id)
+            .join(WatchlistSymbol.stock)
+            .order_by(WatchlistSymbol.priority)
+            .all()
+        )
+        return symbols
+
+    def create_category(
+        self,
+        user_id: int,
+        name: str,
+        icon: str,
+        is_system: bool = False,
+        description: Optional[str] = None,
+        color: Optional[str] = None,
+    ) -> WatchlistCategory:
+        """Create a new category for a user.
+
+        Args:
+            user_id: ID of the user creating the category
+            name: Name of the category
+            icon: Emoji icon for the category
+            is_system: Whether this is a system category (default False)
+            description: Optional description
+            color: Optional hex color code
+
+        Returns:
+            Created WatchlistCategory instance
+        """
+        category = WatchlistCategory(
+            user_id=user_id,
+            name=name,
+            icon=icon,
+            is_system=is_system,
+            description=description,
+            color=color,
+            sort_order=0,  # Default sort order
+        )
+        self.db_session.add(category)
+        self.db_session.commit()
+        self.db_session.refresh(category)
+        return category
+
+    def get_or_create_default_categories(self, user_id: int) -> List[WatchlistCategory]:
+        """Get or create default categories for a user.
+
+        Creates 4 default categories if they don't exist:
+        - Active Trading (🔥) - sort_order: 1
+        - Scanner Results (📊) - sort_order: 2
+        - Research (🔬) - sort_order: 3
+        - Archived (📦) - sort_order: 4
+
+        Args:
+            user_id: ID of the user
+
+        Returns:
+            List of WatchlistCategory instances (default categories)
+        """
+        # Define default categories
+        defaults = [
+            {
+                "name": "Active Trading",
+                "icon": "🔥",
+                "is_system": True,
+                "sort_order": 1,
+            },
+            {
+                "name": "Scanner Results",
+                "icon": "📊",
+                "is_system": True,
+                "sort_order": 2,
+            },
+            {
+                "name": "Research",
+                "icon": "🔬",
+                "is_system": True,
+                "sort_order": 3,
+            },
+            {
+                "name": "Archived",
+                "icon": "📦",
+                "is_system": True,
+                "sort_order": 4,
+            },
+        ]
+
+        # Get existing system categories for user
+        existing_categories = (
+            self.db_session.query(WatchlistCategory)
+            .filter(
+                WatchlistCategory.user_id == user_id,
+                WatchlistCategory.is_system == True,
+            )
+            .all()
+        )
+
+        # If all 4 defaults exist, return them
+        if len(existing_categories) == 4:
+            # Return them ordered by sort_order
+            return sorted(existing_categories, key=lambda x: x.sort_order)
+
+        # Create missing default categories
+        existing_names = {cat.name for cat in existing_categories}
+        created_categories = []
+
+        for default in defaults:
+            if default["name"] not in existing_names:
+                category = WatchlistCategory(
+                    user_id=user_id,
+                    name=default["name"],
+                    icon=default["icon"],
+                    is_system=default["is_system"],
+                    sort_order=default["sort_order"],
+                )
+                self.db_session.add(category)
+                created_categories.append(category)
+            else:
+                # Find existing category and add to result
+                for cat in existing_categories:
+                    if cat.name == default["name"]:
+                        created_categories.append(cat)
+                        break
+
+        if created_categories:
+            self.db_session.commit()
+            # Refresh to get IDs
+            for cat in created_categories:
+                self.db_session.refresh(cat)
+
+        # Return all default categories ordered by sort_order
+        return sorted(created_categories, key=lambda x: x.sort_order)
+
+    def get_user_categories(self, user_id: int) -> List[WatchlistCategory]:
+        """Get all categories for a user, ordered by sort_order.
+
+        Args:
+            user_id: ID of the user
+
+        Returns:
+            List of WatchlistCategory instances ordered by sort_order
+        """
+        return (
+            self.db_session.query(WatchlistCategory)
+            .filter(WatchlistCategory.user_id == user_id)
+            .order_by(WatchlistCategory.sort_order)
+            .all()
+        )
