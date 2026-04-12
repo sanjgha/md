@@ -1,6 +1,5 @@
 """Unit tests for WatchlistService."""
 
-import pytest
 from sqlalchemy.orm import Session
 
 from src.api.watchlists.service import WatchlistService
@@ -691,7 +690,6 @@ class TestCreateCategory:
 
     def test_create_category(self, db_session: Session):
         """Test creating a category with correct fields."""
-        from src.db.models import WatchlistCategory
 
         # Create a user
         user = User(username="testuser", password_hash="hash")
@@ -720,7 +718,6 @@ class TestCreateCategory:
 
     def test_create_category_with_optional_fields(self, db_session: Session):
         """Test creating a category with description and color."""
-        from src.db.models import WatchlistCategory
 
         # Create a user
         user = User(username="testuser", password_hash="hash")
@@ -749,7 +746,6 @@ class TestGetOrCreateDefaultCategories:
 
     def test_creates_default_categories(self, db_session: Session):
         """Test that default categories are created with correct properties."""
-        from src.db.models import WatchlistCategory
 
         # Create a user
         user = User(username="testuser", password_hash="hash")
@@ -826,7 +822,6 @@ class TestGetUserCategories:
 
     def test_get_user_categories_ordered(self, db_session: Session):
         """Test retrieving categories ordered by sort_order."""
-        from src.db.models import WatchlistCategory
 
         # Create a user
         user = User(username="testuser", password_hash="hash")

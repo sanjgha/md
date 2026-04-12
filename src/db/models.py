@@ -320,6 +320,8 @@ class WatchlistCategory(Base):
     description = Column(Text)
     color = Column(String(7))  # Hex color code
     icon = Column(String(50))
+    is_system = Column(Boolean, default=False, nullable=False)  # System categories cannot be deleted
+    sort_order = Column(Integer, default=0, nullable=False)  # For ordering categories
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

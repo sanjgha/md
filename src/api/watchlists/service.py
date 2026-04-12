@@ -350,7 +350,7 @@ class WatchlistService:
             self.db_session.query(WatchlistCategory)
             .filter(
                 WatchlistCategory.user_id == user_id,
-                WatchlistCategory.is_system == True,
+                WatchlistCategory.is_system.is_(True),
             )
             .all()
         )
