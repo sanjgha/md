@@ -406,6 +406,37 @@ def test_clone_watchlist_empty_watchlist_succeeds(authenticated_client, seeded_u
     assert len(data["symbols"]) == 0
 
 
+def test_clone_watchlist_with_other_users_category_returns_400(
+    authenticated_client, seeded_watchlist_data, db_session
+):
+    """POST /api/watchlists/{id}/clone returns 400 when category_id belongs to another user."""
+    from src.api.auth import hash_password
+    from src.db.models import User, WatchlistCategory
+
+    watchlists = seeded_watchlist_data["watchlists"]
+    original_watchlist = watchlists[0]
+
+    # Create another user with their own category
+    other_user = User(id=99, username="otheruser2", password_hash=hash_password("pass123"))
+    db_session.add(other_user)
+    other_cat = WatchlistCategory(
+        user_id=other_user.id,
+        name="Private Category",
+        is_system=False,
+        sort_order=1,
+    )
+    db_session.add(other_cat)
+    db_session.commit()
+
+    # Try to clone and assign to another user's category
+    resp = authenticated_client.post(
+        f"/api/watchlists/{original_watchlist.id}/clone",
+        json={"name": "Stolen Clone", "category_id": other_cat.id},
+    )
+    assert resp.status_code == 400
+    assert "invalid category_id" in resp.json()["detail"].lower()
+
+
 def test_get_categories_response_includes_is_system_and_sort_order(
     authenticated_client, seeded_watchlist_data
 ):
