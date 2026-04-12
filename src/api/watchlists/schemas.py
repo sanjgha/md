@@ -111,3 +111,43 @@ class WatchlistCloneRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, description="Name for the cloned watchlist")
     category_id: Optional[int] = Field(None, description="Optional category ID for the clone")
     description: Optional[str] = Field(None, description="Optional description for the clone")
+
+
+class WatchlistSymbolAddRequest(BaseModel):
+    """Schema for adding a symbol to a watchlist."""
+
+    symbol: str = Field(..., min_length=1, max_length=10, description="Stock symbol to add")
+    notes: Optional[str] = Field(None, description="Optional notes about the symbol")
+
+
+class WatchlistSymbolDetailResponse(BaseModel):
+    """Schema for watchlist symbol with stock details."""
+
+    id: int
+    stock_id: int
+    symbol: str
+    name: Optional[str]
+    notes: Optional[str]
+    priority: int
+    added_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class WatchlistSymbolsResponse(BaseModel):
+    """Schema for watchlist symbols list response."""
+
+    symbols: List[WatchlistSymbolDetailResponse] = Field(default_factory=list)
+
+
+class WatchlistSymbolAddResponse(BaseModel):
+    """Schema for successful symbol addition response."""
+
+    message: str
+    symbol: WatchlistSymbolDetailResponse
+
+
+class WatchlistSymbolRemoveResponse(BaseModel):
+    """Schema for successful symbol removal response."""
+
+    message: str
