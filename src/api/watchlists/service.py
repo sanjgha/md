@@ -163,11 +163,7 @@ class WatchlistService:
             return None
 
         # Verify stock exists
-        stock = (
-            self.db_session.query(Stock)
-            .filter(Stock.symbol == symbol.upper())
-            .first()
-        )
+        stock = self.db_session.query(Stock).filter(Stock.symbol == symbol.upper()).first()
         if not stock:
             return None
 
@@ -218,11 +214,7 @@ class WatchlistService:
             return False
 
         # Find the stock
-        stock = (
-            self.db_session.query(Stock)
-            .filter(Stock.symbol == symbol.upper())
-            .first()
-        )
+        stock = self.db_session.query(Stock).filter(Stock.symbol == symbol.upper()).first()
         if not stock:
             return False
 
@@ -948,7 +940,9 @@ class WatchlistGenerationService:
 
         if existing:
             # Remove all existing symbols (replace mode)
-            self.db.query(WatchlistSymbol).filter(WatchlistSymbol.watchlist_id == existing.id).delete()
+            self.db.query(WatchlistSymbol).filter(
+                WatchlistSymbol.watchlist_id == existing.id
+            ).delete()
             watchlist = existing
         else:
             # Create new watchlist
@@ -1052,4 +1046,3 @@ class WatchlistGenerationService:
             Formatted name (e.g., "Price Action")
         """
         return scanner_name.replace("_", " ").title()
-

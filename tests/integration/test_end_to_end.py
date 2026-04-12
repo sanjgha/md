@@ -1,6 +1,7 @@
 """End-to-end integration tests: fetch → upsert → scan → verify DB results."""
 
 from datetime import datetime
+from typing import cast
 from unittest.mock import Mock
 
 from sqlalchemy.orm import Session
@@ -36,8 +37,8 @@ def test_full_pipeline_fetch_and_scan(db_session: Session):
     fetcher = DataFetcher(provider=mock_provider, db=db_session, rate_limit_delay=0)
     fetcher.sync_daily(symbols=["E2E"])
 
-    refreshed = db_session.query(Stock).filter_by(symbol="E2E").first()
-    assert len(refreshed.daily_candles) == 250
+    refreshed = db_session.query(Stock).filter_by(symbol="E2E").first()  # type: ignore[union-attr]
+    assert len(refreshed.daily_candles) == 250  # type: ignore[union-attr]
 
     # 4. Build scanner machinery
     scanner_registry = ScannerRegistry()
@@ -61,15 +62,15 @@ def test_full_pipeline_fetch_and_scan(db_session: Session):
         db=db_session,
     )
 
-    candles = executor._to_candles(sorted(refreshed.daily_candles, key=lambda c: c.timestamp))
-    stocks_with_candles = {refreshed.id: ("E2E", candles)}
+    candles = executor._to_candles(sorted(refreshed.daily_candles, key=lambda c: c.timestamp))  # type: ignore[union-attr]
+    stocks_with_candles = {cast(int, refreshed.id): ("E2E", candles)}  # type: ignore[union-attr]
 
     # 5. Run scanners
-    results = executor.run_eod(stocks_with_candles)
+    results = executor.run_eod(stocks_with_candles)  # type: ignore[union-attr]
 
     # 6. Verify pipeline ran to completion
     assert isinstance(results, list)
-    stored = db_session.query(ScannerResult).filter_by(stock_id=refreshed.id).all()
+    stored = db_session.query(ScannerResult).filter_by(stock_id=refreshed.id).all()  # type: ignore[union-attr]
     assert len(stored) == len(results)
 
 
@@ -87,8 +88,8 @@ def test_bulk_upsert_idempotent(db_session: Session):
     fetcher.sync_daily(symbols=["IDEM"])
     fetcher.sync_daily(symbols=["IDEM"])  # second call — same data
 
-    idem = db_session.query(Stock).filter_by(symbol="IDEM").first()
-    assert len(idem.daily_candles) == 50  # no duplicates
+    idem = db_session.query(Stock).filter_by(symbol="IDEM").first()  # type: ignore[union-attr]
+    assert len(idem.daily_candles) == 50  # no duplicates  # type: ignore[union-attr]
 
 
 def test_orm_to_candle_conversion_preserves_precision(db_session: Session):
@@ -98,7 +99,7 @@ def test_orm_to_candle_conversion_preserves_precision(db_session: Session):
     db_session.flush()
 
     dc = DailyCandle(
-        stock_id=stock.id,
+        stock_id=cast(int, stock.id),
         timestamp=datetime(2024, 6, 1),
         open="123.45",
         high="125.00",
@@ -116,8 +117,9 @@ def test_orm_to_candle_conversion_preserves_precision(db_session: Session):
         db=db_session,
     )
 
-    refreshed = db_session.query(Stock).filter_by(symbol="CONV").first()
-    candles = executor._to_candles(refreshed.daily_candles)
+    refreshed = db_session.query(Stock).filter_by(symbol="CONV").first()  # type: ignore[union-attr]
+    assert refreshed is not None  # type: ignore[union-attr]
+    candles = executor._to_candles(refreshed.daily_candles)  # type: ignore[union-attr]
     assert len(candles) == 1
     assert isinstance(candles[0].close, float)
     assert isinstance(candles[0].volume, int)

@@ -90,6 +90,8 @@ def create_watchlist(
         category_id=payload.category_id,
     )
     return watchlist
+
+
 @router.get("/categories", response_model=list[CategoryResponse])
 def get_categories(
     user: User = Depends(_get_user),
@@ -465,8 +467,6 @@ def remove_symbol(
 # ========== Category Endpoints ==========
 
 
-
-
 # ========== Watchlist Clone Endpoint ==========
 
 
@@ -546,8 +546,6 @@ def clone_watchlist(
     from src.api.watchlists.schemas import WatchlistSymbolResponse
 
     response_data = WatchlistResponse.model_validate(cloned_watchlist)
-    response_data.symbols = [
-        WatchlistSymbolResponse.model_validate(sym) for sym in symbols
-    ]
+    response_data.symbols = [WatchlistSymbolResponse.model_validate(sym) for sym in symbols]
 
     return response_data

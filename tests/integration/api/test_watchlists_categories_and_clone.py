@@ -80,9 +80,7 @@ def seeded_watchlist_data(db_session: Session, seeded_user):
 # ========== GET /api/watchlists/categories ==========
 
 
-def test_get_categories_returns_all_user_categories(
-    authenticated_client, seeded_watchlist_data
-):
+def test_get_categories_returns_all_user_categories(authenticated_client, seeded_watchlist_data):
     """GET /api/watchlists/categories returns all categories for authenticated user."""
     resp = authenticated_client.get("/api/watchlists/categories")
     assert resp.status_code == 200
@@ -170,9 +168,7 @@ def test_create_category_unauthenticated_returns_401(api_client):
     assert resp.status_code == 401
 
 
-def test_create_category_duplicate_name_returns_400(
-    authenticated_client, seeded_watchlist_data
-):
+def test_create_category_duplicate_name_returns_400(authenticated_client, seeded_watchlist_data):
     """POST /api/watchlists/categories returns 400 for duplicate category name."""
     # Try to create category with same name as existing one
     resp = authenticated_client.post(
@@ -195,9 +191,7 @@ def test_create_category_invalid_name_returns_422(authenticated_client, seeded_u
 # ========== DELETE /api/watchlists/categories/{id} ==========
 
 
-def test_delete_category_custom_succeeds(
-    authenticated_client, seeded_watchlist_data
-):
+def test_delete_category_custom_succeeds(authenticated_client, seeded_watchlist_data):
     """DELETE /api/watchlists/categories/{id} deletes custom (non-system) category."""
     categories = seeded_watchlist_data["categories"]
     custom_category = categories[2]  # "Custom Category" (is_system=False)
@@ -212,16 +206,12 @@ def test_delete_category_custom_succeeds(
     assert all(cat["name"] != "Custom Category" for cat in data)
 
 
-def test_delete_category_system_returns_403(
-    authenticated_client, seeded_watchlist_data
-):
+def test_delete_category_system_returns_403(authenticated_client, seeded_watchlist_data):
     """DELETE /api/watchlists/categories/{id} returns 403 for system categories."""
     categories = seeded_watchlist_data["categories"]
     system_category = categories[0]  # "Active Trading" (is_system=True)
 
-    resp = authenticated_client.delete(
-        f"/api/watchlists/categories/{system_category.id}"
-    )
+    resp = authenticated_client.delete(f"/api/watchlists/categories/{system_category.id}")
     assert resp.status_code == 403
     assert "system categories" in resp.json()["detail"].lower()
 
@@ -363,9 +353,7 @@ def test_clone_watchlist_different_user_returns_404(
     assert resp.status_code == 404
 
 
-def test_clone_watchlist_duplicate_name_returns_400(
-    authenticated_client, seeded_watchlist_data
-):
+def test_clone_watchlist_duplicate_name_returns_400(authenticated_client, seeded_watchlist_data):
     """POST /api/watchlists/{id}/clone returns 400 if name already exists for user."""
     watchlists = seeded_watchlist_data["watchlists"]
     original_watchlist = watchlists[0]
@@ -380,9 +368,7 @@ def test_clone_watchlist_duplicate_name_returns_400(
     assert "already exists" in resp.json()["detail"].lower()
 
 
-def test_clone_watchlist_invalid_name_returns_422(
-    authenticated_client, seeded_watchlist_data
-):
+def test_clone_watchlist_invalid_name_returns_422(authenticated_client, seeded_watchlist_data):
     """POST /api/watchlists/{id}/clone returns 422 for invalid name."""
     watchlists = seeded_watchlist_data["watchlists"]
     original_watchlist = watchlists[0]
@@ -395,9 +381,7 @@ def test_clone_watchlist_invalid_name_returns_422(
     assert resp.status_code == 422
 
 
-def test_clone_watchlist_empty_watchlist_succeeds(
-    authenticated_client, seeded_user, db_session
-):
+def test_clone_watchlist_empty_watchlist_succeeds(authenticated_client, seeded_user, db_session):
     """POST /api/watchlists/{id}/clone successfully clones empty watchlist."""
     from src.db.models import Watchlist
 

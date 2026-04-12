@@ -320,12 +320,16 @@ class WatchlistCategory(Base):
     description = Column(Text)
     color = Column(String(7))  # Hex color code
     icon = Column(String(50))
-    is_system = Column(Boolean, default=False, nullable=False)  # System categories cannot be deleted
+    is_system = Column(
+        Boolean, default=False, nullable=False
+    )  # System categories cannot be deleted
     sort_order = Column(Integer, default=0, nullable=False)  # For ordering categories
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_watchlist_categories_user_name"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "name", name="uq_watchlist_categories_user_name"),
+    )
 
     user = relationship("User", back_populates="watchlist_categories")
     watchlists = relationship("Watchlist", back_populates="category")
@@ -383,9 +387,7 @@ class WatchlistSymbol(Base):
     priority = Column(Integer, default=0)  # For ordering/sorting
 
     __table_args__ = (
-        UniqueConstraint(
-            "watchlist_id", "stock_id", name="uq_watchlist_symbols_watchlist_stock"
-        ),
+        UniqueConstraint("watchlist_id", "stock_id", name="uq_watchlist_symbols_watchlist_stock"),
         Index("ix_watchlist_symbols_watchlist_priority", "watchlist_id", "priority"),
     )
 

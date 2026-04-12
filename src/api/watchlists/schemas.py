@@ -108,7 +108,9 @@ class CategoryWatchlists(BaseModel):
 class WatchlistCloneRequest(BaseModel):
     """Schema for cloning a watchlist."""
 
-    name: str = Field(..., min_length=1, max_length=100, description="Name for the cloned watchlist")
+    name: str = Field(
+        ..., min_length=1, max_length=100, description="Name for the cloned watchlist"
+    )
     category_id: Optional[int] = Field(None, description="Optional category ID for the clone")
     description: Optional[str] = Field(None, description="Optional description for the clone")
 

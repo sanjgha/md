@@ -1,6 +1,7 @@
 """Integration tests for EOD watchlist generation workflow."""
 
 from datetime import date, datetime
+from typing import cast
 from unittest.mock import Mock
 
 from sqlalchemy.orm import Session
@@ -44,8 +45,8 @@ def test_eod_watchlist_generation_workflow(db_session: Session):
     fetcher = DataFetcher(provider=mock_provider, db=db_session, rate_limit_delay=0)
     fetcher.sync_daily(symbols=["E2E"])
 
-    refreshed = db_session.query(Stock).filter_by(symbol="E2E").first()
-    assert len(refreshed.daily_candles) == 250
+    refreshed = db_session.query(Stock).filter_by(symbol="E2E").first()  # type: ignore[union-attr]
+    assert len(refreshed.daily_candles) == 250  # type: ignore[union-attr]
 
     # 5. Build scanner machinery
     scanner_registry = ScannerRegistry()
@@ -61,14 +62,14 @@ def test_eod_watchlist_generation_workflow(db_session: Session):
     )
 
     candles = executor._to_candles(sorted(refreshed.daily_candles, key=lambda c: c.timestamp))
-    stocks_with_candles = {refreshed.id: ("E2E", candles)}
+    stocks_with_candles = {cast(int, refreshed.id): ("E2E", candles)}  # type: ignore[union-attr]
 
     # 6. Run scanners
     results = executor.run_eod(stocks_with_candles)
 
     # 7. Verify scanner results exist
     assert isinstance(results, list)
-    stored = db_session.query(ScannerResult).filter_by(stock_id=refreshed.id).all()
+    stored = db_session.query(ScannerResult).filter_by(stock_id=refreshed.id).all()  # type: ignore[union-attr]
     assert len(stored) == len(results)
 
     # 8. Generate watchlists from scanner results
@@ -82,7 +83,7 @@ def test_eod_watchlist_generation_workflow(db_session: Session):
             watchlist = watchlist_service.generate_from_scanner_results(
                 scanner_name=scanner_name,
                 scan_date=date.today(),
-                user_id=user.id,
+                user_id=cast(int, user.id),
             )
             if watchlist:
                 assert watchlist.name == "Price Action - Today"
@@ -91,7 +92,7 @@ def test_eod_watchlist_generation_workflow(db_session: Session):
                 assert watchlist.watchlist_mode == "replace"
 
         # 9. Verify watchlists were created
-        watchlists = db_session.query(Watchlist).filter_by(user_id=user.id).all()
+        watchlists = db_session.query(Watchlist).filter_by(user_id=cast(int, user.id)).all()
         assert len(watchlists) > 0
 
         # Verify at least one watchlist has symbols
@@ -112,7 +113,7 @@ def test_watchlist_generation_handles_no_results(db_session: Session):
     watchlist = watchlist_service.generate_from_scanner_results(
         scanner_name="price_action",
         scan_date=date.today(),
-        user_id=user.id,
+        user_id=cast(int, user.id),
     )
 
     # Should return None when no results exist
@@ -157,13 +158,13 @@ def test_watchlist_generation_handles_multiple_scanners(db_session: Session):
     watchlist1 = watchlist_service.generate_from_scanner_results(
         scanner_name="price_action",
         scan_date=date.today(),
-        user_id=user.id,
+        user_id=cast(int, user.id),
     )
 
     watchlist2 = watchlist_service.generate_from_scanner_results(
         scanner_name="momentum",
         scan_date=date.today(),
-        user_id=user.id,
+        user_id=cast(int, user.id),
     )
 
     # Verify both watchlists were created
