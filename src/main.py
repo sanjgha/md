@@ -327,13 +327,13 @@ def status_cmd():
             scanner_counts[r.scanner_name] = scanner_counts.get(r.scanner_name, 0) + 1
 
         # Display status
-        click.echo(f"\n{'='*60}")
+        click.echo(f"\n{'=' * 60}")
         click.echo("Market Data Infrastructure Status")
-        click.echo(f"{'='*60}")
+        click.echo(f"{'=' * 60}")
         click.echo(f"Date: {today.strftime('%Y-%m-%d')}")
         click.echo(f"Time: {now.strftime('%H:%M:%S')} UTC")
         click.echo(f"Total Matches: {len(results)}")
-        click.echo(f"{'='*60}\n")
+        click.echo(f"{'=' * 60}\n")
 
         # Scanner summary
         if scanner_counts:
@@ -356,7 +356,7 @@ def status_cmd():
         else:
             click.echo("No matches found today.")
 
-        click.echo(f"\n{'='*60}\n")
+        click.echo(f"\n{'=' * 60}\n")
 
         # Check for recent errors in logs
         import os
