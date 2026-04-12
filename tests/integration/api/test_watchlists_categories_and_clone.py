@@ -404,3 +404,27 @@ def test_clone_watchlist_empty_watchlist_succeeds(authenticated_client, seeded_u
     data = resp.json()
     assert data["name"] == "Empty Copy"
     assert len(data["symbols"]) == 0
+
+
+def test_get_categories_response_includes_is_system_and_sort_order(
+    authenticated_client, seeded_watchlist_data
+):
+    """GET /api/watchlists/categories includes is_system and sort_order fields."""
+    resp = authenticated_client.get("/api/watchlists/categories")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) > 0
+
+    # All categories must expose is_system and sort_order
+    for cat in data:
+        assert "is_system" in cat, "CategoryResponse must include is_system"
+        assert "sort_order" in cat, "CategoryResponse must include sort_order"
+
+    # Verify values are correct for known categories
+    active = next(c for c in data if c["name"] == "Active Trading")
+    assert active["is_system"] is True
+    assert active["sort_order"] == 1
+
+    custom = next(c for c in data if c["name"] == "Custom Category")
+    assert custom["is_system"] is False
+    assert custom["sort_order"] == 3
