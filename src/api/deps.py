@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 @lru_cache(maxsize=1)
 def _session_factory() -> sessionmaker:
-    """Cached session factory — created once per process."""
+    """Cache session factory — created once per process."""
     config = get_config()
     engine = get_engine(config.DATABASE_URL)
     return sessionmaker(bind=engine, autocommit=False, autoflush=False)

@@ -57,7 +57,7 @@ def seeded_user(db_session: Session):
 
 @pytest.fixture
 def authenticated_client(api_client, seeded_user):
-    """API client with a valid session cookie already set."""
+    """Get an API client with a valid session cookie."""
     user, password = seeded_user
     resp = api_client.post(
         "/api/auth/login", json={"username": user.username, "password": password}
