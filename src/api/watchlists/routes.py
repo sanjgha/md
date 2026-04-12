@@ -135,7 +135,7 @@ def create_category(
     category = service.create_category(
         user_id=user.id,
         name=category_data.name,
-        icon=category_data.icon,  # Can be None, service will handle empty strings
+        icon=category_data.icon if category_data.icon is not None else "",
         is_system=False,
         description=category_data.description,
         color=category_data.color,
@@ -185,7 +185,7 @@ def delete_category(
     if category.is_system:
         raise HTTPException(
             status_code=403,
-            detail="System categories are protected and cannot be deleted",
+            detail="Cannot delete system categories",
         )
 
     # Delete the category
