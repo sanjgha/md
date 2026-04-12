@@ -1,7 +1,7 @@
 """Watchlist service layer with business logic for CRUD operations."""
 
 from datetime import date, datetime, timedelta
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, cast
 
 from sqlalchemy.orm import Session
 
@@ -368,7 +368,7 @@ class WatchlistService:
         # If all 4 defaults exist, return them
         if len(existing_categories) == 4:
             # Return them ordered by sort_order
-            return sorted(existing_categories, key=lambda x: x.sort_order)
+            return sorted(existing_categories, key=lambda x: cast(int, x.sort_order))
 
         # Create missing default categories
         existing_names = {cat.name for cat in existing_categories}
@@ -399,7 +399,7 @@ class WatchlistService:
                 self.db_session.refresh(cat)
 
         # Return all default categories ordered by sort_order
-        return sorted(created_categories, key=lambda x: x.sort_order)
+        return sorted(created_categories, key=lambda x: cast(int, x.sort_order))
 
     def get_user_categories(self, user_id: int) -> List[WatchlistCategory]:
         """Get all categories for a user, ordered by sort_order.
@@ -607,7 +607,7 @@ class WatchlistService:
             user_id=user_id,
             scanner_name=scanner_name,
             display_name=display_name,
-            category_id=category.id,
+            category_id=cast(int, category.id),
             scan_date=scan_date,
         )
 
@@ -616,7 +616,7 @@ class WatchlistService:
             user_id=user_id,
             scanner_name=scanner_name,
             display_name=display_name,
-            category_id=category.id,
+            category_id=cast(int, category.id),
         )
 
         # Add symbols to both watchlists
@@ -866,7 +866,7 @@ class WatchlistGenerationService:
             scanner_name=scanner_name,
             mode="replace",
             scan_date=scan_date,
-            category_id=scanner_category.id,
+            category_id=cast(int, scanner_category.id),
             user_id=user_id,
             results=results,
         )
@@ -875,7 +875,7 @@ class WatchlistGenerationService:
         self._create_or_append_watchlist(
             scanner_name=scanner_name,
             mode="append",
-            category_id=scanner_category.id,
+            category_id=cast(int, scanner_category.id),
             user_id=user_id,
             results=results,
         )

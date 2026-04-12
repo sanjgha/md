@@ -6,12 +6,14 @@ import App from "./app";
 import LoginPage from "./pages/login";
 import DashboardPage from "./pages/dashboard";
 import SettingsPage from "./pages/settings/index";
+import { ShowWatchlistsDashboard } from "./pages/watchlists/dashboard";
+import { ShowWatchlistView } from "./pages/watchlists/watchlist-view";
 import { fetchCurrentUser } from "./lib/auth";
 
 function RequireAuth(props: { children: any }) {
   const [user] = createResource(fetchCurrentUser);
   return (
-    <Suspense fallback={<p>Loading\u2026</p>}>
+    <Suspense fallback={<p>Loading…</p>}>
       <Show when={!user.loading}>
         <Show when={user()} fallback={<Navigate href="/login" />}>
           {props.children}
@@ -21,8 +23,8 @@ function RequireAuth(props: { children: any }) {
   );
 }
 
-render(
-  () => (
+export function AppRoutes() {
+  return (
     <Router root={App}>
       <Route path="/" component={() => <Navigate href="/dashboard" />} />
       <Route path="/login" component={LoginPage} />
@@ -50,7 +52,29 @@ render(
           </RequireAuth>
         )}
       />
+      <Route
+        path="/watchlists"
+        component={() => (
+          <RequireAuth>
+            <ShowWatchlistsDashboard />
+          </RequireAuth>
+        )}
+      />
+      <Route
+        path="/watchlists/:id"
+        component={() => (
+          <RequireAuth>
+            <ShowWatchlistView />
+          </RequireAuth>
+        )}
+      />
     </Router>
-  ),
-  document.getElementById("root")!
-);
+  );
+}
+
+// Only render if we're in a browser environment with a root element
+if (typeof document !== "undefined") {
+  render(() => <AppRoutes />, document.getElementById("root")!);
+}
+
+export default AppRoutes;

@@ -15,9 +15,8 @@ This module provides endpoints for:
 - DELETE /api/watchlists/{id}/symbols/{symbol} - Remove symbol from watchlist
 """
 
-from typing import List, cast
+from typing import List
 
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
@@ -37,7 +36,7 @@ from src.api.watchlists.schemas import (
 )
 from src.api.watchlists.service import WatchlistService
 from src.db.models import User
-from src.db.models import WatchlistCategory
+from src.db.models import Watchlist, WatchlistCategory
 
 router = APIRouter()
 
@@ -60,7 +59,7 @@ def list_watchlists(
     Returns a list of categories with their watchlists and symbol counts.
     """
     service = WatchlistService(db)
-    return service.get_watchlists_grouped(cast(int, user.id))
+    return service.get_watchlists_grouped(user.id)
 
 
 @router.post("", response_model=WatchlistResponse, status_code=201)
@@ -84,112 +83,12 @@ def create_watchlist(
 
     service = WatchlistService(db)
     watchlist = service.create_watchlist(
-        user_id=cast(int, user.id),
+        user_id=user.id,
         name=payload.name,
         description=payload.description,
         category_id=payload.category_id,
     )
     return watchlist
-@router.get("/categories", response_model=list[CategoryResponse])
-def get_categories(
-    user: User = Depends(_get_user),
-    db: Session = Depends(get_db),
-):
-    """Get all categories for the authenticated user, ordered by sort_order."""
-    from src.api.watchlists.service import WatchlistService
-
-    service = WatchlistService(db)
-    categories = service.get_user_categories(cast(int, user.id))
-    return categories
-
-
-@router.post("/categories", response_model=CategoryResponse, status_code=201)
-def create_category(
-    category_data: CategoryCreate,
-    user: User = Depends(_get_user),
-    db: Session = Depends(get_db),
-):
-    """Create a new category for the authenticated user.
-
-    Args:
-        category_data: Category creation schema with name, optional description, color, icon
-
-    Returns:
-        Created category
-
-    Raises:
-        400: If category name already exists for this user
-    """
-    from src.api.watchlists.service import WatchlistService
-
-    service = WatchlistService(db)
-
-    # Check for duplicate category name
-    existing_categories = service.get_user_categories(cast(int, user.id))
-    if any(cat.name == category_data.name for cat in existing_categories):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Category '{category_data.name}' already exists",
-        )
-
-    # Create category (user-created categories are never system categories)
-    category = service.create_category(
-        user_id=cast(int, user.id),
-        name=category_data.name,
-        icon=category_data.icon if category_data.icon is not None else "",
-        is_system=False,
-        description=category_data.description,
-        color=category_data.color,
-    )
-
-    return category
-
-
-@router.delete("/categories/{category_id}", status_code=200)
-def delete_category(
-    category_id: int,
-    user: User = Depends(_get_user),
-    db: Session = Depends(get_db),
-):
-    """Delete a category by ID.
-
-    System categories (is_system=True) are protected and cannot be deleted.
-
-    Args:
-        category_id: ID of the category to delete
-
-    Raises:
-        403: If attempting to delete a system category
-        404: If category not found or not owned by user
-    """
-    # Get category and verify ownership
-    category = (
-        db.query(WatchlistCategory)
-        .filter(
-            WatchlistCategory.id == category_id,
-            WatchlistCategory.user_id == user.id,
-        )
-        .first()
-    )
-
-    if not category:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Category with ID {category_id} not found",
-        )
-
-    # Protect system categories
-    if category.is_system:
-        raise HTTPException(
-            status_code=403,
-            detail="Cannot delete system categories",
-        )
-
-    # Delete the category
-    db.delete(category)
-    db.commit()
-
-    return {"message": "Category deleted successfully"}
 
 
 @router.get("/{watchlist_id}", response_model=WatchlistResponse)
@@ -203,7 +102,7 @@ def get_watchlist(
     Returns 404 if watchlist doesn't exist or isn't owned by the user.
     """
     service = WatchlistService(db)
-    watchlist = service.get_watchlist(watchlist_id, cast(int, user.id))
+    watchlist = service.get_watchlist(watchlist_id, user.id)
 
     if not watchlist:
         raise HTTPException(
@@ -243,7 +142,7 @@ def update_watchlist(
 
     watchlist = service.update_watchlist(
         watchlist_id=watchlist_id,
-        user_id=cast(int, user.id),
+        user_id=user.id,
         **update_data,
     )
 
@@ -267,7 +166,7 @@ def delete_watchlist(
     Returns 204 on success, 404 if watchlist doesn't exist or isn't owned by the user.
     """
     service = WatchlistService(db)
-    success = service.delete_watchlist(watchlist_id, cast(int, user.id))
+    success = service.delete_watchlist(watchlist_id, user.id)
 
     if not success:
         raise HTTPException(
@@ -294,7 +193,7 @@ def list_symbols(
     service = WatchlistService(db)
 
     # Verify watchlist ownership
-    watchlist = service.get_watchlist(watchlist_id, cast(int, user.id))
+    watchlist = service.get_watchlist(watchlist_id, user.id)
     if not watchlist:
         raise HTTPException(
             status_code=404,
@@ -302,20 +201,20 @@ def list_symbols(
         )
 
     # Get symbols with stock information
-    symbols = service.get_watchlist_symbols(watchlist_id, cast(int, user.id))
+    symbols = service.get_watchlist_symbols(watchlist_id, user.id)
 
     # Build response with stock details
     symbol_details = []
     for ws in symbols:
         symbol_details.append(
             WatchlistSymbolDetailResponse(
-                id=cast(int, ws.id),
-                stock_id=cast(int, ws.stock_id),
+                id=ws.id,
+                stock_id=ws.stock_id,
                 symbol=ws.stock.symbol,
                 name=ws.stock.name,
-                notes=cast(str | None, ws.notes),
-                priority=cast(int, ws.priority),
-                added_at=cast(datetime, ws.added_at),
+                notes=ws.notes,
+                priority=ws.priority,
+                added_at=ws.added_at,
             )
         )
 
@@ -350,7 +249,7 @@ def add_symbol(
     # Add symbol using service
     watchlist_symbol = service.add_symbol(
         watchlist_id=watchlist_id,
-        user_id=cast(int, user.id),
+        user_id=user.id,
         symbol=symbol,
         notes=payload.notes,
     )
@@ -358,7 +257,7 @@ def add_symbol(
     # Handle errors
     if not watchlist_symbol:
         # Check if watchlist exists
-        watchlist = service.get_watchlist(watchlist_id, cast(int, user.id))
+        watchlist = service.get_watchlist(watchlist_id, user.id)
         if not watchlist:
             raise HTTPException(
                 status_code=404,
@@ -384,13 +283,13 @@ def add_symbol(
 
     # Build response with stock details
     symbol_detail = WatchlistSymbolDetailResponse(
-        id=cast(int, watchlist_symbol.id),
-        stock_id=cast(int, watchlist_symbol.stock_id),
+        id=watchlist_symbol.id,
+        stock_id=watchlist_symbol.stock_id,
         symbol=watchlist_symbol.stock.symbol,
         name=watchlist_symbol.stock.name,
-        notes=cast(str | None, watchlist_symbol.notes),
-        priority=cast(int, watchlist_symbol.priority),
-        added_at=cast(datetime, watchlist_symbol.added_at),
+        notes=watchlist_symbol.notes,
+        priority=watchlist_symbol.priority,
+        added_at=watchlist_symbol.added_at,
     )
 
     return WatchlistSymbolAddResponse(
@@ -426,14 +325,14 @@ def remove_symbol(
     # Remove symbol using service
     success = service.remove_symbol(
         watchlist_id=watchlist_id,
-        user_id=cast(int, user.id),
+        user_id=user.id,
         symbol=symbol,
     )
 
     # Handle errors
     if not success:
         # Check if watchlist exists
-        watchlist = service.get_watchlist(watchlist_id, cast(int, user.id))
+        watchlist = service.get_watchlist(watchlist_id, user.id)
         if not watchlist:
             raise HTTPException(
                 status_code=404,
@@ -465,6 +364,110 @@ def remove_symbol(
 # ========== Category Endpoints ==========
 
 
+@router.get("/categories", response_model=list[CategoryResponse])
+def get_categories(
+    user: User = Depends(_get_user),
+    db: Session = Depends(get_db),
+):
+    """Get all categories for the authenticated user, ordered by sort_order."""
+    from src.api.watchlists.service import WatchlistService
+
+    service = WatchlistService(db)
+    categories = service.get_user_categories(user.id)
+    return categories
+
+
+@router.post("/categories", response_model=CategoryResponse, status_code=201)
+def create_category(
+    category_data: CategoryCreate,
+    user: User = Depends(_get_user),
+    db: Session = Depends(get_db),
+):
+    """Create a new category for the authenticated user.
+
+    Args:
+        category_data: Category creation schema with name, optional description, color, icon
+
+    Returns:
+        Created category
+
+    Raises:
+        400: If category name already exists for this user
+    """
+    from src.api.watchlists.service import WatchlistService
+
+    service = WatchlistService(db)
+
+    # Check for duplicate category name
+    existing_categories = service.get_user_categories(user.id)
+    if any(cat.name == category_data.name for cat in existing_categories):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Category '{category_data.name}' already exists",
+        )
+
+    # Create category (user-created categories are never system categories)
+    category = service.create_category(
+        user_id=user.id,
+        name=category_data.name,
+        icon=category_data.icon if category_data.icon is not None else "",
+        is_system=False,
+        description=category_data.description,
+        color=category_data.color,
+    )
+
+    return category
+
+
+@router.delete("/categories/{category_id}", status_code=200)
+def delete_category(
+    category_id: int,
+    user: User = Depends(_get_user),
+    db: Session = Depends(get_db),
+):
+    """Delete a category by ID.
+
+    System categories (is_system=True) are protected and cannot be deleted.
+
+    Args:
+        category_id: ID of the category to delete
+
+    Raises:
+        403: If attempting to delete a system category
+        404: If category not found or not owned by user
+    """
+    from src.api.watchlists.service import WatchlistService
+
+    service = WatchlistService(db)
+
+    # Get category and verify ownership
+    category = (
+        db.query(WatchlistCategory)
+        .filter(
+            WatchlistCategory.id == category_id,
+            WatchlistCategory.user_id == user.id,
+        )
+        .first()
+    )
+
+    if not category:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Category with ID {category_id} not found",
+        )
+
+    # Protect system categories
+    if category.is_system:
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot delete system categories",
+        )
+
+    # Delete the category
+    db.delete(category)
+    db.commit()
+
+    return {"message": "Category deleted successfully"}
 
 
 # ========== Watchlist Clone Endpoint ==========
@@ -502,7 +505,7 @@ def clone_watchlist(
     service = WatchlistService(db)
 
     # Verify watchlist exists and is owned by user
-    original_watchlist = service.get_watchlist(watchlist_id, cast(int, user.id))
+    original_watchlist = service.get_watchlist(watchlist_id, user.id)
     if not original_watchlist:
         raise HTTPException(
             status_code=404,
@@ -510,7 +513,7 @@ def clone_watchlist(
         )
 
     # Check for duplicate name
-    existing_watchlists = service.get_user_watchlists(cast(int, user.id))
+    existing_watchlists = service.get_user_watchlists(user.id)
     if any(wl.name == clone_data.name for wl in existing_watchlists):
         raise HTTPException(
             status_code=400,
@@ -520,27 +523,21 @@ def clone_watchlist(
     # Clone the watchlist
     cloned_watchlist = service.clone_watchlist(
         watchlist_id=watchlist_id,
-        user_id=cast(int, user.id),
+        user_id=user.id,
         new_name=clone_data.name,
     )
 
-    if not cloned_watchlist:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to clone watchlist",
-        )
-
     # Apply optional overrides
     if clone_data.category_id is not None:
-        cloned_watchlist.category_id = clone_data.category_id  # type: ignore[assignment]
+        cloned_watchlist.category_id = clone_data.category_id
     if clone_data.description is not None:
-        cloned_watchlist.description = clone_data.description  # type: ignore[assignment]
+        cloned_watchlist.description = clone_data.description
 
     db.commit()
     db.refresh(cloned_watchlist)
 
     # Load symbols for response
-    symbols = service.get_watchlist_symbols(cast(int, cloned_watchlist.id), cast(int, user.id))
+    symbols = service.get_watchlist_symbols(cloned_watchlist.id, user.id)
 
     # Build response with symbols
     from src.api.watchlists.schemas import WatchlistSymbolResponse

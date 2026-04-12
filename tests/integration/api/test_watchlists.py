@@ -10,9 +10,6 @@ Tests cover:
 All endpoints require authentication and enforce user ownership.
 """
 
-import pytest
-from sqlalchemy.orm import Session
-
 from src.db.models import (
     Stock,
     User,

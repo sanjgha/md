@@ -86,7 +86,6 @@ class TestListSymbols:
 
     def test_list_symbols_with_items(self, authenticated_client, test_data, db_session):
         """Test listing symbols from a watchlist with symbols."""
-        from src.db.models import WatchlistSymbol
         from src.api.watchlists.service import WatchlistService
 
         # Add symbols using the service

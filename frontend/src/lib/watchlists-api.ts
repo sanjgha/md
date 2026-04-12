@@ -3,120 +3,139 @@
  * Provides methods for watchlist CRUD, symbol management, categories, and cloning.
  */
 
-import { apiGet, apiPost, apiPut } from "./api";
+import { apiFetch } from "./api";
 import type {
   Watchlist,
   WatchlistCreate,
-  WatchlistListResponse,
-  WatchlistSymbolAddRequest,
-  WatchlistSymbolAddResponse,
-  WatchlistSymbolRemoveResponse,
-  WatchlistSymbolsResponse,
   Category,
   CategoryCreate,
-  CategoryWatchlists,
-  WatchlistCloneRequest,
   WatchlistUpdate,
 } from "../pages/watchlists/types";
 
-const BASE_URL = "/api/watchlists";
+/**
+ * Watchlists API client object with nested methods
+ */
+export const watchlistsAPI = {
+  /**
+   * List all watchlists grouped by category
+   */
+  list: (): Promise<{ categories: CategoryWatchlists[] }> =>
+    apiFetch("/api/watchlists"),
+
+  /**
+   * Create a new watchlist
+   */
+  create: (data: WatchlistCreate): Promise<Watchlist> =>
+    apiFetch("/api/watchlists", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Get a single watchlist by ID
+   */
+  get: (id: number): Promise<Watchlist> =>
+    apiFetch(`/api/watchlists/${id}`),
+
+  /**
+   * Update a watchlist
+   */
+  update: (id: number, data: Partial<WatchlistUpdate>): Promise<Watchlist> =>
+    apiFetch(`/api/watchlists/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Delete a watchlist
+   */
+  delete: (id: number): Promise<void> =>
+    apiFetch(`/api/watchlists/${id}`, {
+      method: "DELETE",
+    }),
+
+  /**
+   * Symbol management methods
+   */
+  symbols: {
+    /**
+     * List symbols in a watchlist
+     */
+    list: (watchlistId: number): Promise<WatchlistSymbol[]> =>
+      apiFetch(`/api/watchlists/${watchlistId}/symbols`),
+
+    /**
+     * Add a symbol to a watchlist
+     */
+    add: (
+      watchlistId: number,
+      symbol: string,
+      notes?: string
+    ): Promise<{ success: boolean }> =>
+      apiFetch(`/api/watchlists/${watchlistId}/symbols`, {
+        method: "POST",
+        body: JSON.stringify({ symbol, notes }),
+      }),
+
+    /**
+     * Remove a symbol from a watchlist
+     */
+    remove: (watchlistId: number, symbol: string): Promise<{ success: boolean }> =>
+      apiFetch(`/api/watchlists/${watchlistId}/symbols/${symbol}`, {
+        method: "DELETE",
+      }),
+  },
+
+  /**
+   * Category management methods
+   */
+  categories: {
+    /**
+     * List all categories
+     */
+    list: (): Promise<Category[]> =>
+      apiFetch("/api/watchlists/categories"),
+
+    /**
+     * Create a new category
+     */
+    create: (data: CategoryCreate): Promise<Category> =>
+      apiFetch("/api/watchlists/categories", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
+
+  /**
+   * Clone a watchlist
+   */
+  clone: (id: number, data: { name: string }): Promise<Watchlist> =>
+    apiFetch(`/api/watchlists/${id}/clone`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+};
 
 /**
- * List all watchlists with optional pagination
+ * CategoryWatchlists interface for response
  */
-export async function listWatchlists(skip = 0, limit = 100): Promise<WatchlistListResponse> {
-  return apiGet<WatchlistListResponse>(`${BASE_URL}?skip=${skip}&limit=${limit}`);
+interface CategoryWatchlists {
+  category_id: number | null;
+  category_name: string;
+  category_icon: string | null;
+  is_system: boolean;
+  watchlists: Watchlist[];
 }
 
 /**
- * Get watchlists grouped by category
+ * WatchlistSymbol interface for response
  */
-export async function listWatchlistsGrouped(): Promise<CategoryWatchlists[]> {
-  return apiGet<CategoryWatchlists[]>(`${BASE_URL}/grouped`);
-}
-
-/**
- * Create a new watchlist
- */
-export async function createWatchlist(data: WatchlistCreate): Promise<Watchlist> {
-  return apiPost<Watchlist>(BASE_URL, data);
-}
-
-/**
- * Get a single watchlist by ID
- */
-export async function getWatchlist(id: number): Promise<Watchlist> {
-  return apiGet<Watchlist>(`${BASE_URL}/${id}`);
-}
-
-/**
- * Update a watchlist
- */
-export async function updateWatchlist(id: number, data: WatchlistUpdate): Promise<Watchlist> {
-  return apiPut<Watchlist>(`${BASE_URL}/${id}`, data);
-}
-
-/**
- * Delete a watchlist
- */
-export async function deleteWatchlist(id: number): Promise<void> {
-  return apiPost<void>(`${BASE_URL}/${id}/delete`, {});
-}
-
-/**
- * Clone a watchlist
- */
-export async function cloneWatchlist(id: number, data: WatchlistCloneRequest): Promise<Watchlist> {
-  return apiPost<Watchlist>(`${BASE_URL}/${id}/clone`, data);
-}
-
-/**
- * Get symbols for a watchlist
- */
-export async function listWatchlistSymbols(id: number): Promise<WatchlistSymbolsResponse> {
-  return apiGet<WatchlistSymbolsResponse>(`${BASE_URL}/${id}/symbols`);
-}
-
-/**
- * Add a symbol to a watchlist
- */
-export async function addWatchlistSymbol(
-  id: number,
-  data: WatchlistSymbolAddRequest
-): Promise<WatchlistSymbolAddResponse> {
-  return apiPost<WatchlistSymbolAddResponse>(`${BASE_URL}/${id}/symbols`, data);
-}
-
-/**
- * Remove a symbol from a watchlist
- */
-export async function removeWatchlistSymbol(
-  watchlistId: number,
-  symbolId: number
-): Promise<WatchlistSymbolRemoveResponse> {
-  return apiPost<WatchlistSymbolRemoveResponse>(
-    `${BASE_URL}/${watchlistId}/symbols/${symbolId}/delete`,
-    {}
-  );
-}
-
-/**
- * List all categories
- */
-export async function listCategories(): Promise<Category[]> {
-  return apiGet<Category[]>(`${BASE_URL}/categories`);
-}
-
-/**
- * Create a new category
- */
-export async function createCategory(data: CategoryCreate): Promise<Category> {
-  return apiPost<Category>(`${BASE_URL}/categories`, data);
-}
-
-/**
- * Delete a category
- */
-export async function deleteCategory(id: number): Promise<void> {
-  return apiPost<void>(`${BASE_URL}/categories/${id}/delete`, {});
+interface WatchlistSymbol {
+  id: number;
+  stock_id: number;
+  symbol: string;
+  name: string | null;
+  notes: string | null;
+  priority: number;
+  added_at: string;
 }

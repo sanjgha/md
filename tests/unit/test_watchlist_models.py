@@ -1,7 +1,6 @@
 """Tests for watchlist database models."""
 
 import pytest
-from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from src.db.models import Watchlist, WatchlistSymbol, WatchlistCategory, User, Stock
 
