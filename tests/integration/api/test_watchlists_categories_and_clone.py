@@ -223,7 +223,7 @@ def test_delete_category_system_returns_403(
         f"/api/watchlists/categories/{system_category.id}"
     )
     assert resp.status_code == 403
-    assert "system category" in resp.json()["detail"].lower() or "protected" in resp.json()["detail"].lower()
+    assert "system categories" in resp.json()["detail"].lower()
 
     # Verify system category still exists
     resp = authenticated_client.get("/api/watchlists/categories")
