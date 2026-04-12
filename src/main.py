@@ -45,6 +45,7 @@ def eod(symbols):
     from src.output.composite import CompositeOutputHandler
     from src.db.models import Stock
     from sqlalchemy.orm import joinedload
+    from datetime import date
 
     cfg = get_config()
     logging.basicConfig(level=cfg.LOG_LEVEL)
@@ -110,6 +111,35 @@ def eod(symbols):
         }
 
         results = executor.run_eod(stocks_with_candles)
+        logger.info(f"Scan complete. Found {len(results)} matches.")
+
+        # Auto-generate watchlists from scanner results
+        try:
+            from src.api.watchlists.service import WatchlistGenerationService
+            from src.db.models import User
+
+            # Get first user (single-user deployment)
+            user = db.query(User).first()
+            if user:
+                watchlist_service = WatchlistGenerationService(db)
+
+                # Group results by scanner
+                scanner_names = set(r.scanner_name for r in results)
+
+                for scanner_name in scanner_names:
+                    watchlist = watchlist_service.generate_from_scanner_results(
+                        scanner_name=scanner_name,
+                        scan_date=date.today(),
+                        user_id=user.id,
+                    )
+                    if watchlist:
+                        logger.info(f"Created watchlist: {watchlist.name}")
+
+                logger.info("Watchlist generation complete.")
+        except Exception as e:
+            logger.error(f"Watchlist generation failed: {e}", exc_info=True)
+            # Don't fail the scan if watchlist generation fails
+
         logger.info(f"EOD complete. Found {len(results)} matches.")
         click.echo(f"EOD pipeline complete. {len(results)} matches found.")
 
