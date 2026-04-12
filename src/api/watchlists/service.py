@@ -406,3 +406,142 @@ class WatchlistService:
             .order_by(WatchlistCategory.sort_order)
             .all()
         )
+
+    def clone_watchlist(
+        self,
+        watchlist_id: int,
+        user_id: int,
+        new_name: str,
+    ) -> Optional[Watchlist]:
+        """Clone a watchlist with all its symbols.
+
+        Args:
+            watchlist_id: ID of the watchlist to clone
+            user_id: ID of the user requesting the clone
+            new_name: Name for the cloned watchlist
+
+        Returns:
+            Cloned Watchlist instance if found and owned, None otherwise
+        """
+        # Get the original watchlist
+        original = self.get_watchlist(watchlist_id, user_id)
+        if not original:
+            return None
+
+        # Create the cloned watchlist
+        cloned = Watchlist(
+            user_id=user_id,
+            name=new_name,
+            description=original.description,
+            category_id=original.category_id,
+            is_auto_generated=False,  # Clones are never auto-generated
+            watchlist_mode=original.watchlist_mode,
+        )
+        self.db_session.add(cloned)
+        self.db_session.flush()  # Get the ID without committing
+
+        # Copy all symbols from the original watchlist
+        from src.db.models import WatchlistSymbol
+
+        original_symbols = (
+            self.db_session.query(WatchlistSymbol)
+            .filter(WatchlistSymbol.watchlist_id == watchlist_id)
+            .all()
+        )
+
+        for symbol in original_symbols:
+            cloned_symbol = WatchlistSymbol(
+                watchlist_id=cloned.id,
+                stock_id=symbol.stock_id,
+                notes=symbol.notes,
+                priority=symbol.priority,
+            )
+            self.db_session.add(cloned_symbol)
+
+        self.db_session.commit()
+        self.db_session.refresh(cloned)
+        return cloned
+
+    def get_watchlists_grouped(self, user_id: int) -> List[dict]:
+        """Get watchlists grouped by category with symbol counts.
+
+        Args:
+            user_id: ID of the user
+
+        Returns:
+            List of dicts with structure:
+            {
+                "category_id": int,
+                "category_name": str,
+                "category_icon": str,
+                "is_system": bool,
+                "watchlists": [
+                    {
+                        "id": int,
+                        "name": str,
+                        "description": str | None,
+                        "symbol_count": int,
+                        "created_at": datetime,
+                        "updated_at": datetime,
+                    }
+                ]
+            }
+            Ordered by category sort_order
+        """
+        from src.db.models import WatchlistSymbol, WatchlistCategory
+
+        # Get all categories for the user, ordered by sort_order
+        categories = (
+            self.db_session.query(WatchlistCategory)
+            .filter(WatchlistCategory.user_id == user_id)
+            .order_by(WatchlistCategory.sort_order)
+            .all()
+        )
+
+        result = []
+
+        for category in categories:
+            # Get all watchlists in this category
+            watchlists = (
+                self.db_session.query(Watchlist)
+                .filter(
+                    Watchlist.user_id == user_id,
+                    Watchlist.category_id == category.id,
+                )
+                .order_by(Watchlist.created_at.desc())
+                .all()
+            )
+
+            # Build watchlist data with symbol counts
+            watchlist_data = []
+            for watchlist in watchlists:
+                # Count symbols in this watchlist
+                symbol_count = (
+                    self.db_session.query(WatchlistSymbol)
+                    .filter(WatchlistSymbol.watchlist_id == watchlist.id)
+                    .count()
+                )
+
+                watchlist_data.append(
+                    {
+                        "id": watchlist.id,
+                        "name": watchlist.name,
+                        "description": watchlist.description,
+                        "symbol_count": symbol_count,
+                        "created_at": watchlist.created_at,
+                        "updated_at": watchlist.updated_at,
+                    }
+                )
+
+            # Add category with its watchlists
+            result.append(
+                {
+                    "category_id": category.id,
+                    "category_name": category.name,
+                    "category_icon": category.icon or "",
+                    "is_system": category.is_system,
+                    "watchlists": watchlist_data,
+                }
+            )
+
+        return result

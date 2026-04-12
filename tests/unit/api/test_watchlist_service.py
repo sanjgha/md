@@ -352,6 +352,337 @@ class TestDeleteWatchlist:
         assert len(symbols) == 0
 
 
+class TestCloneWatchlist:
+    """Test clone_watchlist method."""
+
+    def test_clone_watchlist_with_symbols(self, db_session: Session):
+        """Test cloning a watchlist copies all symbols."""
+        from src.db.models import WatchlistSymbol, Stock
+
+        # Create user and stocks
+        user = User(username="testuser", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        stock1 = Stock(symbol="AAPL", name="Apple Inc.")
+        stock2 = Stock(symbol="MSFT", name="Microsoft Corp.")
+        stock3 = Stock(symbol="GOOGL", name="Alphabet Inc.")
+        db_session.add_all([stock1, stock2, stock3])
+        db_session.commit()
+
+        # Create watchlist with symbols
+        service = WatchlistService(db_session)
+        original = service.create_watchlist(
+            user_id=user.id,
+            name="Original Watchlist",
+            description="Original description",
+        )
+
+        # Add symbols to original watchlist
+        symbol1 = WatchlistSymbol(
+            watchlist_id=original.id,
+            stock_id=stock1.id,
+            notes="Original note 1",
+            priority=1,
+        )
+        symbol2 = WatchlistSymbol(
+            watchlist_id=original.id,
+            stock_id=stock2.id,
+            notes="Original note 2",
+            priority=2,
+        )
+        symbol3 = WatchlistSymbol(
+            watchlist_id=original.id,
+            stock_id=stock3.id,
+            notes="Original note 3",
+            priority=3,
+        )
+        db_session.add_all([symbol1, symbol2, symbol3])
+        db_session.commit()
+
+        # Clone the watchlist
+        cloned = service.clone_watchlist(
+            watchlist_id=original.id,
+            user_id=user.id,
+            new_name="Cloned Watchlist",
+        )
+
+        # Verify clone was created with different ID
+        assert cloned is not None
+        assert cloned.id != original.id
+        assert cloned.name == "Cloned Watchlist"
+        assert cloned.description == "Original description"
+        assert cloned.user_id == user.id
+        assert cloned.is_auto_generated is False
+        assert cloned.watchlist_mode == "static"
+
+        # Verify all symbols were copied
+        cloned_symbols = (
+            db_session.query(WatchlistSymbol)
+            .filter(WatchlistSymbol.watchlist_id == cloned.id)
+            .all()
+        )
+        assert len(cloned_symbols) == 3
+
+        # Verify the symbols match the original
+        cloned_stock_ids = {s.stock_id for s in cloned_symbols}
+        original_stock_ids = {stock1.id, stock2.id, stock3.id}
+        assert cloned_stock_ids == original_stock_ids
+
+    def test_clone_watchlist_empty(self, db_session: Session):
+        """Test cloning a watchlist with no symbols."""
+        # Create user
+        user = User(username="testuser", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        # Create empty watchlist
+        service = WatchlistService(db_session)
+        original = service.create_watchlist(
+            user_id=user.id,
+            name="Original Watchlist",
+            description="Original description",
+        )
+
+        # Clone the watchlist
+        cloned = service.clone_watchlist(
+            watchlist_id=original.id,
+            user_id=user.id,
+            new_name="Cloned Watchlist",
+        )
+
+        # Verify clone was created
+        assert cloned is not None
+        assert cloned.id != original.id
+        assert cloned.name == "Cloned Watchlist"
+
+        # Verify clone has no symbols
+        from src.db.models import WatchlistSymbol
+
+        cloned_symbols = (
+            db_session.query(WatchlistSymbol)
+            .filter(WatchlistSymbol.watchlist_id == cloned.id)
+            .all()
+        )
+        assert len(cloned_symbols) == 0
+
+    def test_clone_watchlist_not_found(self, db_session: Session):
+        """Test cloning a watchlist that doesn't exist or not owned."""
+        # Create user
+        user = User(username="testuser", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        service = WatchlistService(db_session)
+
+        # Test non-existent watchlist
+        cloned = service.clone_watchlist(
+            watchlist_id=999,
+            user_id=user.id,
+            new_name="Cloned Watchlist",
+        )
+        assert cloned is None
+
+        # Test watchlist owned by different user
+        other_user = User(username="otheruser", password_hash="hash")
+        db_session.add(other_user)
+        db_session.commit()
+
+        other_watchlist = service.create_watchlist(
+            user_id=other_user.id,
+            name="Other Watchlist",
+        )
+
+        # Try to clone other user's watchlist
+        cloned = service.clone_watchlist(
+            watchlist_id=other_watchlist.id,
+            user_id=user.id,
+            new_name="Hacked Clone",
+        )
+        assert cloned is None
+
+
+class TestGetWatchlistsGrouped:
+    """Test get_watchlists_grouped method."""
+
+    def test_get_watchlists_grouped(self, db_session: Session):
+        """Test getting watchlists grouped by category with symbol counts."""
+        from src.db.models import WatchlistSymbol, Stock, WatchlistCategory
+
+        # Create user
+        user = User(username="testuser", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        # Create categories with different sort_order
+        cat1 = WatchlistCategory(
+            user_id=user.id,
+            name="Category 1",
+            icon="📁",
+            is_system=False,
+            sort_order=2,
+        )
+        cat2 = WatchlistCategory(
+            user_id=user.id,
+            name="Category 2",
+            icon="📂",
+            is_system=True,
+            sort_order=1,
+        )
+        db_session.add_all([cat1, cat2])
+        db_session.commit()
+
+        # Create stocks
+        stock1 = Stock(symbol="AAPL", name="Apple Inc.")
+        stock2 = Stock(symbol="MSFT", name="Microsoft Corp.")
+        stock3 = Stock(symbol="GOOGL", name="Alphabet Inc.")
+        db_session.add_all([stock1, stock2, stock3])
+        db_session.commit()
+
+        # Create watchlists in different categories
+        service = WatchlistService(db_session)
+        watchlist1 = service.create_watchlist(
+            user_id=user.id,
+            name="Watchlist 1",
+            category_id=cat1.id,
+        )
+        watchlist2 = service.create_watchlist(
+            user_id=user.id,
+            name="Watchlist 2",
+            category_id=cat1.id,
+        )
+        watchlist3 = service.create_watchlist(
+            user_id=user.id,
+            name="Watchlist 3",
+            category_id=cat2.id,
+        )
+
+        # Add symbols to watchlists
+        # Watchlist 1: 2 symbols
+        symbol1 = WatchlistSymbol(watchlist_id=watchlist1.id, stock_id=stock1.id)
+        symbol2 = WatchlistSymbol(watchlist_id=watchlist1.id, stock_id=stock2.id)
+        # Watchlist 2: 1 symbol
+        symbol3 = WatchlistSymbol(watchlist_id=watchlist2.id, stock_id=stock3.id)
+        # Watchlist 3: 0 symbols
+        db_session.add_all([symbol1, symbol2, symbol3])
+        db_session.commit()
+
+        # Get grouped watchlists
+        grouped = service.get_watchlists_grouped(user_id=user.id)
+
+        # Verify structure
+        assert len(grouped) == 2
+
+        # Verify ordering by sort_order (Category 2 first, then Category 1)
+        assert grouped[0]["category_name"] == "Category 2"
+        assert grouped[1]["category_name"] == "Category 1"
+
+        # Verify Category 2 (sort_order=1)
+        cat2_group = grouped[0]
+        assert cat2_group["category_id"] == cat2.id
+        assert cat2_group["category_icon"] == "📂"
+        assert cat2_group["is_system"] is True
+        assert len(cat2_group["watchlists"]) == 1
+        assert cat2_group["watchlists"][0]["id"] == watchlist3.id
+        assert cat2_group["watchlists"][0]["name"] == "Watchlist 3"
+        assert cat2_group["watchlists"][0]["symbol_count"] == 0
+
+        # Verify Category 1 (sort_order=2)
+        cat1_group = grouped[1]
+        assert cat1_group["category_id"] == cat1.id
+        assert cat1_group["category_icon"] == "📁"
+        assert cat1_group["is_system"] is False
+        assert len(cat1_group["watchlists"]) == 2
+
+        # Verify watchlist ordering (most recent first)
+        assert cat1_group["watchlists"][0]["id"] == watchlist2.id
+        assert cat1_group["watchlists"][0]["symbol_count"] == 1
+        assert cat1_group["watchlists"][1]["id"] == watchlist1.id
+        assert cat1_group["watchlists"][1]["symbol_count"] == 2
+
+    def test_get_watchlists_grouped_empty_user(self, db_session: Session):
+        """Test getting grouped watchlists for user with no data."""
+        # Create user
+        user = User(username="testuser", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        service = WatchlistService(db_session)
+        grouped = service.get_watchlists_grouped(user_id=user.id)
+
+        # Should return empty list
+        assert grouped == []
+
+    def test_get_watchlists_grouped_empty_categories(self, db_session: Session):
+        """Test getting grouped watchlists with empty categories."""
+        from src.db.models import WatchlistCategory
+
+        # Create user
+        user = User(username="testuser", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        # Create categories but no watchlists
+        cat1 = WatchlistCategory(
+            user_id=user.id,
+            name="Empty Category 1",
+            icon="📁",
+            is_system=False,
+            sort_order=1,
+        )
+        cat2 = WatchlistCategory(
+            user_id=user.id,
+            name="Empty Category 2",
+            icon="📂",
+            is_system=True,
+            sort_order=2,
+        )
+        db_session.add_all([cat1, cat2])
+        db_session.commit()
+
+        service = WatchlistService(db_session)
+        grouped = service.get_watchlists_grouped(user_id=user.id)
+
+        # Should return categories with empty watchlists
+        assert len(grouped) == 2
+        assert grouped[0]["category_name"] == "Empty Category 1"
+        assert grouped[0]["watchlists"] == []
+        assert grouped[1]["category_name"] == "Empty Category 2"
+        assert grouped[1]["watchlists"] == []
+
+    def test_get_watchlists_grouped_watchlists_no_category(self, db_session: Session):
+        """Test getting grouped watchlists with watchlists that have no category."""
+        from src.db.models import WatchlistSymbol, Stock
+
+        # Create user
+        user = User(username="testuser", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        # Create stock and watchlist without category
+        stock = Stock(symbol="AAPL", name="Apple Inc.")
+        db_session.add(stock)
+        db_session.commit()
+
+        service = WatchlistService(db_session)
+        watchlist = service.create_watchlist(
+            user_id=user.id,
+            name="Uncategorized Watchlist",
+            category_id=None,
+        )
+
+        # Add symbol
+        symbol = WatchlistSymbol(watchlist_id=watchlist.id, stock_id=stock.id)
+        db_session.add(symbol)
+        db_session.commit()
+
+        # Get grouped watchlists
+        grouped = service.get_watchlists_grouped(user_id=user.id)
+
+        # Should return empty list (no categories)
+        assert grouped == []
+
+
 class TestAddSymbol:
     """Test add_symbol method."""
 
