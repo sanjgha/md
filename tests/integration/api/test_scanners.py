@@ -101,3 +101,52 @@ def test_get_run_dates_returns_distinct_runs(authenticated_client, db_session):
     assert len(data) == 2
     run_types = {d["run_type"] for d in data}
     assert run_types == {"eod", "pre_close"}
+
+
+def _seed_intraday(db_session):
+    """Seed one intraday candle for TSLA at 15m resolution."""
+    from src.db.models import IntradayCandle, Stock
+
+    stock = db_session.query(Stock).filter_by(symbol="TSLA").first()
+    if stock is None:
+        stock = Stock(symbol="TSLA", name="Tesla Inc.")
+        db_session.add(stock)
+        db_session.flush()
+    candle = IntradayCandle(
+        stock_id=stock.id,
+        resolution="15m",
+        timestamp=datetime.utcnow(),
+        open=170.0, high=175.0, low=169.0, close=173.0, volume=5000000,
+    )
+    db_session.add(candle)
+    db_session.commit()
+    return stock
+
+
+def test_run_intraday_universe_scope(authenticated_client, db_session):
+    """POST /api/scanners/run with universe scope returns results without persisting."""
+    from src.db.models import ScannerResult as SR
+    _seed_intraday(db_session)
+    resp = authenticated_client.post("/api/scanners/run", json={
+        "scanners": ["momentum"],
+        "timeframe": "15m",
+        "input_scope": "universe",
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "results" in data
+    assert isinstance(data["results"], list)
+    # Verify nothing was written to scanner_results
+    count = db_session.query(SR).count()
+    assert count == 0
+
+
+def test_run_intraday_empty_data_returns_empty(authenticated_client, db_session):
+    """POST /api/scanners/run returns empty list when no intraday data exists."""
+    resp = authenticated_client.post("/api/scanners/run", json={
+        "scanners": ["momentum"],
+        "timeframe": "15m",
+        "input_scope": "universe",
+    })
+    assert resp.status_code == 200
+    assert resp.json()["results"] == []
