@@ -7,9 +7,12 @@ import { apiFetch } from "./api";
 import type {
   GetResultsFilters,
   IntradayRunRequest,
+  RunDateEntry,
   ScannerMeta,
   ScannerResultsResponse,
 } from "../pages/scanners/types";
+
+export type { RunDateEntry } from "../pages/scanners/types";
 
 /**
  * List all available scanners
@@ -30,6 +33,12 @@ export const getResults = (
   const qs = params.toString();
   return apiFetch(`/api/scanners/results${qs ? `?${qs}` : ""}`);
 };
+
+/**
+ * Get available run dates
+ */
+export const getRunDates = (): Promise<RunDateEntry[]> =>
+  apiFetch("/api/scanners/run-dates");
 
 /**
  * Run intraday scan with specified parameters

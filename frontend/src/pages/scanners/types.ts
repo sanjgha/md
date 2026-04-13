@@ -38,3 +38,9 @@ export interface IntradayRunRequest {
   timeframe: "15m" | "1h";
   input_scope: "universe" | number; // 'universe' or watchlist_id
 }
+
+export interface RunDateEntry {
+  date: string;
+  run_type: string;
+  time: string;
+}
