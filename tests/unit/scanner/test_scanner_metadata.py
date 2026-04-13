@@ -1,5 +1,5 @@
 """Tests for scanner ABC metadata attributes."""
-import pytest
+
 from src.scanner.scanners.momentum_scan import MomentumScanner
 from src.scanner.scanners.price_action import PriceActionScanner
 from src.scanner.scanners.volume_scan import VolumeScanner

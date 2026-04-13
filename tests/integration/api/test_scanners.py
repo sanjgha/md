@@ -1,5 +1,7 @@
 """Integration tests for scanner API endpoints."""
 
+from datetime import datetime
+
 
 def test_list_scanners_returns_registered_scanners(authenticated_client):
     """GET /api/scanners returns all registered scanners with metadata."""
@@ -25,9 +27,6 @@ def test_list_scanners_requires_auth(api_client):
     """GET /api/scanners returns 401 without authentication."""
     resp = api_client.get("/api/scanners")
     assert resp.status_code == 401
-
-
-from datetime import datetime
 
 
 def _seed_results(db_session, run_type="eod"):
@@ -116,7 +115,11 @@ def _seed_intraday(db_session):
         stock_id=stock.id,
         resolution="15m",
         timestamp=datetime.utcnow(),
-        open=170.0, high=175.0, low=169.0, close=173.0, volume=5000000,
+        open=170.0,
+        high=175.0,
+        low=169.0,
+        close=173.0,
+        volume=5000000,
     )
     db_session.add(candle)
     db_session.commit()
@@ -126,12 +129,16 @@ def _seed_intraday(db_session):
 def test_run_intraday_universe_scope(authenticated_client, db_session):
     """POST /api/scanners/run with universe scope returns results without persisting."""
     from src.db.models import ScannerResult as SR
+
     _seed_intraday(db_session)
-    resp = authenticated_client.post("/api/scanners/run", json={
-        "scanners": ["momentum"],
-        "timeframe": "15m",
-        "input_scope": "universe",
-    })
+    resp = authenticated_client.post(
+        "/api/scanners/run",
+        json={
+            "scanners": ["momentum"],
+            "timeframe": "15m",
+            "input_scope": "universe",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert "results" in data
@@ -143,10 +150,13 @@ def test_run_intraday_universe_scope(authenticated_client, db_session):
 
 def test_run_intraday_empty_data_returns_empty(authenticated_client, db_session):
     """POST /api/scanners/run returns empty list when no intraday data exists."""
-    resp = authenticated_client.post("/api/scanners/run", json={
-        "scanners": ["momentum"],
-        "timeframe": "15m",
-        "input_scope": "universe",
-    })
+    resp = authenticated_client.post(
+        "/api/scanners/run",
+        json={
+            "scanners": ["momentum"],
+            "timeframe": "15m",
+            "input_scope": "universe",
+        },
+    )
     assert resp.status_code == 200
     assert resp.json()["results"] == []

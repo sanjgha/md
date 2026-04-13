@@ -1,4 +1,5 @@
 """Unit tests for PreCloseExecutor."""
+
 from unittest.mock import MagicMock, patch
 from src.scanner.pre_close_executor import PreCloseExecutor
 from src.scanner.base import ScanResult
@@ -109,7 +110,7 @@ def test_pre_close_executor_persists_with_pre_close_run_type():
     registry.list.return_value = {"mock_scanner": mock_scanner}
 
     with patch.object(executor, "_persist_results") as mock_persist:
-        results = executor.run()
+        executor.run()
 
     # Verify _persist_results was called with run_type="pre_close"
     mock_persist.assert_called_once()

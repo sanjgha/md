@@ -1,4 +1,5 @@
 """Pydantic schemas for scanner API."""
+
 from pydantic import BaseModel
 
 

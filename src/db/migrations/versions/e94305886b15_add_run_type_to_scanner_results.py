@@ -5,15 +5,14 @@ Revises: 1d7173749a9a
 Create Date: 2026-04-13 15:45:12.815083
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
-
 
 # revision identifiers, used by Alembic.
-revision: str = 'e94305886b15'
-down_revision: Union[str, Sequence[str], None] = '1d7173749a9a'
+revision: str = "e94305886b15"
+down_revision: Union[str, Sequence[str], None] = "1d7173749a9a"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -30,4 +29,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_column('scanner_results', 'run_type')
+    op.drop_column("scanner_results", "run_type")

@@ -1,4 +1,5 @@
 """Scanner API routes."""
+
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -60,9 +61,7 @@ def get_results(
     # Resolve date: latest matched_at date if not specified
     if date is None:
         latest = (
-            db.query(ScannerResult.matched_at)
-            .order_by(ScannerResult.matched_at.desc())
-            .first()
+            db.query(ScannerResult.matched_at).order_by(ScannerResult.matched_at.desc()).first()
         )
         if latest is None:
             return ScannerResultsResponse(results=[], run_type=run_type, date="")
