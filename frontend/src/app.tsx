@@ -35,6 +35,7 @@ export default function App(props: { children?: JSX.Element }) {
         <div class="nav-links">
           <A href="/dashboard">Dashboard</A>
           <A href="/watchlists">Watchlists</A>
+          <A href="/scanners">Scanners</A>
           <A href="/settings">Settings</A>
         </div>
         <div class="nav-user">
