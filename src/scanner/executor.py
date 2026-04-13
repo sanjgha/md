@@ -76,11 +76,11 @@ class ScannerExecutor:
                     logger.exception(f"{scanner_name} failed for {symbol}")
 
             if stock_results:
-                self._persist_results(stock_results)
+                self._persist_results(stock_results, run_type="eod")
 
         return all_results
 
-    def _persist_results(self, results: List[ScanResult]) -> None:
+    def _persist_results(self, results: List[ScanResult], run_type: str = "eod") -> None:
         """Batch insert scanner results into the database."""
         if not results or not self.db:
             return
@@ -91,6 +91,7 @@ class ScannerExecutor:
                     scanner_name=r.scanner_name,
                     result_metadata=r.metadata,
                     matched_at=r.matched_at,
+                    run_type=run_type,
                 )
                 for r in results
             ]
