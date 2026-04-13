@@ -236,6 +236,7 @@ class ScannerResult(Base):
         JSONB, default=dict
     )  # callable — not a shared mutable default
     matched_at = Column(DateTime, nullable=False)
+    run_type = Column(String(20), nullable=False, default="eod")
     created_at = Column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (
