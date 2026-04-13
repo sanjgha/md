@@ -13,6 +13,7 @@ from src.api.routes.auth_routes import router as auth_router
 from src.api.routes.health import router as health_router
 from src.api.routes.me import router as me_router
 from src.api.routes.settings import router as settings_router
+from src.api.scanners.routes import router as scanners_router
 from src.api.watchlists.routes import router as watchlists_router
 from src.api.ws import heartbeat_loop, pubsub, ws_endpoint
 
@@ -39,6 +40,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix="/api/auth")
     app.include_router(me_router, prefix="/api")
     app.include_router(settings_router, prefix="/api/settings")
+    app.include_router(scanners_router, prefix="/api/scanners")
     app.include_router(watchlists_router, prefix="/api/watchlists")
     app.add_api_websocket_route("/ws", ws_endpoint)
     if FRONTEND_DIST.exists():
