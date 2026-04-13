@@ -20,6 +20,9 @@ class ScanResult:
 class Scanner(ABC):
     """Abstract base for all scanners."""
 
+    timeframe: str = "daily"
+    description: str = ""
+
     @abstractmethod
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Run scanner against context, return matches."""

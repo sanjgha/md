@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 class VolumeScanner(Scanner):
     """Scan for volume spikes relative to 20-day average."""
 
+    timeframe = "daily"
+    description = "Volume spike detection — volume > 1.5x 20-day average"
+
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Return match when latest volume exceeds 2x the prior 20-day average."""
         matches: List[ScanResult] = []

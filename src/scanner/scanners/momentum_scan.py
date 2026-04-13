@@ -11,6 +11,9 @@ logger = logging.getLogger(__name__)
 class MomentumScanner(Scanner):
     """Scan for RSI oversold/overbought conditions."""
 
+    timeframe = "daily"
+    description = "RSI-14 oversold (<30) or overbought (>70) on daily candles"
+
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Return matches when RSI-14 is below 30 (oversold) or above 70 (overbought)."""
         matches: List[ScanResult] = []

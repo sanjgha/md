@@ -8,6 +8,7 @@ import DashboardPage from "./pages/dashboard";
 import SettingsPage from "./pages/settings/index";
 import { ShowWatchlistsDashboard } from "./pages/watchlists/dashboard";
 import { ShowWatchlistView } from "./pages/watchlists/watchlist-view";
+import ScannerPage from "./pages/scanners/index";
 import { fetchCurrentUser } from "./lib/auth";
 
 function RequireAuth(props: { children: any }) {
@@ -65,6 +66,14 @@ export function AppRoutes() {
         component={() => (
           <RequireAuth>
             <ShowWatchlistView />
+          </RequireAuth>
+        )}
+      />
+      <Route
+        path="/scanners"
+        component={() => (
+          <RequireAuth>
+            <ScannerPage />
           </RequireAuth>
         )}
       />

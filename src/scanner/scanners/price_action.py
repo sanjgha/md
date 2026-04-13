@@ -11,6 +11,9 @@ logger = logging.getLogger(__name__)
 class PriceActionScanner(Scanner):
     """Scan for price action breakouts and bounces above/at SMA50/SMA200."""
 
+    timeframe = "daily"
+    description = "Price action patterns on daily candles (breakouts, support/resistance)"
+
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Return matches when price is above SMA50 > SMA200 and touches SMA50."""
         matches: List[ScanResult] = []

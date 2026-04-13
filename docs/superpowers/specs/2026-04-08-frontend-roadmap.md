@@ -36,8 +36,8 @@ sub-project gets its own spec → plan → implementation cycle.
 ## Status
 
 - [x] 1. Foundation — *complete (2026-04-08)*
-- [ ] 2. Watchlists
-- [ ] 3. Scanner control panel
+- [x] 2. Watchlists — *complete (2026-04-13)*
+- [ ] 3. Scanner control panel — *planned (2026-04-13), LIN-76 through LIN-86*
 - [ ] 4. Scheduler UI
 - [ ] 5. Charting
 - [ ] 6. Chart alerts

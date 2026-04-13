@@ -834,6 +834,96 @@ def schedule_scan_cmd():
         click.echo("Scan scheduler stopped.")
 
 
+@app.command("schedule-pre-close")
+def schedule_pre_close_cmd():
+    """Start scheduler for pre-close scanning (runs at 3:45 PM ET Mon-Fri)."""
+    from src.config import get_config
+
+    cfg = get_config()
+    logging.basicConfig(level=cfg.LOG_LEVEL)
+    logger.info("Starting pre-close scan scheduler...")
+
+    def run_pre_close_scan():
+        """Instantiate PreCloseExecutor and run pre-close scans."""
+        from src.scanner.pre_close_executor import PreCloseExecutor
+        from src.scanner.registry import ScannerRegistry
+        from src.scanner.indicators.moving_averages import SMA, EMA, WMA
+        from src.scanner.indicators.momentum import RSI, MACD
+        from src.scanner.indicators.volatility import BollingerBands, ATR
+        from src.scanner.indicators.support_resistance import SupportResistance
+        from src.scanner.indicators.patterns.breakouts import BreakoutDetector
+        from src.scanner.scanners import PriceActionScanner, MomentumScanner, VolumeScanner
+        from src.output.cli import CLIOutputHandler
+        from src.output.logger import LogFileOutputHandler
+        from src.output.composite import CompositeOutputHandler
+
+        db = _get_db_session()
+        try:
+            indicators = {
+                "sma": SMA(),
+                "ema": EMA(),
+                "wma": WMA(),
+                "rsi": RSI(),
+                "macd": MACD(),
+                "bollinger": BollingerBands(),
+                "atr": ATR(),
+                "support_resistance": SupportResistance(),
+                "breakout": BreakoutDetector(),
+            }
+
+            scanner_registry = ScannerRegistry()
+            scanner_registry.register("price_action", PriceActionScanner())
+            scanner_registry.register("momentum", MomentumScanner())
+            scanner_registry.register("volume", VolumeScanner())
+
+            output = CompositeOutputHandler(
+                [
+                    CLIOutputHandler(),
+                    LogFileOutputHandler(log_file=cfg.LOG_FILE, log_level=cfg.LOG_LEVEL),
+                ]
+            )
+
+            executor = PreCloseExecutor(
+                registry=scanner_registry,
+                indicators_registry=indicators,
+                output_handler=output,
+                db=db,
+            )
+            results = executor.run()
+            logger.info(f"Pre-close scan complete. Found {len(results)} matches.")
+        except Exception as e:
+            logger.error(f"Pre-close scan job failed: {e}", exc_info=True)
+        finally:
+            db.close()
+
+    from apscheduler.schedulers.blocking import BlockingScheduler
+    from apscheduler.triggers.cron import CronTrigger
+
+    scheduler = BlockingScheduler(timezone="America/New_York")
+    scheduler.add_job(
+        run_pre_close_scan,
+        trigger=CronTrigger(
+            day_of_week="mon-fri",
+            hour=15,
+            minute=45,
+            timezone="America/New_York",
+        ),
+        id="pre_close_scan",
+        name="Pre-Close Scanner Pipeline",
+        misfire_grace_time=300,
+        coalesce=True,
+    )
+
+    try:
+        click.echo(
+            "Pre-close scan scheduler started. Runs at 3:45 PM ET Mon-Fri. Press Ctrl+C to stop."
+        )
+        scheduler.start()
+    except KeyboardInterrupt:
+        scheduler.shutdown()
+        click.echo("Pre-close scan scheduler stopped.")
+
+
 @app.command("schedule")
 def schedule_cmd():
     """Start the blocking APScheduler (runs EOD pipeline at 4:15 PM ET Mon-Fri)."""
