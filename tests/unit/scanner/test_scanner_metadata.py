@@ -16,9 +16,11 @@ def test_price_action_scanner_metadata():
     s = PriceActionScanner()
     assert s.timeframe == "daily"
     assert isinstance(s.description, str)
+    assert len(s.description) > 0
 
 
 def test_volume_scanner_metadata():
     s = VolumeScanner()
     assert s.timeframe == "daily"
     assert isinstance(s.description, str)
+    assert len(s.description) > 0
