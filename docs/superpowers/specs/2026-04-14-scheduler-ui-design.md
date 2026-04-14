@@ -40,18 +40,25 @@ Two cards, one per scheduled job:
 Blur or Enter commits the change via PATCH. Invalid times show an inline error.
 
 **Auto-save toggle** — off by default. When enabled, a watchlist is automatically
-created after each run, named `{Job} — {Date}` e.g. `EOD Scan — Apr 14`. User can
-rename or delete it from the Watchlists view. The toggle persists in `schedule_config`.
+created after each run, named `{Job} — {Date} {HH:MM}` e.g. `EOD Scan — Apr 14 16:15`
+(time suffix avoids collision when scheduled + manual runs happen on the same day). User
+can rename or delete it from the Watchlists view. The toggle persists in `schedule_config`.
 
-**Run Now** — triggers the job immediately via POST. Button shows a spinner while
-running, then shows inline result: `✓ 47 tickers` or `✗ Failed`. No redirect.
+**Run Now** — triggers the job immediately via a synchronous POST. The request stays
+open while the scan runs (expected max ~30s for 500 tickers). Button shows a spinner,
+then inline result: `✓ 47 tickers` or `✗ Failed`. No redirect. An in-process lock per
+`job_id` prevents double-execution (if a scheduled fire overlaps a manual run, the
+second is rejected with `409 Conflict` and the card shows a brief "Already running" message).
 
 **Enable toggle** — pauses or resumes the scheduled job. On = job fires at scheduled
 time. Off = job is registered but will not fire automatically.
 
 ### Run history table
 
-Reads from existing `scanner_results` table. Shows last 7 days.
+Reads from existing `scanner_results` table (aggregated by `run_type` + `matched_at`
+date/hour). Shows last 7 days, sorted descending by ran_at. Zero-result runs produce
+no rows in `scanner_results` and therefore do not appear in the table — there is no
+"Skipped" state.
 
 ```
 ┌──────────────┬───────────────┬──────────┬───────────┐
@@ -60,11 +67,8 @@ Reads from existing `scanner_results` table. Shows last 7 days.
 │ EOD Scan     │ Apr 13 16:15  │ 47       │ ✓ Done    │
 │ Pre-close    │ Apr 13 15:45  │ 31       │ ✓ Done    │
 │ EOD Scan     │ Apr 12 16:15  │ 52       │ ✓ Done    │
-│ Pre-close    │ Apr 12 15:45  │ —        │ Skipped   │
 └──────────────┴───────────────┴──────────┴───────────┘
 ```
-
-"Skipped" appears when a job was enabled but produced zero results (not a failure).
 
 ### First-time / empty state
 
@@ -107,8 +111,16 @@ A new `BackgroundScheduler` is started inside the FastAPI app's `lifespan` handl
 (alongside the existing API server process). On startup it:
 
 1. Reads both rows from `schedule_config`
-2. Registers `eod_scan` and `pre_close_scan` jobs using `CronTrigger`
-3. Respects `enabled` — pauses job immediately if `enabled=False`
+2. Registers `eod_scan` and `pre_close_scan` jobs using `CronTrigger` with
+   `timezone="America/New_York"` hardcoded — times stored in `schedule_config` are
+   always interpreted as ET regardless of the server's system timezone
+3. Hardcodes `day_of_week="mon-fri"` — the "Mon–Fri" label in the UI is informational
+   only; day-of-week is not user-configurable
+4. Respects `enabled` — pauses job immediately if `enabled=False`
+
+**Single-worker constraint:** the app must run with a single uvicorn worker
+(`--workers 1`). Multiple workers would each boot their own `BackgroundScheduler`,
+causing the job to fire N times per scheduled tick.
 
 The `PreCloseExecutor` and EOD scanner callable are reused unchanged as job callbacks.
 
@@ -130,6 +142,9 @@ def run_now(job_id) -> int             # returns result_count; called by POST ro
 ## 6. Backend — API routes
 
 New router: `src/api/routes/schedule.py`
+
+All routes require an authenticated session — mounted under the same middleware stack
+as `/api/watchlists`.
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -162,6 +177,14 @@ All fields optional (partial update):
 ```json
 { "hour": 16, "minute": 30, "enabled": true, "auto_save": true }
 ```
+
+Validation: `hour` must be 0–23, `minute` must be 0–59; invalid values return `422`.
+If `enabled=false` is PATCHed while a job is mid-run, the current run completes and
+the job is paused before its next scheduled fire. The PATCH handler updates the DB
+first; if `scheduler.reschedule_job` / `pause_job` raises afterward, the exception is
+caught, the DB write is rolled back, and a `500` is returned — lifespan on next restart
+will resync from DB as the recovery path. The app writes `updated_at = datetime.utcnow()`
+explicitly on every PATCH.
 
 ### POST `/api/schedule/jobs/{job_id}/run` response
 
@@ -203,3 +226,7 @@ frontend/src/app.tsx     — add Schedule nav link
 - Notification on job completion (email, push)
 - Per-scanner selection for scheduled runs
 - Smart Collections (Watchlist phase 2) — scanner signal lifecycle tracking
+- WebSocket push for `schedule.run_completed` events (open tabs would auto-refresh last_run)
+- CLI parity: `schedule-scan` / `schedule-pre-close` CLI commands continue to use
+  hardcoded times and ignore `schedule_config`. The API-based scheduler (UI) is
+  authoritative; the CLI commands are a separate operational path.
