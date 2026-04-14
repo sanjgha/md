@@ -343,3 +343,257 @@ body {
   font-size: 0.875rem;
   color: var(--text-2);
 }
+
+/* Schedule Page - Job Card Styles */
+.job-card {
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  margin-bottom: 1rem;
+}
+
+.job-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.job-card-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.last-run-info {
+  font-size: 0.875rem;
+  color: var(--text-2);
+}
+
+.never-run {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.last-run-time {
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.last-run-count {
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.job-card-schedule {
+  margin-bottom: 1rem;
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.job-card-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.time-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.time-label {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.time-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.time-input {
+  width: 3rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.time-input[aria-invalid="true"] {
+  border-color: #dc2626;
+}
+
+.time-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.time-separator {
+  font-weight: 500;
+}
+
+.time-error {
+  color: #dc2626;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.toggle-control {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.toggle-checkbox {
+  appearance: none;
+  width: 2.5rem;
+  height: 1.25rem;
+  background: var(--border);
+  border-radius: 1rem;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle-checkbox:checked {
+  background: var(--accent);
+}
+
+.toggle-checkbox:checked::before {
+  transform: translateX(1.25rem);
+}
+
+.toggle-checkbox::before {
+  content: "";
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  background: white;
+  border-radius: 50%;
+  top: 0.125rem;
+  left: 0.125rem;
+  transition: transform 0.2s;
+}
+
+.toggle-checkbox:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-slider {
+  display: none;
+}
+
+.run-now-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.run-now-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.run-now-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.job-card-enable-row {
+  display: flex;
+  align-items: center;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.enable-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.enable-checkbox {
+  appearance: none;
+  width: 2.5rem;
+  height: 1.25rem;
+  background: var(--border);
+  border-radius: 1rem;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.enable-checkbox:checked {
+  background: #16a34a;
+}
+
+.enable-checkbox:checked::before {
+  transform: translateX(1.25rem);
+}
+
+.enable-checkbox::before {
+  content: "";
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  background: white;
+  border-radius: 50%;
+  top: 0.125rem;
+  left: 0.125rem;
+  transition: transform 0.2s;
+}
+
+.enable-checkbox:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.enable-slider {
+  display: none;
+}
+
+.enable-text {
+  font-weight: 500;
+}
+
+.run-result {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.run-success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.run-error {
+  background: #fee2e2;
+  color: #dc2626;
+}
