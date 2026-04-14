@@ -602,3 +602,54 @@ body {
   background: #fef3c7;
   color: #d97706;
 }
+
+/* History Section Styles */
+.history-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.history-section h2 {
+  font-size: 1.25rem;
+  margin: 0 0 1rem 0;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface-2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.history-table thead {
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.history-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-1);
+}
+
+.history-table tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.history-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.history-table td {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text-1);
+}
+
+.history-table tbody tr:hover {
+  background: var(--surface-1);
+}

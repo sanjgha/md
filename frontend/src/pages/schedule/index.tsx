@@ -4,14 +4,17 @@
  * Displays all scheduled jobs with inline editing and run controls.
  */
 
-import { createResource, Show, Suspense } from "solid-js";
-import { listJobs, patchJob, runJobNow } from "../../lib/schedule-api";
+import { createResource, Show, Suspense, For } from "solid-js";
+import { listJobs, patchJob, runJobNow, getHistory } from "../../lib/schedule-api";
 import { JobCard } from "./job-card";
-import type { JobPatch } from "./types";
+import type { JobPatch, HistoryEntry } from "./types";
 
 export default function SchedulePage() {
   // Fetch jobs on mount
   const [jobs, { refetch }] = createResource(listJobs);
+
+  // Fetch run history
+  const [history] = createResource<HistoryEntry[]>(getHistory);
 
   /**
    * Handle patch callback - update job then refresh
@@ -27,6 +30,22 @@ export default function SchedulePage() {
   const handleRun = async (jobId: string) => {
     return await runJobNow(jobId);
   };
+
+  /**
+   * Format ISO datetime string to readable date/time in ET
+   */
+  function formatRanAt(isoStr: string): string {
+    const d = new Date(isoStr);
+    return (
+      d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
+      " " +
+      d.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })
+    );
+  }
 
   return (
     <div class="flex flex-col h-full">
@@ -55,6 +74,43 @@ export default function SchedulePage() {
             </Show>
           </Show>
         </Suspense>
+
+        {/* Run History Section */}
+        <section class="history-section">
+          <h2>Run History</h2>
+          <Show when={!history.loading} fallback={<p>Loading…</p>}>
+            <Show
+              when={history() && history()!.length > 0}
+              fallback={
+                <p class="empty-state">
+                  No runs yet. Jobs will appear here after their first
+                  execution.
+                </p>
+              }
+            >
+              <table class="history-table">
+                <thead>
+                  <tr>
+                    <th>Job</th>
+                    <th>Ran At (ET)</th>
+                    <th>Results</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <For each={history()}>
+                    {(entry) => (
+                      <tr>
+                        <td>{entry.job_name}</td>
+                        <td>{formatRanAt(entry.ran_at)}</td>
+                        <td>{entry.result_count}</td>
+                      </tr>
+                    )}
+                  </For>
+                </tbody>
+              </table>
+            </Show>
+          </Show>
+        </section>
       </div>
     </div>
   );
