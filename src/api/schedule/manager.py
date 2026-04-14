@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 
 # Define job types and their display names
 JOB_RUN_TYPES: Dict[str, str] = {
-    "eod_scan": "EOD Scan",
-    "pre_close_scan": "Pre-Close Scan",
+    "eod_scan": "eod",
+    "pre_close_scan": "pre_close",
 }
 
 JOB_DISPLAY_NAMES: Dict[str, str] = {
