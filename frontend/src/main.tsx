@@ -9,6 +9,7 @@ import SettingsPage from "./pages/settings/index";
 import { ShowWatchlistsDashboard } from "./pages/watchlists/dashboard";
 import { ShowWatchlistView } from "./pages/watchlists/watchlist-view";
 import ScannerPage from "./pages/scanners/index";
+import SchedulePage from "./pages/schedule/index";
 import { fetchCurrentUser } from "./lib/auth";
 
 function RequireAuth(props: { children: any }) {
@@ -74,6 +75,14 @@ export function AppRoutes() {
         component={() => (
           <RequireAuth>
             <ScannerPage />
+          </RequireAuth>
+        )}
+      />
+      <Route
+        path="/schedule"
+        component={() => (
+          <RequireAuth>
+            <SchedulePage />
           </RequireAuth>
         )}
       />
