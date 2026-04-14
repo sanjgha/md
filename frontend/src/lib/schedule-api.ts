@@ -5,24 +5,24 @@
 
 import { apiFetch } from "./api";
 import type {
-  JobResponse,
+  ScheduledJob,
   JobPatch,
   RunResponse,
-  JobRunHistoryEntry,
+  HistoryEntry,
 } from "../pages/schedule/types";
 
 export type {
-  JobResponse,
+  ScheduledJob,
   JobPatch,
   RunResponse,
-  JobRunHistoryEntry,
+  HistoryEntry,
 } from "../pages/schedule/types";
 
 /**
  * List all scheduled jobs with their configuration and last run info
  * GET /api/schedule/jobs
  */
-export const listJobs = (): Promise<JobResponse[]> =>
+export const listJobs = (): Promise<ScheduledJob[]> =>
   apiFetch("/api/schedule/jobs");
 
 /**
@@ -32,7 +32,7 @@ export const listJobs = (): Promise<JobResponse[]> =>
 export const patchJob = (
   jobId: string,
   body: JobPatch
-): Promise<JobResponse> =>
+): Promise<ScheduledJob> =>
   apiFetch(`/api/schedule/jobs/${jobId}`, {
     method: "PATCH",
     body: JSON.stringify(body),
@@ -42,7 +42,7 @@ export const patchJob = (
  * Trigger a job to run immediately
  * POST /api/schedule/jobs/:jobId/run
  */
-export const runJob = (jobId: string): Promise<RunResponse> =>
+export const runJobNow = (jobId: string): Promise<RunResponse> =>
   apiFetch(`/api/schedule/jobs/${jobId}/run`, {
     method: "POST",
   });
@@ -50,13 +50,6 @@ export const runJob = (jobId: string): Promise<RunResponse> =>
 /**
  * Get run history for all jobs over the last 7 days
  * GET /api/schedule/jobs/history
- *
- * Note: The endpoint doesn't currently accept query parameters,
- * but the interface is kept flexible for future enhancements.
  */
-export const getHistory = (_params?: {
-  runType?: string;
-  from?: string;
-  to?: string;
-}): Promise<JobRunHistoryEntry[]> =>
+export const getHistory = (): Promise<HistoryEntry[]> =>
   apiFetch("/api/schedule/jobs/history");

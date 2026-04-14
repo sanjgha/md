@@ -18,7 +18,7 @@ export interface LastRun {
  * Scheduled job response with configuration and last run info
  * Mirrors JobResponse schema
  */
-export interface JobResponse {
+export interface ScheduledJob {
   /** Unique job identifier (e.g., "eod_scan", "pre_close_scan") */
   job_id: string;
   /** Human-readable display name */
@@ -31,8 +31,8 @@ export interface JobResponse {
   enabled: boolean;
   /** Whether results are automatically saved to database */
   auto_save: boolean;
-  /** Optional: last run information */
-  last_run?: LastRun;
+  /** Last run information (null if never run) */
+  last_run: LastRun | null;
 }
 
 /**
@@ -67,7 +67,7 @@ export interface RunResponse {
  * History entry for a job run
  * Matches the response from GET /api/schedule/jobs/history
  */
-export interface JobRunHistoryEntry {
+export interface HistoryEntry {
   /** Human-readable job name */
   job_name: string;
   /** ISO datetime string of when the job ran */
