@@ -199,7 +199,11 @@ def run_intraday(
 
         candles = [
             Candle(
-                timestamp=c.timestamp if isinstance(c.timestamp, datetime) else datetime.fromisoformat(str(c.timestamp)),
+                timestamp=(
+                    c.timestamp
+                    if isinstance(c.timestamp, datetime)
+                    else datetime.fromisoformat(str(c.timestamp))
+                ),
                 open=float(c.open),
                 high=float(c.high),
                 low=float(c.low),
