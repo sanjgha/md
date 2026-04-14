@@ -26,6 +26,7 @@ export function JobCard(props: JobCardProps) {
   const [isRunning, setIsRunning] = createSignal(false);
   const [patchError, setPatchError] = createSignal<string | null>(null);
   const [runResult, setRunResult] = createSignal<string | null>(null);
+  const [runStatus, setRunStatus] = createSignal<"success" | "error" | "warning" | null>(null);
 
   /**
    * Format ISO datetime string for display
@@ -45,6 +46,9 @@ export function JobCard(props: JobCardProps) {
    * Handle time input blur - validate and patch
    */
   const handleTimeBlur = async () => {
+    // Guard against concurrent operations
+    if (isPatching()) return;
+
     const hour = editHour();
     const minute = editMinute();
 
@@ -87,6 +91,9 @@ export function JobCard(props: JobCardProps) {
    * Handle enable toggle change
    */
   const handleEnabledChange = async () => {
+    // Guard against concurrent operations
+    if (isPatching()) return;
+
     setIsPatching(true);
     setPatchError(null);
 
@@ -107,6 +114,9 @@ export function JobCard(props: JobCardProps) {
    * Handle auto-save toggle change
    */
   const handleAutoSaveChange = async () => {
+    // Guard against concurrent operations
+    if (isPatching()) return;
+
     setIsPatching(true);
     setPatchError(null);
 
@@ -129,6 +139,7 @@ export function JobCard(props: JobCardProps) {
   const handleRunNow = async () => {
     setIsRunning(true);
     setRunResult(null);
+    setRunStatus(null);
     setPatchError(null);
 
     try {
@@ -136,13 +147,23 @@ export function JobCard(props: JobCardProps) {
 
       if (response.status === "ok") {
         setRunResult(`✓ ${response.result_count} tickers`);
+        setRunStatus("success");
       } else {
         setRunResult(`✗ ${response.detail || "Failed"}`);
+        setRunStatus("error");
       }
     } catch (err) {
-      setRunResult(
-        `✗ ${err instanceof Error ? err.message : "Failed to run job"}`
-      );
+      // Check for 409 Conflict (job already running)
+      const errorObj = err as { status?: number; message?: string };
+      if (errorObj.status === 409 || (errorObj.message && errorObj.message.includes("already running"))) {
+        setRunResult(`⚠ Job is already running`);
+        setRunStatus("warning");
+      } else {
+        setRunResult(
+          `✗ ${err instanceof Error ? err.message : "Failed to run job"}`
+        );
+        setRunStatus("error");
+      }
     } finally {
       setIsRunning(false);
     }
@@ -271,9 +292,12 @@ export function JobCard(props: JobCardProps) {
       {/* Run result */}
       <Show when={runResult()}>
         <div
-          class={`run-result ${
-            runResult()?.startsWith("✓") ? "run-success" : "run-error"
-          }`}
+          classList={{
+            "run-result": true,
+            "run-success": runStatus() === "success",
+            "run-error": runStatus() === "error",
+            "run-warning": runStatus() === "warning",
+          }}
         >
           {runResult()}
         </div>

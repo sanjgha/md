@@ -597,3 +597,8 @@ body {
   background: #fee2e2;
   color: #dc2626;
 }
+
+.run-warning {
+  background: #fef3c7;
+  color: #d97706;
+}
