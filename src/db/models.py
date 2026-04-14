@@ -247,6 +247,19 @@ class ScannerResult(Base):
     stock = relationship("Stock", back_populates="scanner_results")
 
 
+class ScheduleConfig(Base):
+    """Persists scheduler job configuration across restarts."""
+
+    __tablename__ = "schedule_config"
+
+    job_id = Column(Text, primary_key=True)  # "eod_scan" | "pre_close_scan"
+    hour = Column(Integer, nullable=False)
+    minute = Column(Integer, nullable=False)
+    enabled = Column(Boolean, nullable=False, default=True)
+    auto_save = Column(Boolean, nullable=False, default=False)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
 class EconomicIndicator(Base):
     """Macro economic indicator releases."""
 

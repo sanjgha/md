@@ -98,3 +98,13 @@ def test_ui_setting_unique_constraint():
 
     constraint_names = {c.name for c in UiSetting.__table__.constraints}
     assert "uq_ui_settings_user_key" in constraint_names
+
+
+def test_schedule_config_model_has_expected_columns():
+    """ScheduleConfig model defines all required columns."""
+    from src.db.models import ScheduleConfig
+    from sqlalchemy import inspect
+
+    mapper = inspect(ScheduleConfig)
+    col_names = {c.key for c in mapper.columns}
+    assert col_names == {"job_id", "hour", "minute", "enabled", "auto_save", "updated_at"}
