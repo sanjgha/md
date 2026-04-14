@@ -1,5 +1,6 @@
 """Scanner API routes."""
 
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -56,8 +57,6 @@ def get_results(
     db: Session = Depends(get_db),
 ):
     """Query scanner_results with optional filters. Defaults to latest date."""
-    from datetime import datetime
-
     # Resolve date: latest matched_at date if not specified
     if date is None:
         latest = (
@@ -156,8 +155,6 @@ def run_intraday(
     db: Session = Depends(get_db),
 ):
     """Run intraday scan synchronously. Results returned directly — not persisted."""
-    from datetime import datetime
-
     from src.data_provider.base import Candle
     from src.db.models import IntradayCandle, WatchlistSymbol
     from src.scanner.context import ScanContext
@@ -202,7 +199,11 @@ def run_intraday(
 
         candles = [
             Candle(
-                timestamp=c.timestamp,
+                timestamp=(
+                    c.timestamp
+                    if isinstance(c.timestamp, datetime)
+                    else datetime.fromisoformat(str(c.timestamp))
+                ),
                 open=float(c.open),
                 high=float(c.high),
                 low=float(c.low),
@@ -214,8 +215,8 @@ def run_intraday(
 
         indicator_cache = IndicatorCache({})
         context = ScanContext(
-            stock_id=stock.id,
-            symbol=stock.symbol,
+            stock_id=int(stock.id),
+            symbol=str(stock.symbol),
             daily_candles=candles,
             intraday_candles={payload.timeframe: candles},
             indicator_cache=indicator_cache,
@@ -232,7 +233,7 @@ def run_intraday(
                     results.append(
                         ScannerResultItem(
                             scanner_name=r.scanner_name,
-                            symbol=stock.symbol,
+                            symbol=str(stock.symbol),
                             score=meta.get("score"),
                             signal=meta.get("reason") or meta.get("signal"),
                             price=float(candles[-1].close) if candles else None,

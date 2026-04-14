@@ -52,7 +52,9 @@ class PreCloseExecutor(ScannerExecutor):
             # Build a partial "today" candle from the realtime quote.
             # Use quote.last as the current close proxy; fall back to 0.0 for missing fields.
             today_candle = Candle(
-                timestamp=quote.timestamp if quote.timestamp else datetime.utcnow(),
+                timestamp=(
+                    quote.timestamp if isinstance(quote.timestamp, datetime) else datetime.utcnow()
+                ),
                 open=float(quote.open) if quote.open is not None else 0.0,
                 high=float(quote.high) if quote.high is not None else 0.0,
                 low=float(quote.low) if quote.low is not None else 0.0,
@@ -64,8 +66,8 @@ class PreCloseExecutor(ScannerExecutor):
 
             indicator_cache = IndicatorCache(self.indicators_registry)
             context = ScanContext(
-                stock_id=stock.id,
-                symbol=stock.symbol,
+                stock_id=int(stock.id),
+                symbol=str(stock.symbol),
                 daily_candles=all_candles,
                 intraday_candles={},
                 indicator_cache=indicator_cache,
