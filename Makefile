@@ -15,6 +15,7 @@ test-cov:
 	pytest tests/ --cov=src --cov-report=html
 
 lint:
+	black --check src/ tests/
 	ruff check src/ tests/
 	mypy src/ --ignore-missing-imports
 
