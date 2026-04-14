@@ -9,8 +9,19 @@ Tests cover all schedule routes:
 
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+import pytest
 
 from src.db.models import ScheduleConfig, ScannerResult, Stock
+
+
+@pytest.fixture(autouse=True)
+def reset_schedule_manager():
+    """Ensure schedule manager is stopped after each test."""
+    from src.api.schedule.manager import schedule_manager
+
+    yield
+    if schedule_manager._scheduler is not None:
+        schedule_manager.stop()
 
 
 class TestListJobs:

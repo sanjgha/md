@@ -10,6 +10,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 def _make_manager():
     from src.api.schedule.manager import ScheduleManager
+
     return ScheduleManager()
 
 

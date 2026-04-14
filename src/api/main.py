@@ -33,6 +33,10 @@ async def lifespan(app: FastAPI):
     db = _session_factory()()
     try:
         schedule_manager.start(db)
+    except Exception:
+        # Ensure we don't leave a half-initialized scheduler
+        schedule_manager.stop()
+        raise
     finally:
         db.close()
 

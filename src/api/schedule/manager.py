@@ -344,11 +344,15 @@ class ScheduleManager:
             )
 
             if not results:
-                logger.info("No scanner results found for %s at %s, skipping auto-save", job_id, ran_at)
+                logger.info(
+                    "No scanner results found for %s at %s, skipping auto-save", job_id, ran_at
+                )
                 return
 
             # Format watchlist name: "EOD Scan — Apr 14 16:15"
-            watchlist_name = f"{JOB_DISPLAY_NAMES.get(job_id, job_id)} — {ran_at.strftime('%b %d %H:%M')}"
+            watchlist_name = (
+                f"{JOB_DISPLAY_NAMES.get(job_id, job_id)} — {ran_at.strftime('%b %d %H:%M')}"
+            )
 
             # Use WatchlistService to create the watchlist
             watchlist_service = WatchlistService(db_session)

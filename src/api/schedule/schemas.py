@@ -43,6 +43,6 @@ class JobPatch(BaseModel):
 
 
 class RunResponse(BaseModel):
-    status: str          # "ok" | "error"
+    status: str  # "ok" | "error"
     result_count: int
     detail: Optional[str] = None
