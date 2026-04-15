@@ -22,9 +22,10 @@ def test_run_pre_close_job_returns_result_count():
     """run_pre_close_job returns the number of matched pre-close results."""
     mock_db = MagicMock()
 
-    with patch("src.api.schedule.jobs._build_output_handler") as mock_output, patch(
-        "src.scanner.pre_close_executor.PreCloseExecutor"
-    ) as MockExecutor:
+    with (
+        patch("src.api.schedule.jobs._build_output_handler") as mock_output,
+        patch("src.scanner.pre_close_executor.PreCloseExecutor") as MockExecutor,
+    ):
         mock_output.return_value = MagicMock()
         MockExecutor.return_value.run.return_value = [MagicMock(), MagicMock()]
         from src.api.schedule.jobs import run_pre_close_job
