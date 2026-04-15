@@ -17,7 +17,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -252,12 +252,12 @@ class ScheduleConfig(Base):
 
     __tablename__ = "schedule_config"
 
-    job_id = Column(Text, primary_key=True)  # "eod_scan" | "pre_close_scan"
-    hour = Column(Integer, nullable=False)
-    minute = Column(Integer, nullable=False)
-    enabled = Column(Boolean, nullable=False, default=True)
-    auto_save = Column(Boolean, nullable=False, default=False)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    job_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    hour: Mapped[int] = mapped_column(Integer, nullable=False)
+    minute: Mapped[int] = mapped_column(Integer, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    auto_save: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 
 
 class EconomicIndicator(Base):

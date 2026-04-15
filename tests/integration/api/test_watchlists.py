@@ -69,10 +69,10 @@ def test_get_watchlists_grouped_by_category(authenticated_client, seeded_user, d
     assert len(data) > 0
 
     # Find Active Trading category
-    active_category = next((c for c in data if c["category_name"] == "Active Trading"), None)
+    active_category = next((c for c in data if c["category"]["name"] == "Active Trading"), None)
     assert active_category is not None
-    assert active_category["category_icon"] == "🔥"
-    assert active_category["is_system"] is True
+    assert active_category["category"]["icon"] == "🔥"
+    assert active_category["category"]["is_system"] is True
     assert len(active_category["watchlists"]) == 1
 
     # Check watchlist data
@@ -438,7 +438,7 @@ def test_get_watchlists_uncategorized_watchlist_is_visible(
     assert resp.status_code == 200
     data = resp.json()
 
-    uncategorized = next((g for g in data if g["category_name"] == "Uncategorized"), None)
+    uncategorized = next((g for g in data if g["category"]["name"] == "Uncategorized"), None)
     assert uncategorized is not None, "Uncategorized group must appear"
     assert any(w["name"] == "No Category List" for w in uncategorized["watchlists"])
 

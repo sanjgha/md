@@ -71,8 +71,8 @@ def run_eod_job(db: Session) -> int:
         db=db,
     )
     stocks_with_candles = {
-        s.id: (
-            s.symbol,
+        int(s.id): (
+            str(s.symbol),
             executor._to_candles(sorted(s.daily_candles, key=lambda c: c.timestamp)),
         )
         for s in stocks

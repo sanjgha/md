@@ -275,7 +275,7 @@ class ScheduleManager:
         """
 
         def callback() -> None:
-            from src.db.connection import get_session
+            from src.api.deps import get_session
 
             lock = self._locks.get(job_id)
             if lock is None:
@@ -334,7 +334,7 @@ class ScheduleManager:
             ran_at = datetime.now().replace(second=0, microsecond=0)
 
             # Query scanner results for this run_type and time
-            run_type = job_id  # job_id maps to run_type in ScannerResult
+            run_type = JOB_RUN_TYPES[job_id]  # Map job_id to run_type (eod_scan → eod)
             results = (
                 db_session.query(ScannerResult)
                 .filter(ScannerResult.run_type == run_type)
@@ -374,17 +374,17 @@ class ScheduleManager:
                 db_session.query(WatchlistSymbol).filter(
                     WatchlistSymbol.watchlist_id == existing.id
                 ).delete()
-                watchlist_id = existing.id
+                watchlist_id = int(existing.id)
             else:
                 # Create new watchlist using WatchlistService
                 watchlist = watchlist_service.create_watchlist(
-                    user_id=user.id,
+                    user_id=int(user.id),
                     name=watchlist_name,
                 )
                 # Mark as auto-generated
-                watchlist.is_auto_generated = True
+                watchlist.is_auto_generated = True  # type: ignore[assignment]
                 db_session.commit()
-                watchlist_id = watchlist.id
+                watchlist_id = int(watchlist.id)
 
             # Add symbols using WatchlistService
             from src.db.models import Stock
@@ -394,8 +394,8 @@ class ScheduleManager:
                 if stock:
                     watchlist_service.add_symbol(
                         watchlist_id=watchlist_id,
-                        user_id=user.id,
-                        symbol=stock.symbol,
+                        user_id=int(user.id),
+                        symbol=str(stock.symbol),
                     )
 
             db_session.commit()

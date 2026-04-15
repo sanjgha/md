@@ -289,6 +289,7 @@ class TestCategoryWatchlistsSchema:
             created_at = datetime.now()
             updated_at = datetime.now()
             symbols = []
+            symbol_count = 0
 
         data = {
             "category": MockCategory(),

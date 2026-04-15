@@ -1,6 +1,7 @@
 """FastAPI dependency functions shared across routes."""
 
 import logging
+from contextlib import contextmanager
 from functools import lru_cache
 from typing import Generator
 
@@ -24,6 +25,16 @@ def _session_factory() -> sessionmaker:
 
 def get_db() -> Generator[Session, None, None]:
     """Yield a SQLAlchemy session; close on exit."""
+    db: Session = _session_factory()()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@contextmanager
+def get_session() -> Generator[Session, None, None]:
+    """Context manager for a DB session in background threads (not FastAPI requests)."""
     db: Session = _session_factory()()
     try:
         yield db

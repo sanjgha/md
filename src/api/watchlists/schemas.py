@@ -100,11 +100,29 @@ class WatchlistListResponse(BaseModel):
     items: List[WatchlistResponse] = Field(..., description="List of watchlists")
 
 
+class WatchlistSummary(BaseModel):
+    """Schema for watchlist summary in grouped view."""
+
+    id: int
+    name: str
+    category_id: Optional[int]
+    description: Optional[str]
+    is_auto_generated: bool
+    scanner_name: Optional[str]
+    watchlist_mode: str
+    source_scan_date: Optional[datetime]
+    created_at: datetime
+    updated_at: datetime
+    symbol_count: int = Field(..., description="Number of symbols in watchlist")
+
+    model_config = {"from_attributes": True}
+
+
 class CategoryWatchlists(BaseModel):
     """Schema for category with its watchlists."""
 
     category: CategoryResponse
-    watchlists: List[WatchlistResponse]
+    watchlists: List[WatchlistSummary]
 
 
 class WatchlistCloneRequest(BaseModel):

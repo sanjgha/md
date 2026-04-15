@@ -10,6 +10,7 @@ import type {
   Category,
   CategoryCreate,
   WatchlistUpdate,
+  CategoryWatchlists,
 } from "../pages/watchlists/types";
 
 /**
@@ -19,7 +20,7 @@ export const watchlistsAPI = {
   /**
    * List all watchlists grouped by category
    */
-  list: (): Promise<{ categories: CategoryWatchlists[] }> =>
+  list: (): Promise<CategoryWatchlists[]> =>
     apiFetch("/api/watchlists"),
 
   /**
@@ -115,27 +116,3 @@ export const watchlistsAPI = {
       body: JSON.stringify(data),
     }),
 };
-
-/**
- * CategoryWatchlists interface for response
- */
-interface CategoryWatchlists {
-  category_id: number | null;
-  category_name: string;
-  category_icon: string | null;
-  is_system: boolean;
-  watchlists: Watchlist[];
-}
-
-/**
- * WatchlistSymbol interface for response
- */
-interface WatchlistSymbol {
-  id: number;
-  stock_id: number;
-  symbol: string;
-  name: string | null;
-  notes: string | null;
-  priority: number;
-  added_at: string;
-}
