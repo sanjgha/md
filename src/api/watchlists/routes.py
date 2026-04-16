@@ -25,6 +25,7 @@ from src.api.deps import get_current_user, get_db
 from src.api.watchlists.schemas import (
     CategoryCreate,
     CategoryResponse,
+    CategoryWatchlists,
     WatchlistCloneRequest,
     WatchlistCreate,
     WatchlistResponse,
@@ -50,11 +51,11 @@ def _get_user(request: Request, db: Session = Depends(get_db)) -> User:
 # ========== Watchlist CRUD Endpoints ==========
 
 
-@router.get("", response_model=List[dict])
+@router.get("", response_model=List[CategoryWatchlists])
 def list_watchlists(
     user: User = Depends(_get_user),
     db: Session = Depends(get_db),
-):
+) -> List[CategoryWatchlists]:
     """Get all watchlists for the current user, grouped by category.
 
     Returns a list of categories with their watchlists and symbol counts.

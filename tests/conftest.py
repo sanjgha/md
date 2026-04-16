@@ -1,5 +1,7 @@
 """Shared pytest fixtures using testcontainers PostgreSQL."""
 
+import os
+
 import pytest
 from testcontainers.postgres import PostgresContainer
 from sqlalchemy import create_engine
@@ -10,6 +12,14 @@ from sqlalchemy.orm import sessionmaker
 def postgres_container():
     """Start a PostgreSQL container for the test session."""
     with PostgresContainer("postgres:16-alpine") as postgres:
+        # Required so FastAPI lifespan (schedule_manager.start) can call get_config()
+        os.environ["DATABASE_URL"] = postgres.get_connection_url()
+        os.environ.setdefault("MARKETDATA_API_TOKEN", "test-token")
+        from src.config import get_config
+        from src.api.deps import _session_factory
+
+        get_config.cache_clear()
+        _session_factory.cache_clear()
         yield postgres
 
 

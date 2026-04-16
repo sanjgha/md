@@ -1,10 +1,15 @@
 """Watchlist service layer with business logic for CRUD operations."""
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import List, Optional, cast
 
 from sqlalchemy.orm import Session
 
+from src.api.watchlists.schemas import (
+    CategoryWatchlists,
+    CategoryResponse,
+    WatchlistSummary,
+)
 from src.db.models import (
     Stock,
     Watchlist,
@@ -466,31 +471,15 @@ class WatchlistService:
         self.db_session.refresh(cloned)
         return cloned
 
-    def get_watchlists_grouped(self, user_id: int) -> List[dict]:
+    def get_watchlists_grouped(self, user_id: int) -> List[CategoryWatchlists]:
         """Get watchlists grouped by category with symbol counts.
 
         Args:
             user_id: ID of the user
 
         Returns:
-            List of dicts with structure:
-            {
-                "category_id": int,
-                "category_name": str,
-                "category_icon": str,
-                "is_system": bool,
-                "watchlists": [
-                    {
-                        "id": int,
-                        "name": str,
-                        "description": str | None,
-                        "symbol_count": int,
-                        "created_at": datetime,
-                        "updated_at": datetime,
-                    }
-                ]
-            }
-            Ordered by category sort_order
+            List of CategoryWatchlists objects with category and watchlists.
+            Ordered by category sort_order.
         """
         from src.db.models import WatchlistSymbol, WatchlistCategory
 
@@ -516,8 +505,8 @@ class WatchlistService:
                 .all()
             )
 
-            # Build watchlist data with symbol counts
-            watchlist_data = []
+            # Build watchlist summaries with symbol counts
+            watchlist_summaries = []
             for watchlist in watchlists:
                 # Count symbols in this watchlist
                 symbol_count = (
@@ -526,26 +515,40 @@ class WatchlistService:
                     .count()
                 )
 
-                watchlist_data.append(
-                    {
-                        "id": watchlist.id,
-                        "name": watchlist.name,
-                        "description": watchlist.description,
-                        "symbol_count": symbol_count,
-                        "created_at": watchlist.created_at,
-                        "updated_at": watchlist.updated_at,
-                    }
+                watchlist_summaries.append(
+                    WatchlistSummary(
+                        id=int(watchlist.id),
+                        name=str(watchlist.name),
+                        category_id=(
+                            int(watchlist.category_id)
+                            if watchlist.category_id is not None
+                            else None
+                        ),
+                        description=(
+                            str(watchlist.description)
+                            if watchlist.description is not None
+                            else None
+                        ),
+                        is_auto_generated=bool(watchlist.is_auto_generated),
+                        scanner_name=(
+                            str(watchlist.scanner_name)
+                            if watchlist.scanner_name is not None
+                            else None
+                        ),
+                        watchlist_mode=str(watchlist.watchlist_mode),
+                        source_scan_date=watchlist.source_scan_date,  # type: ignore[arg-type]
+                        created_at=watchlist.created_at,  # type: ignore[arg-type]
+                        updated_at=watchlist.updated_at,  # type: ignore[arg-type]
+                        symbol_count=symbol_count,
+                    )
                 )
 
             # Add category with its watchlists
             result.append(
-                {
-                    "category_id": category.id,
-                    "category_name": category.name,
-                    "category_icon": category.icon or "",
-                    "is_system": category.is_system,
-                    "watchlists": watchlist_data,
-                }
+                CategoryWatchlists(
+                    category=CategoryResponse.model_validate(category),
+                    watchlists=watchlist_summaries,
+                )
             )
 
         # Include watchlists with no category under a synthetic "Uncategorized" group
@@ -560,31 +563,57 @@ class WatchlistService:
         )
 
         if uncategorized_watchlists:
-            uncategorized_data = []
+            uncategorized_summaries = []
             for watchlist in uncategorized_watchlists:
                 symbol_count = (
                     self.db_session.query(WatchlistSymbol)
                     .filter(WatchlistSymbol.watchlist_id == watchlist.id)
                     .count()
                 )
-                uncategorized_data.append(
-                    {
-                        "id": watchlist.id,
-                        "name": watchlist.name,
-                        "description": watchlist.description,
-                        "symbol_count": symbol_count,
-                        "created_at": watchlist.created_at,
-                        "updated_at": watchlist.updated_at,
-                    }
+                uncategorized_summaries.append(
+                    WatchlistSummary(
+                        id=int(watchlist.id),
+                        name=str(watchlist.name),
+                        category_id=(
+                            int(watchlist.category_id)
+                            if watchlist.category_id is not None
+                            else None
+                        ),
+                        description=(
+                            str(watchlist.description)
+                            if watchlist.description is not None
+                            else None
+                        ),
+                        is_auto_generated=bool(watchlist.is_auto_generated),
+                        scanner_name=(
+                            str(watchlist.scanner_name)
+                            if watchlist.scanner_name is not None
+                            else None
+                        ),
+                        watchlist_mode=str(watchlist.watchlist_mode),
+                        source_scan_date=watchlist.source_scan_date,  # type: ignore[arg-type]
+                        created_at=watchlist.created_at,  # type: ignore[arg-type]
+                        updated_at=watchlist.updated_at,  # type: ignore[arg-type]
+                        symbol_count=symbol_count,
+                    )
                 )
+
+            # Create synthetic category for uncategorized watchlists
             result.append(
-                {
-                    "category_id": None,
-                    "category_name": "Uncategorized",
-                    "category_icon": "",
-                    "is_system": False,
-                    "watchlists": uncategorized_data,
-                }
+                CategoryWatchlists(
+                    category=CategoryResponse(
+                        id=0,  # Synthetic ID
+                        name="Uncategorized",
+                        description=None,
+                        color=None,
+                        icon=None,
+                        is_system=False,
+                        sort_order=999,  # Always last
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow(),
+                    ),
+                    watchlists=uncategorized_summaries,
+                )
             )
 
         return result

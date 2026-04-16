@@ -17,7 +17,24 @@ export interface WatchlistSymbol {
 }
 
 /**
- * Watchlist response
+ * Watchlist summary (for grouped view)
+ */
+export interface WatchlistSummary {
+  id: number;
+  name: string;
+  category_id: number | null;
+  description: string | null;
+  is_auto_generated: boolean;
+  scanner_name: string | null;
+  watchlist_mode: string;
+  source_scan_date: string | null; // ISO datetime
+  created_at: string; // ISO datetime
+  updated_at: string; // ISO datetime
+  symbol_count: number;
+}
+
+/**
+ * Watchlist response (full detail with symbols)
  */
 export interface Watchlist {
   id: number;
@@ -31,6 +48,7 @@ export interface Watchlist {
   created_at: string; // ISO datetime
   updated_at: string; // ISO datetime
   symbols: WatchlistSymbol[];
+  symbol_count?: number;
 }
 
 /**
@@ -60,6 +78,8 @@ export interface Category {
   description: string | null;
   color: string | null;
   icon: string | null;
+  is_system: boolean;
+  sort_order: number;
   created_at: string; // ISO datetime
   updated_at: string; // ISO datetime
 }
@@ -79,7 +99,7 @@ export interface CategoryCreate {
  */
 export interface CategoryWatchlists {
   category: Category;
-  watchlists: Watchlist[];
+  watchlists: WatchlistSummary[];
 }
 
 /**

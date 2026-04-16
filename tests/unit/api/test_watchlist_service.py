@@ -588,31 +588,31 @@ class TestGetWatchlistsGrouped:
         assert len(grouped) == 2
 
         # Verify ordering by sort_order (Category 2 first, then Category 1)
-        assert grouped[0]["category_name"] == "Category 2"
-        assert grouped[1]["category_name"] == "Category 1"
+        assert grouped[0].category.name == "Category 2"
+        assert grouped[1].category.name == "Category 1"
 
         # Verify Category 2 (sort_order=1)
         cat2_group = grouped[0]
-        assert cat2_group["category_id"] == cat2.id
-        assert cat2_group["category_icon"] == "📂"
-        assert cat2_group["is_system"] is True
-        assert len(cat2_group["watchlists"]) == 1
-        assert cat2_group["watchlists"][0]["id"] == cast(int, watchlist3.id)
-        assert cat2_group["watchlists"][0]["name"] == "Watchlist 3"
-        assert cat2_group["watchlists"][0]["symbol_count"] == 0
+        assert cat2_group.category.id == cat2.id
+        assert cat2_group.category.icon == "📂"
+        assert cat2_group.category.is_system is True
+        assert len(cat2_group.watchlists) == 1
+        assert cat2_group.watchlists[0].id == cast(int, watchlist3.id)
+        assert cat2_group.watchlists[0].name == "Watchlist 3"
+        assert cat2_group.watchlists[0].symbol_count == 0
 
         # Verify Category 1 (sort_order=2)
         cat1_group = grouped[1]
-        assert cat1_group["category_id"] == cat1.id
-        assert cat1_group["category_icon"] == "📁"
-        assert cat1_group["is_system"] is False
-        assert len(cat1_group["watchlists"]) == 2
+        assert cat1_group.category.id == cat1.id
+        assert cat1_group.category.icon == "📁"
+        assert cat1_group.category.is_system is False
+        assert len(cat1_group.watchlists) == 2
 
         # Verify watchlist ordering (most recent first)
-        assert cat1_group["watchlists"][0]["id"] == cast(int, cast(int, cast(int, watchlist2.id)))
-        assert cat1_group["watchlists"][0]["symbol_count"] == 1
-        assert cat1_group["watchlists"][1]["id"] == cast(int, cast(int, cast(int, watchlist1.id)))
-        assert cat1_group["watchlists"][1]["symbol_count"] == 2
+        assert cat1_group.watchlists[0].id == cast(int, watchlist2.id)
+        assert cat1_group.watchlists[0].symbol_count == 1
+        assert cat1_group.watchlists[1].id == cast(int, watchlist1.id)
+        assert cat1_group.watchlists[1].symbol_count == 2
 
     def test_get_watchlists_grouped_empty_user(self, db_session: Session):
         """Test getting grouped watchlists for user with no data."""
@@ -659,10 +659,10 @@ class TestGetWatchlistsGrouped:
 
         # Should return categories with empty watchlists
         assert len(grouped) == 2
-        assert grouped[0]["category_name"] == "Empty Category 1"
-        assert grouped[0]["watchlists"] == []
-        assert grouped[1]["category_name"] == "Empty Category 2"
-        assert grouped[1]["watchlists"] == []
+        assert grouped[0].category.name == "Empty Category 1"
+        assert grouped[0].watchlists == []
+        assert grouped[1].category.name == "Empty Category 2"
+        assert grouped[1].watchlists == []
 
     def test_get_watchlists_grouped_watchlists_no_category(self, db_session: Session):
         """Test getting grouped watchlists with watchlists that have no category."""
@@ -695,9 +695,9 @@ class TestGetWatchlistsGrouped:
 
         # Should return Uncategorized group for watchlists with no category
         assert len(grouped) == 1
-        assert grouped[0]["category_name"] == "Uncategorized"
-        assert len(grouped[0]["watchlists"]) == 1
-        assert grouped[0]["watchlists"][0]["name"] == "Uncategorized Watchlist"
+        assert grouped[0].category.name == "Uncategorized"
+        assert len(grouped[0].watchlists) == 1
+        assert grouped[0].watchlists[0].name == "Uncategorized Watchlist"
 
 
 class TestAddSymbol:

@@ -36,6 +36,78 @@ body {
   min-height: 100vh;
 }
 
+/* App Navigation */
+.app-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.app-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.nav-links a {
+  color: var(--text-2);
+  text-decoration: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  transition: color 0.2s, background 0.2s;
+}
+
+.nav-links a:hover {
+  color: var(--text-1);
+  background: var(--surface-1);
+}
+
+.nav-links a.active {
+  color: var(--accent);
+  background: var(--surface-1);
+  font-weight: 500;
+}
+
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+}
+
+.nav-user span {
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.nav-user button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.nav-user button:hover {
+  opacity: 0.9;
+}
+
 /* Modal Styles */
 .modal-backdrop {
   position: fixed;
@@ -342,4 +414,430 @@ body {
 .chart-note {
   font-size: 0.875rem;
   color: var(--text-2);
+}
+
+/* Schedule Page - Job Card Styles */
+.job-card {
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  margin-bottom: 1rem;
+}
+
+.job-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.job-card-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.last-run-info {
+  font-size: 0.875rem;
+  color: var(--text-2);
+}
+
+.never-run {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.last-run-time {
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.last-run-count {
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.job-card-schedule {
+  margin-bottom: 1rem;
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.job-card-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.time-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.time-label {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.time-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.time-input {
+  width: 3rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.time-input[aria-invalid="true"] {
+  border-color: #dc2626;
+}
+
+.time-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.time-separator {
+  font-weight: 500;
+}
+
+.time-error {
+  color: #dc2626;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.toggle-control {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.toggle-checkbox {
+  appearance: none;
+  width: 2.5rem;
+  height: 1.25rem;
+  background: var(--border);
+  border-radius: 1rem;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle-checkbox:checked {
+  background: var(--accent);
+}
+
+.toggle-checkbox:checked::before {
+  transform: translateX(1.25rem);
+}
+
+.toggle-checkbox::before {
+  content: "";
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  background: white;
+  border-radius: 50%;
+  top: 0.125rem;
+  left: 0.125rem;
+  transition: transform 0.2s;
+}
+
+.toggle-checkbox:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-slider {
+  display: none;
+}
+
+.run-now-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.run-now-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.run-now-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.job-card-enable-row {
+  display: flex;
+  align-items: center;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.enable-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.enable-checkbox {
+  appearance: none;
+  width: 2.5rem;
+  height: 1.25rem;
+  background: var(--border);
+  border-radius: 1rem;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.enable-checkbox:checked {
+  background: #16a34a;
+}
+
+.enable-checkbox:checked::before {
+  transform: translateX(1.25rem);
+}
+
+.enable-checkbox::before {
+  content: "";
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  background: white;
+  border-radius: 50%;
+  top: 0.125rem;
+  left: 0.125rem;
+  transition: transform 0.2s;
+}
+
+.enable-checkbox:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.enable-slider {
+  display: none;
+}
+
+.enable-text {
+  font-weight: 500;
+}
+
+.run-result {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.run-success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.run-error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.run-warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* History Section Styles */
+.history-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.history-section h2 {
+  font-size: 1.25rem;
+  margin: 0 0 1rem 0;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface-2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.history-table thead {
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.history-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-1);
+}
+
+.history-table tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.history-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.history-table td {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text-1);
+}
+
+.history-table tbody tr:hover {
+  background: var(--surface-1);
+}
+
+/* Page Layout */
+main {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-page {
+  padding: 2rem;
+}
+
+.dashboard-page h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-page p {
+  color: var(--text-2);
+  margin: 0.5rem 0;
+}
+
+.ws-note {
+  font-size: 0.875rem;
+  color: var(--text-2);
+  font-family: monospace;
+}
+
+/* Login Page */
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.login-form {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.login-form h1 {
+  text-align: center;
+  margin: 0 0 1.5rem 0;
+  color: var(--accent);
+  font-size: 1.75rem;
+}
+
+.error-msg {
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: #fca5a5;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.login-form label {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.login-form label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 0.25rem;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-size: 1rem;
+  margin-top: 0.25rem;
+  box-sizing: border-box;
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.1);
+}
+
+.login-form button {
+  width: 100%;
+  padding: 0.875rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: opacity 0.2s;
+}
+
+.login-form button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.login-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

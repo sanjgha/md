@@ -7,7 +7,7 @@
 import { Component, Show, For, createSignal, onMount } from 'solid-js';
 import { watchlistsAPI } from '~/lib/watchlists-api';
 import { ShowCreateWatchlistModal } from './create-modal';
-import type { CategoryWatchlists } from '~/pages/watchlists/types';
+import type { CategoryWatchlists, WatchlistSummary } from '~/pages/watchlists/types';
 
 export function ShowWatchlistsDashboard() {
   const [categories, setCategories] = createSignal<CategoryWatchlists[]>([]);
@@ -18,7 +18,7 @@ export function ShowWatchlistsDashboard() {
   onMount(async () => {
     try {
       const response = await watchlistsAPI.list();
-      setCategories(response.categories);
+      setCategories(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load watchlists');
     } finally {
@@ -29,7 +29,7 @@ export function ShowWatchlistsDashboard() {
   const handleCreateSuccess = () => {
     // Reload the watchlists
     watchlistsAPI.list().then((response) => {
-      setCategories(response.categories);
+      setCategories(response);
     });
   };
 
@@ -68,10 +68,10 @@ export function ShowWatchlistsDashboard() {
           {(category) => (
             <section class="category-section">
               <h2 class="category-header">
-                <Show when={category.category_icon}>
-                  <span class="category-icon">{category.category_icon}</span>
+                <Show when={category.category.icon}>
+                  <span class="category-icon">{category.category.icon}</span>
                 </Show>
-                {category.category_name}
+                {category.category.name}
               </h2>
               <div class="watchlist-grid">
                 <For each={category.watchlists}>
