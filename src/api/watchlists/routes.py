@@ -26,6 +26,7 @@ from src.api.watchlists.schemas import (
     CategoryCreate,
     CategoryResponse,
     CategoryWatchlists,
+    QuoteResponse,
     WatchlistCloneRequest,
     WatchlistCreate,
     WatchlistResponse,
@@ -323,6 +324,31 @@ def list_symbols(
         )
 
     return WatchlistSymbolsResponse(symbols=symbol_details)
+
+
+@router.get("/{watchlist_id}/quotes", response_model=list[QuoteResponse])
+def get_quotes(
+    watchlist_id: int,
+    user: User = Depends(_get_user),
+    db: Session = Depends(get_db),
+) -> list[QuoteResponse]:
+    """Get price quotes for all symbols in a watchlist.
+
+    Returns realtime quotes where available today, falling back to latest
+    EOD candle data. Results are in watchlist priority order.
+
+    Returns 404 if watchlist doesn't exist or isn't owned by the user.
+    """
+    service = WatchlistService(db)
+    quotes = service.get_quotes(watchlist_id, cast(int, user.id))
+
+    if quotes is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Watchlist not found",
+        )
+
+    return quotes
 
 
 @router.post("/{watchlist_id}/symbols", response_model=WatchlistSymbolAddResponse, status_code=201)

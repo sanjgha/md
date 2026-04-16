@@ -7,7 +7,6 @@ from typing import cast
 import pytest
 from sqlalchemy.orm import Session
 
-from src.api.watchlists.schemas import QuoteResponse
 from src.api.watchlists.service import WatchlistService
 from src.db.models import (
     DailyCandle,
@@ -48,7 +47,9 @@ def _make_watchlist(db: Session, user_id: int) -> Watchlist:
     return wl
 
 
-def _add_symbol(db: Session, watchlist_id: int, stock_id: int, priority: int = 0) -> WatchlistSymbol:
+def _add_symbol(
+    db: Session, watchlist_id: int, stock_id: int, priority: int = 0
+) -> WatchlistSymbol:
     ws = WatchlistSymbol(watchlist_id=watchlist_id, stock_id=stock_id, priority=priority)
     db.add(ws)
     db.commit()
@@ -109,6 +110,7 @@ class TestGetQuotesRealtimePriority:
         _add_symbol(db_session, cast(int, wl.id), cast(int, stock.id))
 
         from datetime import timedelta
+
         yesterday = datetime.combine(date.today() - timedelta(days=1), datetime.min.time())
         rq = RealtimeQuote(
             stock_id=cast(int, stock.id),
@@ -121,14 +123,20 @@ class TestGetQuotesRealtimePriority:
         dc1 = DailyCandle(
             stock_id=cast(int, stock.id),
             timestamp=datetime(2026, 4, 15),
-            open=Decimal("79.50"), high=Decimal("80.00"),
-            low=Decimal("79.00"), close=Decimal("79.85"), volume=10000,
+            open=Decimal("79.50"),
+            high=Decimal("80.00"),
+            low=Decimal("79.00"),
+            close=Decimal("79.85"),
+            volume=10000,
         )
         dc2 = DailyCandle(
             stock_id=cast(int, stock.id),
             timestamp=datetime(2026, 4, 14),
-            open=Decimal("79.00"), high=Decimal("79.90"),
-            low=Decimal("78.80"), close=Decimal("79.89"), volume=9000,
+            open=Decimal("79.00"),
+            high=Decimal("79.90"),
+            low=Decimal("78.80"),
+            close=Decimal("79.89"),
+            volume=9000,
         )
         db_session.add_all([dc1, dc2])
         db_session.commit()
@@ -151,14 +159,20 @@ class TestGetQuotesEodFallback:
         dc1 = DailyCandle(
             stock_id=cast(int, stock.id),
             timestamp=datetime(2026, 4, 15),
-            open=Decimal("200.00"), high=Decimal("210.00"),
-            low=Decimal("199.00"), close=Decimal("205.00"), volume=50000,
+            open=Decimal("200.00"),
+            high=Decimal("210.00"),
+            low=Decimal("199.00"),
+            close=Decimal("205.00"),
+            volume=50000,
         )
         dc2 = DailyCandle(
             stock_id=cast(int, stock.id),
             timestamp=datetime(2026, 4, 14),
-            open=Decimal("195.00"), high=Decimal("201.00"),
-            low=Decimal("194.00"), close=Decimal("200.00"), volume=45000,
+            open=Decimal("195.00"),
+            high=Decimal("201.00"),
+            low=Decimal("194.00"),
+            close=Decimal("200.00"),
+            volume=45000,
         )
         db_session.add_all([dc1, dc2])
         db_session.commit()
@@ -181,8 +195,11 @@ class TestGetQuotesEodFallback:
         dc = DailyCandle(
             stock_id=cast(int, stock.id),
             timestamp=datetime(2026, 4, 15),
-            open=Decimal("10.00"), high=Decimal("11.00"),
-            low=Decimal("9.50"), close=Decimal("10.50"), volume=1000,
+            open=Decimal("10.00"),
+            high=Decimal("11.00"),
+            low=Decimal("9.50"),
+            close=Decimal("10.50"),
+            volume=1000,
         )
         db_session.add(dc)
         db_session.commit()
@@ -218,8 +235,11 @@ class TestGetQuotesEodFallback:
             dc = DailyCandle(
                 stock_id=cast(int, stock.id),
                 timestamp=datetime(2026, 4, 15),
-                open=Decimal("10.00"), high=Decimal("11.00"),
-                low=Decimal("9.50"), close=Decimal("10.50"), volume=1000,
+                open=Decimal("10.00"),
+                high=Decimal("11.00"),
+                low=Decimal("9.50"),
+                close=Decimal("10.50"),
+                volume=1000,
             )
             db_session.add(dc)
         db_session.commit()
