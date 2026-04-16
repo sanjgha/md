@@ -11,6 +11,7 @@ This module provides endpoints for:
 - DELETE /api/watchlists/categories/{id} - Delete category (system protected)
 - POST /api/watchlists/{id}/clone - Clone watchlist with symbols
 - GET /api/watchlists/{id}/symbols - List symbols in a watchlist
+- GET /api/watchlists/{id}/quotes - Get price quotes for all symbols
 - POST /api/watchlists/{id}/symbols - Add symbol to watchlist
 - DELETE /api/watchlists/{id}/symbols/{symbol} - Remove symbol from watchlist
 """

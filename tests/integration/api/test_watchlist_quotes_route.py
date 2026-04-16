@@ -102,7 +102,7 @@ def test_quotes_404_wrong_owner(authenticated_client, seeded_user, db_session):
     from src.db.models import User
     from src.api.auth import hash_password
 
-    other = User(id=2, username="other", password_hash=hash_password("pw"))
+    other = User(id=99, username="other", password_hash=hash_password("pw"))
     db_session.add(other)
     db_session.commit()
 
