@@ -11,6 +11,7 @@ import type {
   CategoryCreate,
   WatchlistUpdate,
   CategoryWatchlists,
+  QuoteResponse,
 } from "../pages/watchlists/types";
 
 /**
@@ -115,4 +116,10 @@ export const watchlistsAPI = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+
+  /**
+   * Get quotes for all symbols in a watchlist
+   */
+  getQuotes: (watchlistId: number): Promise<QuoteResponse[]> =>
+    apiFetch(`/api/watchlists/${watchlistId}/quotes`),
 };
