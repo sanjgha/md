@@ -3,7 +3,7 @@
  * Shows: source dot, ticker, last price, change, change%, remove button on hover.
  */
 
-import { Component, Show } from "solid-js";
+import { Component } from "solid-js";
 import type { QuoteResponse } from "./types";
 
 interface SymbolRowProps {
