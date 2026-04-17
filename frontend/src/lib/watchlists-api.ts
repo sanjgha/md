@@ -7,6 +7,7 @@ import { apiFetch } from "./api";
 import type {
   Watchlist,
   WatchlistCreate,
+  WatchlistSymbol,
   Category,
   CategoryCreate,
   WatchlistUpdate,
