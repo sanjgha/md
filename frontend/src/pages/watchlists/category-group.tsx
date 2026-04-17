@@ -21,7 +21,7 @@ interface CategoryGroupProps {
   watchlist: WatchlistSummary;
   initiallyExpanded: boolean;
   selectedSymbol: string | null;
-  onSymbolSelect: (symbol: string) => void;
+  onSymbolSelect: (symbol: string | null) => void;
   onExpandChange: (watchlistId: number, expanded: boolean) => void;
 }
 
@@ -105,7 +105,7 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
     setQuotes(original.filter((q) => q.symbol !== symbol));
     // Clear selection if removing the currently selected symbol
     if (props.selectedSymbol === symbol) {
-      props.onSymbolSelect("__CLEAR__");
+      props.onSymbolSelect(null);
     }
     try {
       await watchlistsAPI.symbols.remove(props.watchlist.id, symbol);
@@ -157,7 +157,7 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
                 <SymbolRow
                   quote={quote}
                   selected={props.selectedSymbol === quote.symbol}
-                  onSelect={props.onSymbolSelect}
+                  onSelect={(sym) => props.onSymbolSelect(sym)}
                   onRemove={handleRemove}
                 />
               )}
