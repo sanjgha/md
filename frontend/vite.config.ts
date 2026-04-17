@@ -31,5 +31,6 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test-setup.ts"],
     transformMode: { web: [/\.[jt]sx?$/] },
+    exclude: ["dist/**", "node_modules/**"],
   },
 });
