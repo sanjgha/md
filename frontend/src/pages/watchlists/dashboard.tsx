@@ -1,98 +1,67 @@
 /**
- * Watchlist Dashboard Component
+ * Watchlist Dashboard — route shell for /watchlists.
  *
- * Displays all watchlists grouped by category with symbol counts
+ * Split layout: WatchlistPanel (left 260px) | detail pane (right, flex).
+ * Owns selectedSymbol; passes it down to panel and up from panel.
+ * Handles null selection (symbol deleted) by clearing selectedSymbol.
+ * Detail pane is a placeholder until the charting sub-project.
  */
 
-import { Component, Show, For, createSignal, onMount } from 'solid-js';
-import { watchlistsAPI } from '~/lib/watchlists-api';
-import { ShowCreateWatchlistModal } from './create-modal';
-import type { CategoryWatchlists, WatchlistSummary } from '~/pages/watchlists/types';
+import { createSignal } from "solid-js";
+import { WatchlistPanel } from "./watchlist-panel";
+import { ShowCreateWatchlistModal } from "./create-modal";
 
 export function ShowWatchlistsDashboard() {
-  const [categories, setCategories] = createSignal<CategoryWatchlists[]>([]);
-  const [loading, setLoading] = createSignal(true);
-  const [error, setError] = createSignal<string | null>(null);
+  const [selectedSymbol, setSelectedSymbol] = createSignal<string | null>(null);
   const [showCreateModal, setShowCreateModal] = createSignal(false);
 
-  onMount(async () => {
-    try {
-      const response = await watchlistsAPI.list();
-      setCategories(response);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load watchlists');
-    } finally {
-      setLoading(false);
-    }
-  });
-
-  const handleCreateSuccess = () => {
-    // Reload the watchlists
-    watchlistsAPI.list().then((response) => {
-      setCategories(response);
-    });
-  };
+  function handleSymbolSelect(symbol: string | null) {
+    setSelectedSymbol(symbol);
+  }
 
   return (
-    <div class="watchlist-dashboard">
+    <div class="watchlist-page">
       <ShowCreateWatchlistModal
         isOpen={showCreateModal()}
         onClose={() => setShowCreateModal(false)}
-        onSuccess={handleCreateSuccess}
+        onSuccess={() => setShowCreateModal(false)}
       />
 
-      <header class="dashboard-header">
-        <h1>Watchlists</h1>
-        <button onClick={() => setShowCreateModal(true)}>
-          + New Watchlist
-        </button>
-      </header>
+      <div class="watchlist-layout">
+        {/* Left pane */}
+        <aside class="watchlist-layout__panel">
+          <div class="watchlist-layout__panel-header">
+            <span class="watchlist-layout__title">Watchlists</span>
+            <button
+              class="watchlist-layout__new-btn"
+              onClick={() => setShowCreateModal(true)}
+              title="New watchlist"
+            >
+              +
+            </button>
+          </div>
+          <WatchlistPanel
+            selectedSymbol={selectedSymbol()}
+            onSymbolSelect={handleSymbolSelect}
+          />
+        </aside>
 
-      <Show when={loading()}>
-        <div class="loading">Loading...</div>
-      </Show>
-
-      <Show when={error()}>
-        <div class="error">Failed to load watchlists. Please try again.</div>
-      </Show>
-
-      <Show when={!loading() && !error() && categories().length === 0}>
-        <div class="empty-state">
-          <h2>No watchlists yet</h2>
-          <p>Create your first watchlist to get started tracking stocks.</p>
-        </div>
-      </Show>
-
-      <Show when={!loading() && !error() && categories().length > 0}>
-        <For each={categories()}>
-          {(category) => (
-            <section class="category-section">
-              <h2 class="category-header">
-                <Show when={category.category.icon}>
-                  <span class="category-icon">{category.category.icon}</span>
-                </Show>
-                {category.category.name}
-              </h2>
-              <div class="watchlist-grid">
-                <For each={category.watchlists}>
-                  {(watchlist) => (
-                    <div class="watchlist-card">
-                      <h3>{watchlist.name}</h3>
-                      <Show when={watchlist.description}>
-                        <p class="description">{watchlist.description}</p>
-                      </Show>
-                      <p class="symbol-count">{watchlist.symbol_count} stocks</p>
-                      <Show when={watchlist.is_auto_generated}>
-                        <span class="badge">Auto-generated</span>
-                      </Show>
-                    </div>
-                  )}
-                </For>
-              </div>
-            </section>
+        {/* Right pane */}
+        <main class="watchlist-layout__detail">
+          {selectedSymbol() ? (
+            <div class="watchlist-detail-placeholder">
+              <h2>{selectedSymbol()}</h2>
+              <p class="watchlist-detail-placeholder__note">
+                Chart and detail view coming in the charting sub-project.
+              </p>
+            </div>
+          ) : (
+            <div class="watchlist-detail-placeholder watchlist-detail-placeholder--empty">
+              <p>Select a stock to view detail</p>
+            </div>
           )}
-        </For>
-      </Show>
+        </main>
+      </div>
     </div>
   );
 }
