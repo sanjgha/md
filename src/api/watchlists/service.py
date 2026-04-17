@@ -387,7 +387,9 @@ class WatchlistService:
                     change=change,
                     change_pct=change_pct,
                     source="eod",
-                    date=candles[0].timestamp.strftime("%Y-%m-%d") if candles[0].timestamp else None,
+                    date=(
+                        candles[0].timestamp.strftime("%Y-%m-%d") if candles[0].timestamp else None
+                    ),
                 )
 
         return [result[int(ws.stock_id)] for ws in symbol_rows if int(ws.stock_id) in result]
