@@ -30,22 +30,23 @@ export function ResultsPanel(props: Props) {
   });
 
   return (
-    <div class="flex h-full">
-      <div class="w-64 border-r overflow-y-auto flex-shrink-0">
+    <div class="scanner-results">
+      <div class="scanner-results__list">
         <Show when={!hasResults()}>
-          <p class="p-4 text-gray-400 text-sm">No results</p>
+          <p class="scanner-results__empty">No results</p>
         </Show>
         <Show when={overlap().length > 0}>
-          <div class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b">
+          <div class="scanner-results__section-header">
             Overlap ({overlap().length})
           </div>
           <For each={overlap()}>
             {(item) => (
               <button
-                class={`w-full text-left px-3 py-2 hover:bg-gray-50 ${selected()?.symbol === item.symbol && selected()?.scanner_name === item.scanner_name ? "bg-blue-50" : ""}`}
+                class="scanner-results__item"
+                classList={{ selected: selected()?.symbol === item.symbol && selected()?.scanner_name === item.scanner_name }}
                 onClick={() => setSelected(item)}
               >
-                <span class="font-medium text-sm">{item.symbol}</span>
+                {item.symbol}
               </button>
             )}
           </For>
@@ -53,16 +54,17 @@ export function ResultsPanel(props: Props) {
         <For each={props.groups}>
           {(group) => (
             <>
-              <div class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-t mt-1">
+              <div class="scanner-results__section-header">
                 {group.scanner_name} ({group.results.length})
               </div>
               <For each={group.results}>
                 {(item) => (
                   <button
-                    class={`w-full text-left px-3 py-2 hover:bg-gray-50 ${selected()?.symbol === item.symbol && selected()?.scanner_name === item.scanner_name ? "bg-blue-50" : ""}`}
+                    class="scanner-results__item"
+                    classList={{ selected: selected()?.symbol === item.symbol && selected()?.scanner_name === item.scanner_name }}
                     onClick={() => setSelected(item)}
                   >
-                    <span class="font-medium text-sm">{item.symbol}</span>
+                    {item.symbol}
                   </button>
                 )}
               </For>
@@ -70,8 +72,8 @@ export function ResultsPanel(props: Props) {
           )}
         </For>
       </div>
-      <div class="flex-1 overflow-y-auto">
-        <Show when={selected()} fallback={<p class="p-4 text-gray-400 text-sm">Select a ticker</p>}>
+      <div class="scanner-results__detail">
+        <Show when={selected()} fallback={<p class="scanner-results__no-selection">Select a ticker</p>}>
           <TickerDetail result={selected()!} />
         </Show>
       </div>

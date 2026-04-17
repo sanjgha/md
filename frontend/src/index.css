@@ -841,3 +841,554 @@ main {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ===================================================
+   WATCHLIST PANEL — TradingView-style left panel
+   =================================================== */
+
+.watchlist-page {
+  height: calc(100vh - 57px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.watchlist-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Left panel */
+.watchlist-layout__panel {
+  width: 260px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.watchlist-layout__panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.watchlist-layout__title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+}
+
+.watchlist-layout__new-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.watchlist-layout__new-btn:hover {
+  background: var(--surface-1);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Right detail pane */
+.watchlist-layout__detail {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Scrollable panel body */
+.watchlist-panel {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.watchlist-panel__loading,
+.watchlist-panel__error,
+.watchlist-panel__empty {
+  padding: 1rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+
+.watchlist-panel__category-label {
+  padding: 0.5rem 0.75rem 0.2rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-2);
+  border-top: 1px solid var(--border);
+  margin-top: 0.25rem;
+}
+
+/* ===================================================
+   CATEGORY GROUP — collapsible watchlist row
+   =================================================== */
+
+.category-group {
+  border-bottom: 1px solid var(--border);
+}
+
+.category-group__header {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.8rem;
+}
+
+.category-group__header:hover {
+  background: var(--surface-1);
+}
+
+.category-group__chevron {
+  font-size: 0.55rem;
+  color: var(--text-2);
+  width: 0.8rem;
+  flex-shrink: 0;
+}
+
+.category-group__name {
+  flex: 1;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-1);
+}
+
+.category-group__refresh,
+.category-group__add-btn {
+  background: none;
+  border: none;
+  color: var(--text-2);
+  cursor: pointer;
+  padding: 0 0.15rem;
+  font-size: 0.85rem;
+  line-height: 1;
+  border-radius: 3px;
+}
+
+.category-group__refresh:hover,
+.category-group__add-btn:hover {
+  color: var(--accent);
+}
+
+.category-group__error,
+.category-group__remove-error {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.72rem;
+  color: #f87171;
+}
+
+.category-group__error button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+}
+
+.category-group__add-row {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.3rem 0.5rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface-1);
+}
+
+.category-group__add-input {
+  flex: 1;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  border-radius: 3px;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.78rem;
+}
+
+.category-group__add-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.category-group__add-confirm {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: white;
+  border-radius: 3px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.category-group__add-confirm:hover {
+  opacity: 0.85;
+}
+
+.category-group__add-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.category-group__add-cancel {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  border-radius: 3px;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.category-group__add-cancel:hover {
+  background: var(--surface-1);
+  color: var(--text-1);
+}
+
+.category-group__add-error {
+  padding: 0.15rem 0.75rem 0.3rem;
+  font-size: 0.72rem;
+  color: #f87171;
+}
+
+/* ===================================================
+   SYMBOL ROW — individual stock row (TV style)
+   =================================================== */
+
+.symbol-row {
+  display: grid;
+  grid-template-columns: 8px 1fr auto auto auto 18px;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+  min-height: 28px;
+}
+
+.symbol-row:hover {
+  background: var(--surface-1);
+}
+
+.symbol-row:hover .symbol-remove {
+  opacity: 1;
+}
+
+.symbol-row.selected {
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.symbol-row--skeleton {
+  height: 28px;
+  background: var(--surface-1);
+  border-radius: 2px;
+  margin: 2px 0.5rem;
+  animation: wl-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes wl-skeleton-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+.source-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  justify-self: center;
+}
+
+.source-dot--realtime { background: #22c55e; }
+.source-dot--eod      { background: #6b7280; }
+
+.symbol-ticker {
+  font-weight: 600;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.symbol-last {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+}
+
+.symbol-change,
+.symbol-change-pct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+}
+
+.positive { color: #22c55e; }
+.negative { color: #f87171; }
+.neutral  { color: var(--text-2); }
+
+.symbol-remove {
+  background: none;
+  border: none;
+  color: var(--text-2);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.62rem;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.symbol-remove:hover {
+  color: #f87171;
+}
+
+/* ===================================================
+   WATCHLIST DETAIL PLACEHOLDER
+   =================================================== */
+
+.watchlist-detail-placeholder {
+  text-align: center;
+  color: var(--text-2);
+  padding: 2rem;
+}
+
+.watchlist-detail-placeholder--empty {
+  font-size: 0.875rem;
+  opacity: 0.6;
+}
+
+.watchlist-detail-placeholder h2 {
+  color: var(--text-1);
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Spinning icon */
+.spinning {
+  display: inline-block;
+  animation: wl-spin 0.8s linear infinite;
+}
+
+@keyframes wl-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ===================================================
+   SCANNER PAGE — replace Tailwind with real CSS
+   =================================================== */
+
+.scanner-page {
+  height: calc(100vh - 57px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.scanner-page__tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 1rem;
+  flex-shrink: 0;
+  background: var(--surface-2);
+}
+
+.scanner-tab-btn {
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  margin-bottom: -1px;
+}
+
+.scanner-tab-btn:hover {
+  color: var(--text-1);
+}
+
+.scanner-tab-btn.active {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+}
+
+.scanner-page__body {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* EOD tab */
+.eod-tab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.eod-tab__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  background: var(--surface-2);
+}
+
+.scanner-filter-group {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.scanner-filter-btn {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.scanner-filter-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.scanner-filter-btn:not(.active):hover {
+  border-color: var(--accent);
+  color: var(--text-1);
+}
+
+.run-date-select {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.78rem;
+  background: var(--surface-1);
+  color: var(--text-1);
+}
+
+.save-watchlist-btn {
+  margin-left: auto;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.78rem;
+  background: #16a34a;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+}
+
+.save-watchlist-btn:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.save-watchlist-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.eod-tab__body {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Results panel — sidebar + detail */
+.scanner-results {
+  display: flex;
+  height: 100%;
+}
+
+.scanner-results__list {
+  width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.scanner-results__section-header {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  position: sticky;
+  top: 0;
+}
+
+.scanner-results__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem 0.75rem;
+  background: none;
+  border: none;
+  color: var(--text-1);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+
+.scanner-results__item:hover {
+  background: var(--surface-1);
+}
+
+.scanner-results__item.selected {
+  background: rgba(14, 165, 233, 0.1);
+  color: var(--accent);
+}
+
+.scanner-results__empty {
+  padding: 1rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+
+.scanner-results__detail {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.scanner-results__no-selection {
+  padding: 1rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-2);
+}

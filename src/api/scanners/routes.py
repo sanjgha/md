@@ -74,9 +74,33 @@ def get_results(
     start = datetime.combine(resolved_date, datetime.min.time())
     end = datetime.combine(resolved_date, datetime.max.time())
 
+    from sqlalchemy import func
+
+    # Subquery: latest matched_at per (scanner_name, stock_id) for the resolved date.
+    # Prevents duplicates when the scanner ran multiple times in the same day.
+    latest_sub = (
+        db.query(
+            ScannerResult.scanner_name,
+            ScannerResult.stock_id,
+            func.max(ScannerResult.matched_at).label("latest_at"),
+        )
+        .filter(
+            ScannerResult.run_type == run_type,
+            ScannerResult.matched_at.between(start, end),
+        )
+        .group_by(ScannerResult.scanner_name, ScannerResult.stock_id)
+        .subquery()
+    )
+
     query = (
         db.query(ScannerResult, Stock)
         .join(Stock, ScannerResult.stock_id == Stock.id)
+        .join(
+            latest_sub,
+            (ScannerResult.scanner_name == latest_sub.c.scanner_name)
+            & (ScannerResult.stock_id == latest_sub.c.stock_id)
+            & (ScannerResult.matched_at == latest_sub.c.latest_at),
+        )
         .filter(
             ScannerResult.run_type == run_type,
             ScannerResult.matched_at.between(start, end),
