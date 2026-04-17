@@ -61,3 +61,11 @@ coverage.xml
 
 # Runtime logs
 logs/
+
+# Node / frontend tooling
+node_modules/
+package-lock.json
+package.json
+
+# Playwright MCP
+.playwright-mcp/
