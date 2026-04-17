@@ -1,16 +1,21 @@
 """Watchlist service layer with business logic for CRUD operations."""
 
+from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import List, Optional, cast
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.api.watchlists.schemas import (
     CategoryWatchlists,
     CategoryResponse,
+    QuoteResponse,
     WatchlistSummary,
 )
 from src.db.models import (
+    DailyCandle,
+    RealtimeQuote,
     Stock,
     Watchlist,
     WatchlistCategory,
@@ -271,6 +276,123 @@ class WatchlistService:
             .all()
         )
         return symbols
+
+    def get_quotes(self, watchlist_id: int, user_id: int) -> Optional[list[QuoteResponse]]:
+        """Get price quotes for all symbols in a watchlist.
+
+        Uses realtime_quotes (today only) with EOD daily_candles fallback.
+        Batch queries — no per-symbol round-trips.
+
+        Returns:
+            List of QuoteResponse in watchlist priority order,
+            None if watchlist not found or not owned by user.
+            Symbols with no data in either table are excluded.
+        """
+        watchlist = self.get_watchlist(watchlist_id, user_id)
+        if not watchlist:
+            return None
+
+        symbol_rows = self.get_watchlist_symbols(watchlist_id, user_id)
+        if not symbol_rows:
+            return []
+
+        stock_ids = [int(ws.stock_id) for ws in symbol_rows]
+        stock_id_to_symbol: dict[int, str] = {
+            int(ws.stock_id): ws.stock.symbol for ws in symbol_rows
+        }
+
+        # Batch 1: realtime quotes (today only, latest per stock)
+        rq_rn = (
+            func.row_number()
+            .over(
+                partition_by=RealtimeQuote.stock_id,
+                order_by=RealtimeQuote.timestamp.desc(),
+            )
+            .label("rn")
+        )
+        rq_subq = (
+            select(
+                RealtimeQuote.stock_id,
+                RealtimeQuote.last,
+                RealtimeQuote.change,
+                RealtimeQuote.change_pct,
+                rq_rn,
+            )
+            .where(
+                RealtimeQuote.stock_id.in_(stock_ids),
+                func.date(RealtimeQuote.timestamp) == date.today(),
+            )
+            .subquery()
+        )
+        realtime_rows = self.db_session.execute(select(rq_subq).where(rq_subq.c.rn == 1)).all()
+
+        covered_ids: set[int] = {int(row.stock_id) for row in realtime_rows}
+        missing_ids: list[int] = [sid for sid in stock_ids if sid not in covered_ids]
+
+        result: dict[int, QuoteResponse] = {}
+        for row in realtime_rows:
+            result[int(row.stock_id)] = QuoteResponse(
+                symbol=stock_id_to_symbol[int(row.stock_id)],
+                last=float(row.last) if row.last is not None else None,
+                change=float(row.change) if row.change is not None else None,
+                change_pct=float(row.change_pct) if row.change_pct is not None else None,
+                source="realtime",
+            )
+
+        # Batch 2: EOD fallback (latest 2 candles per missing stock)
+        if missing_ids:
+            dc_rn = (
+                func.row_number()
+                .over(
+                    partition_by=DailyCandle.stock_id,
+                    order_by=DailyCandle.timestamp.desc(),
+                )
+                .label("rn")
+            )
+            dc_subq = (
+                select(
+                    DailyCandle.stock_id,
+                    DailyCandle.close,
+                    DailyCandle.timestamp,
+                    dc_rn,
+                )
+                .where(DailyCandle.stock_id.in_(missing_ids))
+                .subquery()
+            )
+            eod_rows = self.db_session.execute(
+                select(dc_subq).where(dc_subq.c.rn <= 2).order_by(dc_subq.c.stock_id, dc_subq.c.rn)
+            ).all()
+
+            candles_by_stock: dict[int, list] = defaultdict(list)
+            for row in eod_rows:
+                candles_by_stock[int(row.stock_id)].append(row)
+
+            for stock_id, candles in candles_by_stock.items():
+                latest_close = float(candles[0].close) if candles[0].close is not None else None
+                if (
+                    len(candles) >= 2
+                    and candles[0].close is not None
+                    and candles[1].close is not None
+                ):
+                    change = float(candles[0].close - candles[1].close)
+                    prev = float(candles[1].close)
+                    change_pct = (change / prev * 100) if prev != 0 else None
+                else:
+                    change = None
+                    change_pct = None
+
+                result[stock_id] = QuoteResponse(
+                    symbol=stock_id_to_symbol[stock_id],
+                    last=latest_close,
+                    change=change,
+                    change_pct=change_pct,
+                    source="eod",
+                    date=(
+                        candles[0].timestamp.strftime("%Y-%m-%d") if candles[0].timestamp else None
+                    ),
+                )
+
+        return [result[int(ws.stock_id)] for ws in symbol_rows if int(ws.stock_id) in result]
 
     def create_category(
         self,

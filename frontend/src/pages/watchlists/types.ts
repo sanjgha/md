@@ -148,3 +148,15 @@ export interface WatchlistSymbolAddResponse {
 export interface WatchlistSymbolRemoveResponse {
   message: string;
 }
+
+/**
+ * Quote response for a symbol
+ */
+export interface QuoteResponse {
+  symbol: string;
+  last: number | null;
+  change: number | null;
+  change_pct: number | null;
+  source: "realtime" | "eod";
+  date: string | null;  // ISO date string (YYYY-MM-DD) for EOD quotes, null for realtime
+}

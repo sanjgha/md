@@ -7,10 +7,13 @@ import { apiFetch } from "./api";
 import type {
   Watchlist,
   WatchlistCreate,
+  WatchlistSymbol,
+  WatchlistSymbolsResponse,
   Category,
   CategoryCreate,
   WatchlistUpdate,
   CategoryWatchlists,
+  QuoteResponse,
 } from "../pages/watchlists/types";
 
 /**
@@ -62,7 +65,7 @@ export const watchlistsAPI = {
     /**
      * List symbols in a watchlist
      */
-    list: (watchlistId: number): Promise<WatchlistSymbol[]> =>
+    list: (watchlistId: number): Promise<WatchlistSymbolsResponse> =>
       apiFetch(`/api/watchlists/${watchlistId}/symbols`),
 
     /**
@@ -115,4 +118,10 @@ export const watchlistsAPI = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+
+  /**
+   * Get quotes for all symbols in a watchlist
+   */
+  getQuotes: (watchlistId: number): Promise<QuoteResponse[]> =>
+    apiFetch(`/api/watchlists/${watchlistId}/quotes`),
 };

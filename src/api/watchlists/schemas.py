@@ -173,3 +173,14 @@ class WatchlistSymbolRemoveResponse(BaseModel):
     """Schema for successful symbol removal response."""
 
     message: str
+
+
+class QuoteResponse(BaseModel):
+    """Quote data for a single watchlist symbol."""
+
+    symbol: str
+    last: Optional[float]
+    change: Optional[float]
+    change_pct: Optional[float]
+    source: str  # "realtime" or "eod"
+    date: Optional[str] = None  # ISO date string (YYYY-MM-DD) for EOD quotes, None for realtime

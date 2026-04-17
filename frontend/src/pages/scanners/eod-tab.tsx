@@ -62,18 +62,15 @@ export function EodTab() {
   };
 
   return (
-    <div class="flex flex-col h-full">
-      <div class="p-3 border-b flex items-center gap-3 flex-wrap">
+    <div class="eod-tab">
+      <div class="eod-tab__toolbar">
         <Show when={scanners()}>
-          <div class="flex gap-2">
+          <div class="scanner-filter-group">
             <For each={scanners()}>
               {(s: ScannerMeta) => (
                 <button
-                  class={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                    selectedScanners().has(s.name)
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white text-gray-700 border-gray-300 hover:border-blue-400"
-                  }`}
+                  class="scanner-filter-btn"
+                  classList={{ active: selectedScanners().has(s.name) }}
                   onClick={() => toggleScanner(s.name)}
                 >
                   {s.name}
@@ -84,7 +81,7 @@ export function EodTab() {
         </Show>
         <Show when={runDates()?.length}>
           <select
-            class="border rounded px-2 py-1 text-sm"
+            class="run-date-select"
             onChange={e => setSelectedRunIdx(parseInt(e.currentTarget.value))}
           >
             <For each={runDates()}>
@@ -98,7 +95,7 @@ export function EodTab() {
         </Show>
         <Show when={results() && filteredGroups().some(g => g.results.length > 0)}>
           <button
-            class="ml-auto px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+            class="save-watchlist-btn"
             onClick={saveAsWatchlist}
             disabled={saving()}
           >
@@ -106,7 +103,7 @@ export function EodTab() {
           </button>
         </Show>
       </div>
-      <div class="flex-1 overflow-hidden">
+      <div class="eod-tab__body">
         <ResultsPanel groups={filteredGroups()} />
       </div>
     </div>

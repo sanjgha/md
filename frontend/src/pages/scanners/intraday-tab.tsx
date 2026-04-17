@@ -77,19 +77,15 @@ export function IntradayTab() {
   );
 
   return (
-    <div class="flex flex-col h-full">
-      <div class="p-3 border-b flex items-center gap-3 flex-wrap">
-        {/* Scanner pills */}
+    <div class="eod-tab">
+      <div class="eod-tab__toolbar">
         <Show when={scanners()}>
-          <div class="flex gap-2">
+          <div class="scanner-filter-group">
             <For each={scanners()}>
               {(s: ScannerMeta) => (
                 <button
-                  class={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                    selectedScanners().has(s.name)
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white text-gray-700 border-gray-300 hover:border-blue-400"
-                  }`}
+                  class="scanner-filter-btn"
+                  classList={{ active: selectedScanners().has(s.name) }}
                   onClick={() => toggleScanner(s.name)}
                 >
                   {s.name}
@@ -98,18 +94,16 @@ export function IntradayTab() {
             </For>
           </div>
         </Show>
-        {/* Timeframe */}
         <select
-          class="border rounded px-2 py-1 text-sm"
+          class="run-date-select"
           value={timeframe()}
           onChange={(e) => setTimeframe(e.currentTarget.value as "15m" | "1h")}
         >
           <option value="15m">15m</option>
           <option value="1h">1h</option>
         </select>
-        {/* Input scope */}
         <select
-          class="border rounded px-2 py-1 text-sm"
+          class="run-date-select"
           value={inputScope() === "universe" ? "universe" : String(inputScope())}
           onChange={(e) => {
             const v = e.currentTarget.value;
@@ -125,29 +119,28 @@ export function IntradayTab() {
             )}
           </For>
         </select>
-        {/* Run button */}
         <button
-          class="px-4 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+          class="scanner-filter-btn active"
           onClick={handleRun}
           disabled={running()}
+          style="border-radius: 4px;"
         >
-          {running() ? "Running..." : "Run"}
+          {running() ? "Running…" : "Run"}
         </button>
-        {/* Save as Watchlist — only after results */}
         <Show when={results() && filteredGroups().some((g) => g.results.length > 0)}>
           <button
-            class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+            class="save-watchlist-btn"
             onClick={saveAsWatchlist}
             disabled={saving()}
           >
-            {saving() ? "Saving..." : "Save as Watchlist"}
+            {saving() ? "Saving…" : "Save as Watchlist"}
           </button>
         </Show>
       </div>
-      <div class="flex-1 overflow-hidden">
+      <div class="eod-tab__body">
         <Show
           when={results()}
-          fallback={<p class="p-4 text-gray-400 text-sm">Select scanners and click Run</p>}
+          fallback={<p class="scanner-results__no-selection">Select scanners and click Run</p>}
         >
           <ResultsPanel groups={filteredGroups()} />
         </Show>

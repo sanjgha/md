@@ -11,10 +11,6 @@ vi.mock('~/pages/watchlists/dashboard', () => ({
   ShowWatchlistsDashboard: () => null,
 }));
 
-vi.mock('~/pages/watchlists/watchlist-view', () => ({
-  ShowWatchlistView: () => null,
-}));
-
 describe('Watchlist Routes', () => {
   it('should have watchlist routes defined in main.tsx', async () => {
     // This test verifies the module can be imported
@@ -28,12 +24,10 @@ describe('Watchlist Routes', () => {
     expect(mainModule.default).toBeInstanceOf(Function);
   });
 
-  it('should export watchlist components', async () => {
+  it('should export watchlist dashboard component', async () => {
     const { ShowWatchlistsDashboard } = await import('~/pages/watchlists/dashboard');
-    const { ShowWatchlistView } = await import('~/pages/watchlists/watchlist-view');
 
-    // Verify components are exported
+    // Verify component is exported
     expect(ShowWatchlistsDashboard).toBeInstanceOf(Function);
-    expect(ShowWatchlistView).toBeInstanceOf(Function);
   });
 });
