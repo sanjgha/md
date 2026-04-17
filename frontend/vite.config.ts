@@ -26,4 +26,10 @@ export default defineConfig({
     outDir: "dist",
     target: "es2020",
   },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./src/test-setup.ts"],
+    transformMode: { web: [/\.[jt]sx?$/] },
+  },
 });
