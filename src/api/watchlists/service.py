@@ -324,9 +324,7 @@ class WatchlistService:
             )
             .subquery()
         )
-        realtime_rows = self.db_session.execute(
-            select(rq_subq).where(rq_subq.c.rn == 1)
-        ).all()
+        realtime_rows = self.db_session.execute(select(rq_subq).where(rq_subq.c.rn == 1)).all()
 
         covered_ids: set[int] = {int(row.stock_id) for row in realtime_rows}
         missing_ids: list[int] = [sid for sid in stock_ids if sid not in covered_ids]
@@ -355,15 +353,14 @@ class WatchlistService:
                 select(
                     DailyCandle.stock_id,
                     DailyCandle.close,
+                    DailyCandle.timestamp,
                     dc_rn,
                 )
                 .where(DailyCandle.stock_id.in_(missing_ids))
                 .subquery()
             )
             eod_rows = self.db_session.execute(
-                select(dc_subq)
-                .where(dc_subq.c.rn <= 2)
-                .order_by(dc_subq.c.stock_id, dc_subq.c.rn)
+                select(dc_subq).where(dc_subq.c.rn <= 2).order_by(dc_subq.c.stock_id, dc_subq.c.rn)
             ).all()
 
             candles_by_stock: dict[int, list] = defaultdict(list)
@@ -390,6 +387,7 @@ class WatchlistService:
                     change=change,
                     change_pct=change_pct,
                     source="eod",
+                    date=candles[0].timestamp.strftime("%Y-%m-%d") if candles[0].timestamp else None,
                 )
 
         return [result[int(ws.stock_id)] for ws in symbol_rows if int(ws.stock_id) in result]

@@ -183,3 +183,4 @@ class QuoteResponse(BaseModel):
     change: Optional[float]
     change_pct: Optional[float]
     source: str  # "realtime" or "eod"
+    date: Optional[str] = None  # ISO date string (YYYY-MM-DD) for EOD quotes, None for realtime

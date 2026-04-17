@@ -9,6 +9,7 @@ const realtimeQuote: QuoteResponse = {
   change: 9.31,
   change_pct: 5.25,
   source: "realtime",
+  date: null,
 };
 
 const eodQuote: QuoteResponse = {
@@ -17,6 +18,7 @@ const eodQuote: QuoteResponse = {
   change: -0.04,
   change_pct: -0.05,
   source: "eod",
+  date: "2026-04-15",
 };
 
 describe("SymbolRow", () => {

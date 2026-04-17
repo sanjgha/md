@@ -38,6 +38,7 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
   const [addLoading, setAddLoading] = createSignal(false);
 
   const [refreshing, setRefreshing] = createSignal(false);
+  const [removeError, setRemoveError] = createSignal<string | null>(null);
 
   async function fetchQuotes() {
     setQuotesLoading(true);
@@ -99,6 +100,7 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
   }
 
   async function handleRemove(symbol: string) {
+    setRemoveError(null);  // clear previous error
     const original = quotes();
     const idx = original.findIndex((q) => q.symbol === symbol);
     // Optimistic remove
@@ -114,6 +116,7 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
       const restored = [...quotes()];
       restored.splice(idx, 0, original[idx]);
       setQuotes(restored);
+      setRemoveError(`Failed to remove ${symbol}`);
     }
   }
 
@@ -168,6 +171,12 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
             <div class="category-group__error">
               Prices unavailable —{" "}
               <button onClick={handleRefresh}>↻ retry</button>
+            </div>
+          </Show>
+
+          <Show when={removeError()}>
+            <div class="category-group__remove-error">
+              {removeError()}
             </div>
           </Show>
 

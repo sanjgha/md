@@ -43,7 +43,9 @@ export const SymbolRow: Component<SymbolRowProps> = (props) => {
         title={
           props.quote.source === "realtime"
             ? "Realtime"
-            : "End of day"
+            : props.quote.date
+              ? `End of day (${props.quote.date})`
+              : "End of day"
         }
       />
       <span class="symbol-ticker">{props.quote.symbol}</span>

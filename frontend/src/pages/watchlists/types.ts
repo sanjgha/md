@@ -158,4 +158,5 @@ export interface QuoteResponse {
   change: number | null;
   change_pct: number | null;
   source: "realtime" | "eod";
+  date: string | null;  // ISO date string (YYYY-MM-DD) for EOD quotes, null for realtime
 }
