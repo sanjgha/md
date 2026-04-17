@@ -8,6 +8,7 @@ import type {
   Watchlist,
   WatchlistCreate,
   WatchlistSymbol,
+  WatchlistSymbolsResponse,
   Category,
   CategoryCreate,
   WatchlistUpdate,
@@ -64,7 +65,7 @@ export const watchlistsAPI = {
     /**
      * List symbols in a watchlist
      */
-    list: (watchlistId: number): Promise<WatchlistSymbol[]> =>
+    list: (watchlistId: number): Promise<WatchlistSymbolsResponse> =>
       apiFetch(`/api/watchlists/${watchlistId}/symbols`),
 
     /**

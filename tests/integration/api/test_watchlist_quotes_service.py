@@ -1,4 +1,4 @@
-"""Unit tests for WatchlistService.get_quotes()."""
+"""Integration tests for WatchlistService.get_quotes()."""
 
 from datetime import datetime, date
 from decimal import Decimal
