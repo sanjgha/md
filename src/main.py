@@ -52,6 +52,9 @@ def fetch_data(symbols):
         logger.info("Fetching earnings...")
         fetcher.sync_earnings(symbols=list(symbols) if symbols else None)
 
+        logger.info("Fetching intraday candles...")
+        fetcher.sync_intraday(symbols=list(symbols) if symbols else None)
+
         logger.info("Cleaning up old data...")
         fetcher.cleanup_old_intraday()
         fetcher.cleanup_old_quotes()

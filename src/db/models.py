@@ -104,6 +104,7 @@ class IntradayCandle(Base):
             name="uq_intraday_candles_stock_res_ts",
         ),
         Index("ix_intraday_candles_stock_ts", "stock_id", "timestamp"),
+        Index("ix_intraday_candles_stock_res_ts", "stock_id", "resolution", "timestamp"),
     )
 
     stock = relationship("Stock", back_populates="intraday_candles")
