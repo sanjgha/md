@@ -2,6 +2,7 @@ import { render } from "solid-js/web";
 import { Navigate, Route, Router } from "@solidjs/router";
 import { createResource, Show, Suspense } from "solid-js";
 import "./index.css";
+import "./pages/watchlists/chart-panel.css";
 import App from "./app";
 import LoginPage from "./pages/login";
 import DashboardPage from "./pages/dashboard";
