@@ -48,7 +48,7 @@ export function ChartPane(props: Props) {
               symbol={props.selectedSymbol()!}
               quote={props.quote}
               selectedSymbol={props.selectedSymbol}
-              defaultResolution="1h"
+              defaultResolution="D"
             />
           </Show>
         </div>

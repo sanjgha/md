@@ -120,7 +120,12 @@ export function ChartPanel(props: Props) {
   };
 
   const paintData = (data: CandleResponse[], res: Resolution) => {
-    if (!chart || !priceSeries || !volumeSeries || data.length === 0) return;
+    if (!chart || !priceSeries || !volumeSeries) return;
+    if (data.length === 0) {
+      priceSeries.setData([]);
+      volumeSeries.setData([]);
+      return;
+    }
     priceSeries.setData(
       data.map((c) => ({
         time: toChartTime(c.time, res),

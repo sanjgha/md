@@ -389,13 +389,6 @@ body {
   margin-top: 0.25rem;
 }
 
-.chart-pane {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-2);
-  border-radius: 8px;
-}
 
 .chart-placeholder {
   text-align: center;
@@ -914,8 +907,6 @@ main {
   flex: 1;
   overflow: hidden;
   display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* Scrollable panel body */
