@@ -17,6 +17,7 @@ from src.api.routes.settings import router as settings_router
 from src.api.schedule.manager import schedule_manager
 from src.api.schedule.routes import router as schedule_router
 from src.api.scanners.routes import router as scanners_router
+from src.api.stocks import router as stocks_router
 from src.api.watchlists.routes import router as watchlists_router
 from src.api.ws import heartbeat_loop, pubsub, ws_endpoint
 
@@ -57,6 +58,7 @@ def create_app() -> FastAPI:
     app.include_router(me_router, prefix="/api")
     app.include_router(settings_router, prefix="/api/settings")
     app.include_router(scanners_router, prefix="/api/scanners")
+    app.include_router(stocks_router, prefix="/api/stocks", tags=["stocks"])
     app.include_router(watchlists_router, prefix="/api/watchlists")
     app.include_router(schedule_router, prefix="/api/schedule/jobs", tags=["schedule"])
     app.add_api_websocket_route("/ws", ws_endpoint)
