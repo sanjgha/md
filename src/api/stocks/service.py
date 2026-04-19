@@ -1,7 +1,7 @@
 """Service layer for stocks API."""
 
 from datetime import datetime
-from typing import List
+from typing import List, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -75,9 +75,9 @@ class StockService:
 
         # Route to appropriate table
         if resolution in {"5m", "15m", "1h"}:
-            return self._get_intraday_candles(stock.id, resolution, start_date, end_date)
+            return self._get_intraday_candles(int(stock.id), resolution, start_date, end_date)
         else:  # resolution == "D"
-            return self._get_daily_candles(stock.id, start_date, end_date)
+            return self._get_daily_candles(int(stock.id), start_date, end_date)
 
     def _get_intraday_candles(
         self,
@@ -102,12 +102,12 @@ class StockService:
 
         return [
             CandleResponse(
-                time=c.timestamp,
+                time=cast(datetime, c.timestamp),
                 open=float(c.open),
                 high=float(c.high),
                 low=float(c.low),
                 close=float(c.close),
-                volume=c.volume,
+                volume=int(c.volume),
             )
             for c in results
         ]
@@ -133,12 +133,12 @@ class StockService:
 
         return [
             CandleResponse(
-                time=c.timestamp,
+                time=cast(datetime, c.timestamp),
                 open=float(c.open),
                 high=float(c.high),
                 low=float(c.low),
                 close=float(c.close),
-                volume=c.volume,
+                volume=int(c.volume),
             )
             for c in results
         ]
