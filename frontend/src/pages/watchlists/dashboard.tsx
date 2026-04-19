@@ -4,12 +4,13 @@
  * Split layout: WatchlistPanel (left 260px) | detail pane (right, flex).
  * Owns selectedSymbol; passes it down to panel and up from panel.
  * Handles null selection (symbol deleted) by clearing selectedSymbol.
- * Detail pane is a placeholder until the charting sub-project.
+ * Detail pane shows chart panel for selected symbol.
  */
 
 import { createSignal } from "solid-js";
 import { WatchlistPanel } from "./watchlist-panel";
 import { ShowCreateWatchlistModal } from "./create-modal";
+import { ChartPane } from "./chart-pane";
 
 export function ShowWatchlistsDashboard() {
   const [selectedSymbol, setSelectedSymbol] = createSignal<string | null>(null);
@@ -48,18 +49,10 @@ export function ShowWatchlistsDashboard() {
 
         {/* Right pane */}
         <main class="watchlist-layout__detail">
-          {selectedSymbol() ? (
-            <div class="watchlist-detail-placeholder">
-              <h2>{selectedSymbol()}</h2>
-              <p class="watchlist-detail-placeholder__note">
-                Chart and detail view coming in the charting sub-project.
-              </p>
-            </div>
-          ) : (
-            <div class="watchlist-detail-placeholder watchlist-detail-placeholder--empty">
-              <p>Select a stock to view detail</p>
-            </div>
-          )}
+          <ChartPane
+            selectedSymbol={() => selectedSymbol()}
+            quote={null}
+          />
         </main>
       </div>
     </div>
