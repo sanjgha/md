@@ -10,6 +10,7 @@ import {
   ISeriesApi,
   CandlestickSeries,
   AreaSeries,
+  HistogramSeries,
 } from "lightweight-charts";
 import { stocksAPI, type CandleResponse } from "../../lib/stocks-api";
 import {
@@ -103,10 +104,14 @@ export function ChartPanel(props: Props) {
             bottomColor: "rgba(74, 222, 128, 0.0)",
           });
 
-    // Volume series
-    const volumeSeries = chart.addHistogramSeries({
+    // Volume series on its own scale so it doesn't crush the price axis
+    const volumeSeries = chart.addSeries(HistogramSeries, {
       color: "#334155",
       priceFormat: { type: "volume" },
+      priceScaleId: "volume",
+    });
+    chart.priceScale("volume").applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0 },
     });
 
     series = { price: priceSeries, volume: volumeSeries };
@@ -128,12 +133,20 @@ export function ChartPanel(props: Props) {
     });
   };
 
+  // Convert ISO datetime string to the format lightweight-charts expects.
+  // Daily: "YYYY-MM-DD"; intraday: Unix seconds.
+  const toChartTime = (isoStr: string, res: Resolution): any => {
+    if (res === "D") return isoStr.split("T")[0];
+    return Math.floor(new Date(isoStr).getTime() / 1000);
+  };
+
   // Update chart data
   const updateChart = () => {
     if (!chart || !series || candles().length === 0) return;
 
+    const res = resolution();
     const candleData = candles().map((c) => ({
-      time: c.time as any,
+      time: toChartTime(c.time, res),
       open: c.open,
       high: c.high,
       low: c.low,
@@ -141,7 +154,7 @@ export function ChartPanel(props: Props) {
     }));
 
     const volumeData = candles().map((c) => ({
-      time: c.time as any,
+      time: toChartTime(c.time, res),
       value: c.volume,
       color: c.close >= c.open ? "#4ade80" : "#ef4444",
     }));
