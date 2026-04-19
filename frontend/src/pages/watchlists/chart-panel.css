@@ -133,7 +133,7 @@
 .chart-container {
   position: relative;
   flex: 1;
-  min-height: 400px;
+  min-height: 0;
   background: #0f1117;
   border-radius: 0.375rem;
   overflow: hidden;

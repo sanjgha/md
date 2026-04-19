@@ -3,7 +3,7 @@
  * Owns its own resolution, dailyRange, and candles data.
  */
 
-import { createEffect, createSignal, onCleanup, Show } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount, Show, untrack } from "solid-js";
 import {
   createChart,
   IChartApi,
@@ -32,63 +32,24 @@ interface Props {
   defaultResolution?: Resolution;
 }
 
-interface ChartSeries {
-  price: ISeriesApi<"Candlestick" | "Area">;
-  volume: ISeriesApi<"Histogram">;
-}
-
 export function ChartPanel(props: Props) {
-  // State
-  const [resolution, setResolution] = createSignal<Resolution>(
-    props.defaultResolution ?? "D"
-  );
+  const [resolution, setResolution] = createSignal<Resolution>(props.defaultResolution ?? "D");
   const [dailyRange, setDailyRange] = createSignal<DailyRange>("3M");
   const [chartType, setChartType] = createSignal<"candle" | "area">("candle");
   const [candles, setCandles] = createSignal<CandleResponse[]>([]);
   const [isLoading, setIsLoading] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
 
-  // Chart refs
   let chartContainer: HTMLDivElement | undefined;
   let chart: IChartApi | undefined;
-  let series: ChartSeries | undefined;
+  let priceSeries: ISeriesApi<"Candlestick" | "Area"> | undefined;
+  let volumeSeries: ISeriesApi<"Histogram"> | undefined;
 
-  // Fetch candles
-  const fetchCandles = async () => {
-    if (!props.symbol) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { from, to } = getDateRange(resolution(), dailyRange());
-      const data = await stocksAPI.getCandles(props.symbol, resolution(), from, to);
-      setCandles(data);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load chart";
-      setError(message);
-      setCandles([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Initialize chart
-  const initChart = () => {
-    if (!chartContainer) return;
-
-    const newChart = createChart(chartContainer, {
-      width: chartContainer.clientWidth,
-      height: 400,
-      layout: {
-        background: { color: "#0f1117" },
-        textColor: "#94a3b8",
-      },
-    });
-    chart = newChart;
-
-    // Price series (candlestick or area)
-    const priceSeries =
+  // Build (or rebuild) the price series for the current chartType
+  const buildPriceSeries = () => {
+    if (!chart) return;
+    if (priceSeries) chart.removeSeries(priceSeries);
+    priceSeries =
       chartType() === "candle"
         ? chart.addSeries(CandlestickSeries, {
             upColor: "#4ade80",
@@ -100,102 +61,110 @@ export function ChartPanel(props: Props) {
           })
         : chart.addSeries(AreaSeries, {
             lineColor: "#4ade80",
-            topColor: "rgba(74, 222, 128, 0.4)",
+            topColor: "rgba(74, 222, 128, 0.25)",
             bottomColor: "rgba(74, 222, 128, 0.0)",
           });
+  };
 
-    // Volume series on its own scale so it doesn't crush the price axis
-    const volumeSeries = chart.addSeries(HistogramSeries, {
+  onMount(() => {
+    if (!chartContainer) return;
+
+    chart = createChart(chartContainer, {
+      autoSize: true,
+      layout: {
+        background: { color: "#0f1117" },
+        textColor: "#94a3b8",
+      },
+      grid: {
+        vertLines: { color: "#1e293b" },
+        horzLines: { color: "#1e293b" },
+      },
+      crosshair: {
+        vertLine: { color: "#475569", labelBackgroundColor: "#1e293b" },
+        horzLine: { color: "#475569", labelBackgroundColor: "#1e293b" },
+      },
+      rightPriceScale: { borderColor: "#1e293b" },
+      timeScale: { borderColor: "#1e293b", timeVisible: true },
+    });
+
+    buildPriceSeries();
+
+    volumeSeries = chart.addSeries(HistogramSeries, {
       color: "#334155",
       priceFormat: { type: "volume" },
       priceScaleId: "volume",
     });
     chart.priceScale("volume").applyOptions({
-      scaleMargins: { top: 0.8, bottom: 0 },
+      scaleMargins: { top: 0.82, bottom: 0 },
     });
 
-    series = { price: priceSeries, volume: volumeSeries };
+    onCleanup(() => chart?.remove());
+  });
 
-    // Handle resize
-    const resizeObserver = new ResizeObserver(() => {
-      if (chart && chartContainer) {
-        chart.applyOptions({
-          width: chartContainer.clientWidth,
-          height: 400,
-        });
-      }
-    });
-    resizeObserver.observe(chartContainer);
+  const toChartTime = (isoStr: string, res: Resolution): any =>
+    res === "D" ? isoStr.split("T")[0] : Math.floor(new Date(isoStr).getTime() / 1000);
 
-    onCleanup(() => {
-      resizeObserver.disconnect();
-      if (chart) chart.remove();
-    });
+  const fetchCandles = async (sym: string, res: Resolution, range: DailyRange) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { from, to } = getDateRange(res, range);
+      const data = await stocksAPI.getCandles(sym, res, from, to);
+      setCandles(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load chart");
+      setCandles([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Convert ISO datetime string to the format lightweight-charts expects.
-  // Daily: "YYYY-MM-DD"; intraday: Unix seconds.
-  const toChartTime = (isoStr: string, res: Resolution): any => {
-    if (res === "D") return isoStr.split("T")[0];
-    return Math.floor(new Date(isoStr).getTime() / 1000);
+  const paintData = (data: CandleResponse[], res: Resolution) => {
+    if (!chart || !priceSeries || !volumeSeries || data.length === 0) return;
+    priceSeries.setData(
+      data.map((c) => ({
+        time: toChartTime(c.time, res),
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      }))
+    );
+    volumeSeries.setData(
+      data.map((c) => ({
+        time: toChartTime(c.time, res),
+        value: c.volume,
+        color: c.close >= c.open ? "rgba(74,222,128,0.4)" : "rgba(239,68,68,0.4)",
+      }))
+    );
+    chart.timeScale().fitContent();
   };
 
-  // Update chart data
-  const updateChart = () => {
-    if (!chart || !series || candles().length === 0) return;
-
+  // Re-fetch whenever symbol, resolution, or dailyRange changes
+  createEffect(() => {
+    const sym = props.symbol;
     const res = resolution();
-    const candleData = candles().map((c) => ({
-      time: toChartTime(c.time, res),
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close,
-    }));
-
-    const volumeData = candles().map((c) => ({
-      time: toChartTime(c.time, res),
-      value: c.volume,
-      color: c.close >= c.open ? "#4ade80" : "#ef4444",
-    }));
-
-    series.price?.setData(candleData);
-    series.volume?.setData(volumeData);
-  };
-
-  // Effects
-  createEffect(() => {
-    initChart();
+    const range = dailyRange();
+    if (sym) fetchCandles(sym, res, range);
   });
 
+  // Paint data whenever candles arrive
   createEffect(() => {
-    if (props.symbol) {
-      fetchCandles();
-    }
+    const data = candles();
+    const res = untrack(resolution);
+    paintData(data, res);
   });
 
+  // Rebuild price series when chart type toggles, then repaint
   createEffect(() => {
-    if (candles().length > 0) {
-      updateChart();
-    }
+    chartType(); // track
+    if (!chart) return;
+    buildPriceSeries();
+    untrack(() => paintData(candles(), resolution()));
   });
-
-  // Handlers
-  const handleResolutionChange = (newRes: Resolution) => {
-    setResolution(newRes);
-  };
-
-  const handleDailyRangeChange = (newRange: DailyRange) => {
-    setDailyRange(newRange);
-  };
-
-  const handleChartTypeToggle = () => {
-    setChartType(chartType() === "candle" ? "area" : "candle");
-  };
 
   return (
     <div class="chart-panel">
-      {/* Symbol Header */}
       <Show when={props.symbol}>
         <div class="chart-header">
           <span class="symbol-name">{props.symbol}</span>
@@ -203,30 +172,29 @@ export function ChartPanel(props: Props) {
             {props.quote?.last.toFixed(2)}
             <Show when={props.quote}>
               <span class={`symbol-change ${props.quote!.change >= 0 ? "positive" : "negative"}`}>
-                {props.quote!.change >= 0 ? "+" : ""}{props.quote!.change.toFixed(2)} ({props.quote!.change_pct.toFixed(2)}%)
+                {props.quote!.change >= 0 ? "+" : ""}
+                {props.quote!.change.toFixed(2)} ({props.quote!.change_pct.toFixed(2)}%)
               </span>
             </Show>
           </span>
         </div>
       </Show>
 
-      {/* Stats Bar */}
       <Show when={candles().length > 0}>
         <div class="stats-bar">
           <span>O {candles()[0].open.toFixed(2)}</span>
           <span>H {Math.max(...candles().map((c) => c.high)).toFixed(2)}</span>
           <span>L {Math.min(...candles().map((c) => c.low)).toFixed(2)}</span>
-          <span>Vol {(candles().reduce((sum, c) => sum + c.volume, 0) / 1000000).toFixed(1)}M</span>
+          <span>Vol {(candles().reduce((s, c) => s + c.volume, 0) / 1_000_000).toFixed(1)}M</span>
         </div>
       </Show>
 
-      {/* Controls */}
       <div class="chart-controls">
         <div class="timeframe-selector">
           {(["5m", "15m", "1h", "D"] as Resolution[]).map((res) => (
             <button
               class={resolution() === res ? "active" : ""}
-              onClick={() => handleResolutionChange(res)}
+              onClick={() => setResolution(res)}
             >
               {res}
             </button>
@@ -237,7 +205,7 @@ export function ChartPanel(props: Props) {
               {(["1M", "3M", "1Y"] as DailyRange[]).map((range) => (
                 <button
                   class={dailyRange() === range ? "active" : ""}
-                  onClick={() => handleDailyRangeChange(range)}
+                  onClick={() => setDailyRange(range)}
                 >
                   {range}
                 </button>
@@ -245,12 +213,14 @@ export function ChartPanel(props: Props) {
             </>
           </Show>
         </div>
-        <button class="chart-type-toggle" onClick={handleChartTypeToggle}>
+        <button
+          class="chart-type-toggle"
+          onClick={() => setChartType(chartType() === "candle" ? "area" : "candle")}
+        >
           {chartType() === "candle" ? "Candle" : "Area"}
         </button>
       </div>
 
-      {/* Chart Canvas */}
       <div class="chart-container" ref={chartContainer!}>
         <Show when={isLoading()}>
           <div class="loading-skeleton">Loading chart...</div>
@@ -258,7 +228,9 @@ export function ChartPanel(props: Props) {
         <Show when={error()}>
           <div class="error-message">
             {error()}
-            <button onClick={() => fetchCandles()}>↻ Retry</button>
+            <button onClick={() => fetchCandles(props.symbol, resolution(), dailyRange())}>
+              ↻ Retry
+            </button>
           </div>
         </Show>
       </div>
