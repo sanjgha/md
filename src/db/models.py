@@ -416,7 +416,7 @@ class IVRSnapshot(Base):
     __tablename__ = "ivr_snapshots"
 
     id = Column(Integer, primary_key=True)
-    symbol = Column(String(16), ForeignKey("stocks.symbol"), nullable=False)
+    symbol = Column(String(16), ForeignKey("stocks.symbol", ondelete="CASCADE"), nullable=False)
     as_of_date = Column(DateTime, nullable=False)
     ivr: Column[Decimal] = Column(NUMERIC(5, 2), nullable=False)
     current_hv: Column[Decimal] = Column(NUMERIC(8, 4), nullable=False)

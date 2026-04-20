@@ -33,6 +33,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["symbol"],
             ["stocks.symbol"],
+            ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
