@@ -27,8 +27,8 @@ class ChainIngester:
         """Ingest contracts for symbol across all expiry buckets; return row count inserted."""
         total = 0
         now = datetime.now(timezone.utc)
+        contracts = self._client.fetch_chain(symbol, as_of)
         for bucket in buckets:
-            contracts = self._client.fetch_chain(symbol, as_of)
             relevant = [c for c in contracts if c.expiry_date == bucket.expiry]
             if not relevant:
                 continue

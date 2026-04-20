@@ -46,7 +46,7 @@ def _run_options_chain_ingest() -> None:
     """Nightly job: pull latest Dolt data and ingest options chains into PostgreSQL."""
     from src.config import get_config
     from src.db.connection import get_engine
-    from src.db.models import Stock
+    from src.db.models import Stock, WatchlistSymbol
     from src.options_agent.data.chain_ingester import ChainIngester
     from src.options_agent.data.dolt_client import DoltOptionsClient
     from src.options_agent.data.expiries import determine_target_expiries
@@ -66,7 +66,12 @@ def _run_options_chain_ingest() -> None:
     Session = sessionmaker(bind=engine)
     session = Session()
     try:
-        symbols = [row.symbol for row in session.query(Stock.symbol).distinct()]
+        symbols = [
+            symbol
+            for (symbol,) in session.query(Stock.symbol)
+            .join(WatchlistSymbol, WatchlistSymbol.stock_id == Stock.id)
+            .distinct()
+        ]
         buckets = determine_target_expiries(date.today())
         dolt_client = DoltOptionsClient(cfg.DOLT_OPTIONS_URL)
         ingester = ChainIngester(dolt_client=dolt_client, session=session)
