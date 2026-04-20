@@ -33,6 +33,16 @@ class Config:
         self.QUOTE_RETENTION_DAYS = 7
         self.API_RATE_LIMIT_DELAY = 0.1
 
+        # Options agent
+        self.DOLT_OPTIONS_URL = os.getenv(
+            "DOLT_OPTIONS_URL", "mysql+pymysql://root@localhost:3307/options"
+        )
+        self.DOLT_REPO_PATH = os.getenv("DOLT_REPO_PATH", "/var/lib/dolt-options")
+        self.ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+        self.OPTIONS_AGENT_LLM_MODEL = os.getenv(
+            "OPTIONS_AGENT_LLM_MODEL", "claude-haiku-4-5-20251001"
+        )
+
         # API server settings (APP_USERNAME/APP_PASSWORD read only by migration)
         self.APP_USERNAME = os.getenv("APP_USERNAME")
         self.APP_PASSWORD = os.getenv("APP_PASSWORD")
