@@ -469,3 +469,24 @@ class OptionsEodChain(Base):
         Index("ix_chain_symbol_asof", "symbol", "as_of_date"),
         Index("ix_chain_expiry_bucket", "symbol", "as_of_date", "expiry_bucket"),
     )
+
+
+class RegimeSnapshot(Base):
+    """Market regime classification per symbol per date."""
+
+    __tablename__ = "regime_snapshots"
+
+    id = Column(Integer, primary_key=True)
+    symbol = Column(String(16), nullable=False)
+    as_of_date = Column(DateTime, nullable=False)
+    regime = Column(String(16), nullable=False)  # trending|ranging|transitional
+    direction = Column(String(16))  # bullish|bearish|neutral|unclear
+    adx: Column[Decimal | None] = Column(NUMERIC(6, 2))
+    atr_pct: Column[Decimal | None] = Column(NUMERIC(6, 4))
+    spy_trend_20d: Column[Decimal | None] = Column(NUMERIC(8, 6))
+    computed_at = Column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("symbol", "as_of_date", name="uq_regime_symbol_date"),
+        Index("ix_regime_symbol", "symbol"),
+    )
