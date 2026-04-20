@@ -1,10 +1,12 @@
 """IVR (Implied Volatility Rank) computation using HV as proxy."""
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timezone
 
 import numpy as np
 import pandas as pd
+from sqlalchemy.orm import Session
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 
 class InsufficientHistoryError(ValueError):
@@ -68,3 +70,39 @@ def compute_ivr_from_hv(
         calculation_basis="hv_proxy",
         as_of=as_of_val,
     )
+
+
+def compute_and_store_ivr(
+    session: Session,
+    symbol: str,
+    bars: pd.DataFrame,
+    as_of: date,
+    window: int = 20,
+    lookback: int = 252,
+) -> IVRResult:
+    """Compute IVR from HV proxy and upsert into ivr_snapshots table."""
+    from src.db.models import IVRSnapshot
+
+    result = compute_ivr_from_hv(bars, window=window, lookback=lookback)
+    stmt = (
+        pg_insert(IVRSnapshot)
+        .values(
+            symbol=symbol,
+            as_of_date=as_of,
+            ivr=result.ivr,
+            current_hv=result.current_hv,
+            calculation_basis=result.calculation_basis,
+            computed_at=datetime.now(timezone.utc),
+        )
+        .on_conflict_do_update(
+            constraint="uq_ivr_symbol_date_basis",
+            set_={
+                "ivr": result.ivr,
+                "current_hv": result.current_hv,
+                "computed_at": datetime.now(timezone.utc),
+            },
+        )
+    )
+    session.execute(stmt)
+    session.commit()
+    return result

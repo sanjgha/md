@@ -2,7 +2,30 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 from datetime import date, timedelta
+from sqlalchemy.orm import Session
+
+
+@pytest.fixture
+def client(db_session: Session):
+    """Test client with DB dependency overridden to testcontainers session."""
+    from fastapi.testclient import TestClient
+    from src.api.main import create_app
+    from src.api.deps import get_db
+
+    app = create_app()
+
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass  # cleanup handled by db_session fixture
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app, raise_server_exceptions=True) as c:
+        yield c
+    app.dependency_overrides.clear()
 
 
 def _make_bars(closes: list[float]) -> pd.DataFrame:
