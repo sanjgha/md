@@ -137,7 +137,7 @@ def compute_ivr_from_implied(
     historical = (
         session.query(IVRSnapshot.current_hv)
         .filter_by(symbol=symbol, calculation_basis="implied")
-        .order_by(IVRSnapshot.as_of_date.asc())
+        .order_by(IVRSnapshot.as_of_date.desc())
         .limit(lookback)
         .all()
     )
@@ -149,7 +149,7 @@ def compute_ivr_from_implied(
         return compute_ivr_from_hv(bars)
 
     current_iv = compute_atm_iv(chain, spot)
-    history = np.array([float(r[0]) for r in historical])
+    history = np.array([float(r[0]) for r in reversed(historical)])
     hv_min = float(history.min())
     hv_max = float(history.max())
     ivr = 0.0 if hv_max == hv_min else float((current_iv - hv_min) / (hv_max - hv_min) * 100)
