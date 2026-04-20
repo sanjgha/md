@@ -87,6 +87,7 @@ def compute_and_store_ivr(
     from src.db.models import IVRSnapshot
 
     result = compute_ivr_from_hv(bars, window=window, lookback=lookback)
+    now = datetime.now(timezone.utc)
     stmt = (
         pg_insert(IVRSnapshot)
         .values(
@@ -95,14 +96,14 @@ def compute_and_store_ivr(
             ivr=result.ivr,
             current_hv=result.current_hv,
             calculation_basis=result.calculation_basis,
-            computed_at=datetime.now(timezone.utc),
+            computed_at=now,
         )
         .on_conflict_do_update(
             constraint="uq_ivr_symbol_date_basis",
             set_={
                 "ivr": result.ivr,
                 "current_hv": result.current_hv,
-                "computed_at": datetime.now(timezone.utc),
+                "computed_at": now,
             },
         )
     )
