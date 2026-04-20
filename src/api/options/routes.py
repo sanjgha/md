@@ -4,6 +4,7 @@ from datetime import date, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.api.deps import get_db
@@ -48,5 +49,22 @@ def get_ivr(symbol: str, db: Session = Depends(get_db)) -> IVRResponse:
 def get_ivr_bulk(symbols: str = Query(...), db: Session = Depends(get_db)) -> list[IVRResponse]:
     """Get the latest IVR snapshots for multiple comma-separated symbols."""
     syms = [s.strip().upper() for s in symbols.split(",")]
-    snaps = db.query(IVRSnapshot).filter(IVRSnapshot.symbol.in_(syms)).all()
+    latest_dates = (
+        db.query(
+            IVRSnapshot.symbol,
+            func.max(IVRSnapshot.as_of_date).label("max_date"),
+        )
+        .filter(IVRSnapshot.symbol.in_(syms))
+        .group_by(IVRSnapshot.symbol)
+        .subquery()
+    )
+    snaps = (
+        db.query(IVRSnapshot)
+        .join(
+            latest_dates,
+            (IVRSnapshot.symbol == latest_dates.c.symbol)
+            & (IVRSnapshot.as_of_date == latest_dates.c.max_date),
+        )
+        .all()
+    )
     return [_snap_to_response(s) for s in snaps]
