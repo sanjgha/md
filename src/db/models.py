@@ -408,3 +408,25 @@ class WatchlistSymbol(Base):
 
     watchlist = relationship("Watchlist", back_populates="symbols")
     stock = relationship("Stock")
+
+
+class IVRSnapshot(Base):
+    """IV Rank snapshots — one row per symbol per date per calculation basis."""
+
+    __tablename__ = "ivr_snapshots"
+
+    id = Column(Integer, primary_key=True)
+    symbol = Column(String(16), ForeignKey("stocks.symbol"), nullable=False)
+    as_of_date = Column(DateTime, nullable=False)
+    ivr: Column[Decimal] = Column(NUMERIC(5, 2), nullable=False)
+    current_hv: Column[Decimal] = Column(NUMERIC(8, 4), nullable=False)
+    calculation_basis = Column(String(16), nullable=False)  # "hv_proxy" | "implied"
+    computed_at = Column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "symbol", "as_of_date", "calculation_basis", name="uq_ivr_symbol_date_basis"
+        ),
+        Index("ix_ivr_symbol", "symbol"),
+        Index("ix_ivr_as_of", "as_of_date"),
+    )
