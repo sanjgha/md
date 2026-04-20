@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timezone
 from typing import Any
 
@@ -147,7 +147,8 @@ def compute_ivr_from_implied(
             raise InsufficientHistoryError(
                 f"Only {len(historical)} days of implied IV history; need {lookback}."
             )
-        return compute_ivr_from_hv(bars)
+        fallback = compute_ivr_from_hv(bars)
+        return replace(fallback, as_of=as_of)
 
     current_iv = compute_atm_iv(chain, spot)
     history = np.array([float(r[0]) for r in reversed(historical)])

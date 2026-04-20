@@ -126,3 +126,52 @@ def test_compute_and_store_ivr_uses_same_timestamp_for_insert_and_update():
         # Verify both have the fixed time value
         assert insert_computed_at == fixed_time
         assert update_computed_at == fixed_time
+
+
+def test_compute_ivr_from_implied_fallback_preserves_as_of():
+    """Test that compute_ivr_from_implied preserves caller's as_of when falling back to HV.
+
+    When implied IV history is insufficient (len(historical) < lookback),
+    the function falls back to compute_ivr_from_hv(bars). However, the HV
+    computation derives as_of from the last bar date, not from the caller's
+    as_of parameter. This test verifies the fix: fallback result's as_of
+    is overridden to match the caller's as_of.
+    """
+    from src.options_agent.ivr import compute_ivr_from_implied
+    from unittest.mock import MagicMock
+
+    # Create bars with sufficient length (300 bars, enough for window=20 + lookback=252)
+    # Last date will be 2025-01-01 + 299 days
+    bars = synthetic_bars_rising_volatility(n=300)
+    last_bar_date = bars["date"].iloc[-1]
+
+    # Caller wants as_of = 2025-04-20 (must be different from bar date)
+    caller_as_of = date(2025, 4, 20)
+    assert (
+        caller_as_of != last_bar_date
+    ), "Test setup failed: caller_as_of must differ from bar date"
+
+    # Mock session: empty implied history (0 < 252), so fallback to HV
+    mock_session = MagicMock()
+    mock_session.query.return_value.filter_by.return_value.order_by.return_value.limit.return_value.all.return_value = []
+
+    # Mock chain with minimal ATM IV data (not needed for fallback, but function signature requires it)
+    mock_chain = []
+
+    result = compute_ivr_from_implied(
+        session=mock_session,
+        symbol="TEST",
+        chain=mock_chain,
+        spot=100.0,
+        as_of=caller_as_of,
+        lookback=252,
+        bars=bars,
+    )
+
+    # Verify the result uses the caller's as_of, not the bar's last date
+    assert result.as_of == caller_as_of, (
+        f"Expected as_of={caller_as_of}, got {result.as_of}. "
+        f"Fallback should preserve caller's as_of, not bar date {last_bar_date}."
+    )
+    # Double-check: result should NOT have the bar's date
+    assert result.as_of != last_bar_date
