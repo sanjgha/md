@@ -58,7 +58,7 @@ def test_compute_and_store_ivr_uses_same_timestamp_for_insert_and_update():
     This test ensures that multiple upserts of the same symbol/date/basis
     produce rows with identical computed_at values (deterministic behavior).
     The test mocks datetime.now to verify both .values() and .set_() calls
-    use the same timestamp.
+    use the same timestamp object.
     """
     from datetime import datetime, timezone
     from src.options_agent.ivr import compute_and_store_ivr
@@ -68,11 +68,12 @@ def test_compute_and_store_ivr_uses_same_timestamp_for_insert_and_update():
 
     # Create a mock session to capture the executed statement
     mock_session = MagicMock()
-    executed_values = {}
+    captured_stmt = {}
 
     def capture_execute(stmt):
-        # For this test, we just want to verify the function executes without error
-        executed_values["called"] = True
+        # Capture the statement for later inspection
+        captured_stmt["stmt"] = stmt
+        return None
 
     mock_session.execute.side_effect = capture_execute
 
@@ -86,13 +87,42 @@ def test_compute_and_store_ivr_uses_same_timestamp_for_insert_and_update():
         )
 
         # Verify the function executed and returned a result
-        assert executed_values.get("called") is True
+        assert "stmt" in captured_stmt, "Statement was not executed"
         assert result.ivr is not None
         assert result.current_hv is not None
 
-        # Verify datetime.now was called (should be called once after the fix)
-        # Each call to datetime.now(timezone.utc) should result in the fixed time
-        call_count = mock_datetime.now.call_count
-        # After fix: should be called exactly once
+        # Verify datetime.now was called exactly once (regression check)
         # Before fix: would be called twice (once in .values(), once in .set_())
+        call_count = mock_datetime.now.call_count
         assert call_count == 1, f"Expected 1 call to datetime.now, got {call_count}"
+
+        # Now verify the same timestamp object appears in both INSERT and UPDATE
+        stmt = captured_stmt["stmt"]
+
+        # Extract computed_at from INSERT .values()
+        insert_computed_at = None
+        for col, bindparam in stmt._values.items():
+            if col.name == "computed_at":
+                insert_computed_at = bindparam.value
+                break
+
+        # Extract computed_at from ON CONFLICT UPDATE .set_()
+        update_computed_at = None
+        pvc = stmt._post_values_clause
+        for col_name, val in pvc.update_values_to_set:
+            if col_name == "computed_at":
+                update_computed_at = val
+                break
+
+        # Verify both are present
+        assert insert_computed_at is not None, "computed_at not found in INSERT values"
+        assert update_computed_at is not None, "computed_at not found in UPDATE set_"
+
+        # Verify they are the SAME object (not just equal values)
+        assert (
+            insert_computed_at is update_computed_at
+        ), f"INSERT and UPDATE use different timestamp objects: {id(insert_computed_at)} vs {id(update_computed_at)}"
+
+        # Verify both have the fixed time value
+        assert insert_computed_at == fixed_time
+        assert update_computed_at == fixed_time
