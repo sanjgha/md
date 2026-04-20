@@ -3,8 +3,9 @@
  * Shows: source dot, ticker, last price, change, change%, remove button on hover.
  */
 
-import { Component } from "solid-js";
+import { Component, createResource, Show } from "solid-js";
 import type { QuoteResponse } from "./types";
+import { optionsAPI, type IVRData } from "../../lib/options-api";
 
 interface SymbolRowProps {
   quote: QuoteResponse;
@@ -27,6 +28,23 @@ export const SymbolRow: Component<SymbolRowProps> = (props) => {
   const isPositive = () => props.quote.change !== null && props.quote.change >= 0;
   const changeClass = () =>
     props.quote.change === null ? "neutral" : isPositive() ? "positive" : "negative";
+
+  const [ivr] = createResource<IVRData | null, string>(
+    () => props.quote.symbol,
+    async (sym: string): Promise<IVRData | null> => {
+      try {
+        return await optionsAPI.getIVR(sym);
+      } catch {
+        return null;
+      }
+    }
+  );
+
+  function ivrColor(val: number): string {
+    if (val < 30) return "bg-green-100 text-green-800";
+    if (val <= 70) return "bg-amber-100 text-amber-800";
+    return "bg-red-100 text-red-800";
+  }
 
   return (
     <div
@@ -54,6 +72,19 @@ export const SymbolRow: Component<SymbolRowProps> = (props) => {
       <span class={`symbol-change-pct ${changeClass()}`}>
         {props.quote.change_pct !== null ? `${fmtChange(props.quote.change_pct)}%` : "—"}
       </span>
+      <Show
+        when={ivr()}
+        fallback={<span class="symbol-ivr text-xs text-gray-400">—</span>}
+      >
+        {(data) => (
+          <span
+            class={`symbol-ivr text-xs font-medium px-1.5 py-0.5 rounded ${ivrColor(data().ivr)}`}
+            title="Implied Volatility Rank — low = cheap premium, high = expensive"
+          >
+            IVR {Math.round(data().ivr)}
+          </span>
+        )}
+      </Show>
       <button
         class="symbol-remove"
         aria-label={`Remove ${props.quote.symbol}`}
