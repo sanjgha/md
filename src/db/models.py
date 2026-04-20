@@ -430,3 +430,42 @@ class IVRSnapshot(Base):
         Index("ix_ivr_symbol", "symbol"),
         Index("ix_ivr_as_of", "as_of_date"),
     )
+
+
+class OptionsEodChain(Base):
+    """EOD options chain data ingested from Dolthub."""
+
+    __tablename__ = "options_eod_chains"
+
+    id = Column(BigInteger, primary_key=True)
+    symbol = Column(String(16), ForeignKey("stocks.symbol", ondelete="CASCADE"), nullable=False)
+    as_of_date = Column(DateTime, nullable=False)
+    expiry_date = Column(DateTime, nullable=False)
+    expiry_bucket = Column(String(16), nullable=False)  # current_week/next_week/monthly
+    contract_type = Column(String(1), nullable=False)  # C or P
+    strike: Column[Decimal] = Column(NUMERIC(10, 2), nullable=False)
+    bid: Column[Decimal | None] = Column(NUMERIC(10, 4))
+    ask: Column[Decimal | None] = Column(NUMERIC(10, 4))
+    mid: Column[Decimal | None] = Column(NUMERIC(10, 4))
+    last: Column[Decimal | None] = Column(NUMERIC(10, 4))
+    volume = Column(Integer)
+    open_interest = Column(Integer)
+    iv: Column[Decimal | None] = Column(NUMERIC(8, 4))
+    delta: Column[Decimal | None] = Column(NUMERIC(8, 4))
+    gamma: Column[Decimal | None] = Column(NUMERIC(10, 6))
+    theta: Column[Decimal | None] = Column(NUMERIC(10, 6))
+    vega: Column[Decimal | None] = Column(NUMERIC(10, 6))
+    ingested_at = Column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "symbol",
+            "as_of_date",
+            "expiry_date",
+            "contract_type",
+            "strike",
+            name="uq_chain_contract",
+        ),
+        Index("ix_chain_symbol_asof", "symbol", "as_of_date"),
+        Index("ix_chain_expiry_bucket", "symbol", "as_of_date", "expiry_bucket"),
+    )
