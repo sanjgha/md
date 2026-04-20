@@ -8,8 +8,8 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.api.deps import get_db
-from src.api.options.schemas import IVRResponse
-from src.db.models import IVRSnapshot
+from src.api.options.schemas import IVRResponse, RegimeResponse
+from src.db.models import IVRSnapshot, RegimeSnapshot
 
 router = APIRouter()
 
@@ -68,3 +68,24 @@ def get_ivr_bulk(symbols: str = Query(...), db: Session = Depends(get_db)) -> li
         .all()
     )
     return [_snap_to_response(s) for s in snaps]
+
+
+@router.get("/regime/{symbol}", response_model=RegimeResponse)
+def get_regime(symbol: str, db: Session = Depends(get_db)) -> RegimeResponse:
+    """Get the latest regime snapshot for a symbol."""
+    snap = (
+        db.query(RegimeSnapshot)
+        .filter_by(symbol=symbol.upper())
+        .order_by(RegimeSnapshot.as_of_date.desc())
+        .first()
+    )
+    if not snap:
+        raise HTTPException(status_code=404, detail=f"No regime data for {symbol}")
+    return RegimeResponse(
+        symbol=symbol.upper(),
+        regime=str(snap.regime),
+        direction=str(snap.direction) if snap.direction else None,
+        adx=float(snap.adx or 0),  # type: ignore[arg-type]
+        atr_pct=float(snap.atr_pct or 0),  # type: ignore[arg-type]
+        as_of_date=_to_date(snap.as_of_date),
+    )

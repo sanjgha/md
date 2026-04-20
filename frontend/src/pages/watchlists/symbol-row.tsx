@@ -5,7 +5,7 @@
 
 import { Component, createResource, Show } from "solid-js";
 import type { QuoteResponse } from "./types";
-import { optionsAPI, type IVRData } from "../../lib/options-api";
+import { optionsAPI, type IVRData, type RegimeData } from "../../lib/options-api";
 
 interface SymbolRowProps {
   quote: QuoteResponse;
@@ -40,10 +40,36 @@ export const SymbolRow: Component<SymbolRowProps> = (props) => {
     }
   );
 
+  const [regime] = createResource<RegimeData | null, string>(
+    () => props.quote.symbol,
+    async (sym: string): Promise<RegimeData | null> => {
+      try {
+        return await optionsAPI.getRegime(sym);
+      } catch {
+        return null;
+      }
+    }
+  );
+
   function ivrColor(val: number): string {
     if (val < 30) return "bg-green-100 text-green-800";
     if (val <= 70) return "bg-amber-100 text-amber-800";
     return "bg-red-100 text-red-800";
+  }
+
+  function regimeLabel(r: RegimeData): string {
+    if (r.regime === "trending") {
+      return r.direction === "bullish" ? "Trending ↑" : "Trending ↓";
+    }
+    if (r.regime === "ranging") return "Ranging";
+    return "Transitional";
+  }
+
+  function regimeClass(r: RegimeData): string {
+    if (r.regime === "trending" && r.direction === "bullish") return "bg-green-100 text-green-800";
+    if (r.regime === "trending") return "bg-red-100 text-red-800";
+    if (r.regime === "ranging") return "bg-gray-100 text-gray-700";
+    return "bg-amber-100 text-amber-800";
   }
 
   return (
@@ -82,6 +108,16 @@ export const SymbolRow: Component<SymbolRowProps> = (props) => {
             title="Implied Volatility Rank — low = cheap premium, high = expensive"
           >
             IVR {Math.round(data().ivr)}
+          </span>
+        )}
+      </Show>
+      <Show when={regime()}>
+        {(r) => (
+          <span
+            class={`symbol-regime text-xs font-medium px-1.5 py-0.5 rounded ${regimeClass(r())}`}
+            title={`ADX ${r().adx.toFixed(1)} | ATR% ${(r().atr_pct * 100).toFixed(2)}%`}
+          >
+            {regimeLabel(r())}
           </span>
         )}
       </Show>
