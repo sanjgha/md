@@ -14,6 +14,7 @@ import {
   onMount,
 } from "solid-js";
 import { watchlistsAPI } from "~/lib/watchlists-api";
+import { optionsAPI, type IVRData, type RegimeData } from "~/lib/options-api";
 import { SymbolRow } from "./symbol-row";
 import type { QuoteResponse, WatchlistSummary } from "./types";
 
@@ -31,6 +32,8 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
   const [quotesLoading, setQuotesLoading] = createSignal(false);
   const [quotesError, setQuotesError] = createSignal(false);
   const [loaded, setLoaded] = createSignal(false);
+  const [ivrData, setIvrData] = createSignal<IVRData[]>([]);
+  const [regimeData, setRegimeData] = createSignal<RegimeData[]>([]);
 
   const [showAddInput, setShowAddInput] = createSignal(false);
   const [addValue, setAddValue] = createSignal("");
@@ -47,6 +50,23 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
       const data = await watchlistsAPI.getQuotes(props.watchlist.id);
       setQuotes(data);
       setLoaded(true);
+
+      // Fetch bulk IVR and regime data for all symbols
+      const symbols = data.map((q) => q.symbol);
+      if (symbols.length > 0) {
+        try {
+          const [ivr, regime] = await Promise.all([
+            optionsAPI.getIVRBulk(symbols),
+            optionsAPI.getRegimeBulk(symbols),
+          ]);
+          setIvrData(ivr);
+          setRegimeData(regime);
+        } catch {
+          // If bulk fetch fails, individual rows will handle missing data
+          setIvrData([]);
+          setRegimeData([]);
+        }
+      }
     } catch {
       setQuotesError(true);
     } finally {
@@ -58,6 +78,14 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
     setRefreshing(true);
     await fetchQuotes();
     setRefreshing(false);
+  }
+
+  function getIVRForSymbol(symbol: string): IVRData | null {
+    return ivrData().find((d) => d.symbol === symbol) || null;
+  }
+
+  function getRegimeForSymbol(symbol: string): RegimeData | null {
+    return regimeData().find((d) => d.symbol === symbol) || null;
   }
 
   function toggleExpand() {
@@ -162,6 +190,8 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
                   selected={props.selectedSymbol === quote.symbol}
                   onSelect={(sym) => props.onSymbolSelect(sym)}
                   onRemove={handleRemove}
+                  ivr={getIVRForSymbol(quote.symbol)}
+                  regime={getRegimeForSymbol(quote.symbol)}
                 />
               )}
             </For>

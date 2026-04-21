@@ -79,3 +79,40 @@ def get_regime(symbol: str, db: Session = Depends(get_db)) -> RegimeResponse:
         atr_pct=float(snap.atr_pct or 0),  # type: ignore[arg-type]
         as_of_date=snap.as_of_date,
     )
+
+
+@router.get("/regime", response_model=list[RegimeResponse])
+def get_regime_bulk(
+    symbols: str = Query(...), db: Session = Depends(get_db)
+) -> list[RegimeResponse]:
+    """Get the latest regime snapshots for multiple comma-separated symbols."""
+    syms = [s.strip().upper() for s in symbols.split(",")]
+    latest_dates = (
+        db.query(
+            RegimeSnapshot.symbol,
+            func.max(RegimeSnapshot.as_of_date).label("max_date"),
+        )
+        .filter(RegimeSnapshot.symbol.in_(syms))
+        .group_by(RegimeSnapshot.symbol)
+        .subquery()
+    )
+    snaps = (
+        db.query(RegimeSnapshot)
+        .join(
+            latest_dates,
+            (RegimeSnapshot.symbol == latest_dates.c.symbol)
+            & (RegimeSnapshot.as_of_date == latest_dates.c.max_date),
+        )
+        .all()
+    )
+    return [
+        RegimeResponse(
+            symbol=str(snap.symbol),
+            regime=str(snap.regime),
+            direction=str(snap.direction) if snap.direction else None,
+            adx=float(snap.adx or 0),  # type: ignore[arg-type]
+            atr_pct=float(snap.atr_pct or 0),  # type: ignore[arg-type]
+            as_of_date=snap.as_of_date,
+        )
+        for snap in snaps
+    ]

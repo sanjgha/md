@@ -26,4 +26,7 @@ export const optionsAPI = {
 
   getRegime: (symbol: string): Promise<RegimeData> =>
     apiFetch(`/api/options/regime/${symbol}`),
+
+  getRegimeBulk: (symbols: string[]): Promise<RegimeData[]> =>
+    apiFetch(`/api/options/regime?symbols=${symbols.join(",")}`),
 };

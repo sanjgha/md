@@ -3,15 +3,17 @@
  * Shows: source dot, ticker, last price, change, change%, remove button on hover.
  */
 
-import { Component, createResource, Show } from "solid-js";
+import { Component, Show } from "solid-js";
 import type { QuoteResponse } from "./types";
-import { optionsAPI, type IVRData, type RegimeData } from "../../lib/options-api";
+import type { IVRData, RegimeData } from "../../lib/options-api";
 
 interface SymbolRowProps {
   quote: QuoteResponse;
   selected: boolean;
   onSelect: (symbol: string) => void;
   onRemove: (symbol: string) => void;
+  ivr?: IVRData | null;
+  regime?: RegimeData | null;
 }
 
 function fmt(n: number | null, decimals = 2): string {
@@ -28,28 +30,6 @@ export const SymbolRow: Component<SymbolRowProps> = (props) => {
   const isPositive = () => props.quote.change !== null && props.quote.change >= 0;
   const changeClass = () =>
     props.quote.change === null ? "neutral" : isPositive() ? "positive" : "negative";
-
-  const [ivr] = createResource<IVRData | null, string>(
-    () => props.quote.symbol,
-    async (sym: string): Promise<IVRData | null> => {
-      try {
-        return await optionsAPI.getIVR(sym);
-      } catch {
-        return null;
-      }
-    }
-  );
-
-  const [regime] = createResource<RegimeData | null, string>(
-    () => props.quote.symbol,
-    async (sym: string): Promise<RegimeData | null> => {
-      try {
-        return await optionsAPI.getRegime(sym);
-      } catch {
-        return null;
-      }
-    }
-  );
 
   function ivrColor(val: number): string {
     if (val < 30) return "bg-green-100 text-green-800";
@@ -99,7 +79,7 @@ export const SymbolRow: Component<SymbolRowProps> = (props) => {
         {props.quote.change_pct !== null ? `${fmtChange(props.quote.change_pct)}%` : "—"}
       </span>
       <Show
-        when={ivr()}
+        when={props.ivr}
         fallback={<span class="symbol-ivr text-xs text-gray-400">—</span>}
       >
         {(data) => (
@@ -111,7 +91,7 @@ export const SymbolRow: Component<SymbolRowProps> = (props) => {
           </span>
         )}
       </Show>
-      <Show when={regime()}>
+      <Show when={props.regime}>
         {(r) => (
           <span
             class={`symbol-regime text-xs font-medium px-1.5 py-0.5 rounded ${regimeClass(r())}`}

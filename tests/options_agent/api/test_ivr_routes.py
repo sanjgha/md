@@ -82,3 +82,91 @@ def test_get_regime_unknown_symbol_404(client):
     """Test get_regime route returns 404 for unknown symbol."""
     resp = client.get("/api/options/regime/ZZZZ")
     assert resp.status_code == 404
+
+
+def test_get_regime_bulk(client, db_session):
+    """Test get_regime_bulk route returns regime snapshots for multiple symbols."""
+    from src.db.models import RegimeSnapshot, Stock
+    from datetime import datetime
+
+    stock1 = Stock(symbol="AAPL", name="Apple Inc")
+    stock2 = Stock(symbol="NVDA", name="NVIDIA Corp")
+    db_session.add(stock1)
+    db_session.add(stock2)
+    db_session.commit()
+
+    snap1 = RegimeSnapshot(
+        symbol="AAPL",
+        as_of_date=date(2026, 4, 18),
+        regime="trending",
+        direction="bullish",
+        adx=32.5,
+        atr_pct=0.018,
+        spy_trend_20d=0.00234,
+        computed_at=datetime.now(timezone.utc),
+    )
+    snap2 = RegimeSnapshot(
+        symbol="NVDA",
+        as_of_date=date(2026, 4, 18),
+        regime="ranging",
+        direction=None,
+        adx=18.2,
+        atr_pct=0.012,
+        spy_trend_20d=0.001,
+        computed_at=datetime.now(timezone.utc),
+    )
+    db_session.add(snap1)
+    db_session.add(snap2)
+    db_session.commit()
+
+    resp = client.get("/api/options/regime?symbols=AAPL,NVDA")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert isinstance(body, list)
+    assert len(body) == 2
+
+    # Find AAPL and NVDA in response (order not guaranteed)
+    aapl = next((item for item in body if item["symbol"] == "AAPL"), None)
+    nvda = next((item for item in body if item["symbol"] == "NVDA"), None)
+
+    assert aapl is not None
+    assert nvda is not None
+
+    assert aapl["regime"] == "trending"
+    assert aapl["direction"] == "bullish"
+    assert aapl["adx"] == 32.5
+
+    assert nvda["regime"] == "ranging"
+    assert nvda["direction"] is None
+    assert nvda["adx"] == 18.2
+
+
+def test_get_regime_bulk_partial_data(client, db_session):
+    """Test get_regime_bulk returns only symbols with data."""
+    from src.db.models import RegimeSnapshot, Stock
+    from datetime import datetime
+
+    stock = Stock(symbol="AAPL", name="Apple Inc")
+    db_session.add(stock)
+    db_session.commit()
+
+    snap = RegimeSnapshot(
+        symbol="AAPL",
+        as_of_date=date(2026, 4, 18),
+        regime="trending",
+        direction="bullish",
+        adx=32.5,
+        atr_pct=0.018,
+        spy_trend_20d=0.00234,
+        computed_at=datetime.now(timezone.utc),
+    )
+    db_session.add(snap)
+    db_session.commit()
+
+    # Request both AAPL (has data) and NVDA (no data)
+    resp = client.get("/api/options/regime?symbols=AAPL,NVDA")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert isinstance(body, list)
+    assert len(body) == 1
+    assert body[0]["symbol"] == "AAPL"
