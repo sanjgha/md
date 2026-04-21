@@ -17,7 +17,7 @@ def _snap_to_response(snap: IVRSnapshot) -> IVRResponse:
         ivr=float(snap.ivr),  # type: ignore[arg-type]
         current_value=float(snap.current_value),  # type: ignore[arg-type]
         calculation_basis=str(snap.calculation_basis),
-        as_of_date=snap.as_of_date,
+        as_of_date=snap.as_of_date,  # type: ignore[arg-type]
     )
 
 
@@ -77,7 +77,7 @@ def get_regime(symbol: str, db: Session = Depends(get_db)) -> RegimeResponse:
         direction=str(snap.direction) if snap.direction else None,
         adx=float(snap.adx or 0),  # type: ignore[arg-type]
         atr_pct=float(snap.atr_pct or 0),  # type: ignore[arg-type]
-        as_of_date=snap.as_of_date,
+        as_of_date=snap.as_of_date,  # type: ignore[arg-type]
     )
 
 
@@ -112,7 +112,7 @@ def get_regime_bulk(
             direction=str(snap.direction) if snap.direction else None,
             adx=float(snap.adx or 0),  # type: ignore[arg-type]
             atr_pct=float(snap.atr_pct or 0),  # type: ignore[arg-type]
-            as_of_date=snap.as_of_date,
+            as_of_date=snap.as_of_date,  # type: ignore[arg-type]
         )
         for snap in snaps
     ]

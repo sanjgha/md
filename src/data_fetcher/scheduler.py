@@ -1,7 +1,8 @@
 """APScheduler setup for EOD pipeline automation."""
 
 import logging
-import subprocess
+
+import subprocess  # nosec: B404
 from datetime import date
 from pathlib import Path
 
@@ -209,7 +210,7 @@ def _run_options_chain_ingest() -> None:
         return
 
     # Pull latest Dolt data
-    subprocess.run(
+    subprocess.run(  # nosec: B603, B607
         ["dolt", "pull"],
         cwd=cfg.DOLT_REPO_PATH,
         check=False,
