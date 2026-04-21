@@ -38,6 +38,7 @@ class Config:
             "DOLT_OPTIONS_URL", "mysql+pymysql://root@localhost:3307/options"
         )
         self.DOLT_REPO_PATH = os.getenv("DOLT_REPO_PATH", "/var/lib/dolt-options")
+        # reserved for slice 9 thesis generation
         self.ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
         self.OPTIONS_AGENT_LLM_MODEL = os.getenv(
             "OPTIONS_AGENT_LLM_MODEL", "claude-haiku-4-5-20251001"

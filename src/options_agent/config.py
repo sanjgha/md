@@ -10,6 +10,7 @@ class OptionsAgentConfig:
 
     dolt_options_url: str
     dolt_repo_path: str
+    # reserved for slice 9 thesis generation
     llm_model: str
     anthropic_api_key: str | None
 
