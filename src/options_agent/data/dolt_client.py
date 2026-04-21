@@ -89,7 +89,7 @@ class DoltOptionsClient:
                 if attempt == retries - 1:
                     raise
                 time.sleep(2**attempt)
-        return []  # unreachable, satisfies mypy
+        raise RuntimeError("unreachable")  # loop always returns or raises
 
     def _row_to_contract(self, row: dict) -> OptionsContract:
         """Convert a DB row dict to an OptionsContract dataclass."""
