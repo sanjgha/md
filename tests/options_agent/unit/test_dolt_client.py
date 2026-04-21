@@ -83,20 +83,17 @@ def test_fetch_chain_with_multiple_expiry_filters(client):
 
 
 def test_fetch_chain_with_empty_expiry_list(client):
-    """fetch_chain with empty expiries list still works (no rows expected)."""
+    """Empty expiries list returns immediately without hitting the DB."""
     symbol = "SPY"
     as_of = date(2026, 4, 20)
     expiries = []
 
-    mock_cursor = MagicMock()
-    mock_cursor.fetchall.return_value = []
-    mock_conn = MagicMock()
-    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-
-    with patch.object(client, "_connect", return_value=mock_conn):
+    mock_connect = MagicMock()
+    with patch.object(client, "_connect", mock_connect):
         result = client.fetch_chain(symbol, as_of, expiries=expiries)
 
     assert result == []
+    mock_connect.assert_not_called()  # key assertion: no DB access
 
 
 def test_fetch_chain_symbol_uppercase(client):

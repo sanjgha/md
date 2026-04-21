@@ -74,6 +74,9 @@ class DoltOptionsClient:
         If expiries is provided, filters to those expiration dates at the SQL level.
         Otherwise fetches the entire chain (backward compatible).
         """
+        if expiries is not None and len(expiries) == 0:
+            return []
+
         sql = """
             SELECT underlying, expiration, type, strike,
                    bid, ask, (bid+ask)/2 as mid, last,
