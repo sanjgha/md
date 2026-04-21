@@ -2,6 +2,7 @@
 
 from datetime import date
 
+import pytest
 from freezegun import freeze_time
 
 
@@ -37,3 +38,23 @@ def test_monthly_is_third_friday():
     buckets = determine_target_expiries(as_of=date(2026, 4, 20))
     monthly = next(b for b in buckets if b.label == "monthly")
     assert monthly.expiry == date(2026, 5, 15)
+
+
+@pytest.mark.parametrize(
+    "as_of_date,expected_monthly,description",
+    [
+        # December → January year rollover (after Dec's 3rd Friday)
+        (date(2025, 12, 20), date(2026, 1, 16), "Dec 2025 → Jan 2026 year rollover"),
+        # Month where 1st falls on Saturday (so Aug 3rd Friday is 21st)
+        (date(2026, 8, 1), date(2026, 8, 21), "First of month is Saturday"),
+        # When as_of equals this month's third Friday, must roll to next month
+        (date(2026, 4, 17), date(2026, 5, 15), "as_on_expiry rolls to next month"),
+    ],
+)
+def test_monthly_expiry_edge_cases(as_of_date, expected_monthly, description):
+    """Test edge cases: year rollover, first-of-month Saturday, as_on_expiry."""
+    from src.options_agent.data.expiries import determine_target_expiries
+
+    buckets = determine_target_expiries(as_of=as_of_date)
+    monthly = next(b for b in buckets if b.label == "monthly")
+    assert monthly.expiry == expected_monthly, f"Failed: {description}"
