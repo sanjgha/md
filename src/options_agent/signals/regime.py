@@ -1,6 +1,7 @@
 """Market regime detection: trending / ranging / transitional."""
 
 from dataclasses import dataclass
+from datetime import date, datetime, timezone
 from typing import Literal
 
 import numpy as np
@@ -109,3 +110,46 @@ def detect_regime(bars: pd.DataFrame, spy_bars: pd.DataFrame) -> RegimeResult:
         atr_pct=atr_pct,
         spy_trend_20d=spy_trend,
     )
+
+
+def compute_and_store_regime(
+    session,
+    symbol: str,
+    bars: pd.DataFrame,
+    spy_bars: pd.DataFrame,
+    as_of: date,
+) -> RegimeResult:
+    """Compute regime and upsert into regime_snapshots."""
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+    from src.db.models import RegimeSnapshot
+
+    result = detect_regime(bars, spy_bars)
+    now = datetime.now(timezone.utc)
+    stmt = (
+        pg_insert(RegimeSnapshot)
+        .values(
+            symbol=symbol,
+            as_of_date=as_of,
+            regime=result.regime,
+            direction=result.direction,
+            adx=result.adx,
+            atr_pct=result.atr_pct,
+            spy_trend_20d=result.spy_trend_20d,
+            computed_at=now,
+        )
+        .on_conflict_do_update(
+            constraint="uq_regime_symbol_date",
+            set_={
+                "regime": result.regime,
+                "direction": result.direction,
+                "adx": result.adx,
+                "atr_pct": result.atr_pct,
+                "spy_trend_20d": result.spy_trend_20d,
+                "computed_at": now,
+            },
+        )
+    )
+    session.execute(stmt)
+    session.commit()
+    return result
