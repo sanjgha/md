@@ -7,6 +7,8 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
+from src.options_agent.ivr import InsufficientHistoryError
+
 
 @dataclass
 class RegimeResult:
@@ -20,6 +22,11 @@ class RegimeResult:
 
 
 def _adx(df: pd.DataFrame, period: int = 14) -> float:
+    if len(df) < 2 * period:
+        raise InsufficientHistoryError(
+            f"Need at least {2 * period} bars for ADX calculation, got {len(df)}"
+        )
+
     high, low, close = df["high"].values, df["low"].values, df["close"].values
     tr = np.maximum(
         high[1:] - low[1:],
@@ -37,12 +44,7 @@ def _adx(df: pd.DataFrame, period: int = 14) -> float:
     )
 
     def _wilder_ema(x: np.ndarray) -> np.ndarray:
-        result = np.zeros_like(x, dtype=float)
-        result[period - 1] = x[:period].mean()
-        k = 1.0 / period
-        for i in range(period, len(x)):
-            result[i] = x[i] * k + result[i - 1] * (1 - k)
-        return result
+        return pd.Series(x).ewm(alpha=1.0 / period, adjust=False).mean().values
 
     atr_s = _wilder_ema(tr)
     safe_atr = np.where(atr_s == 0, 1, atr_s)

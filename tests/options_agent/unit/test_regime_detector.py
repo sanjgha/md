@@ -88,3 +88,15 @@ def test_result_dataclass_fields():
     assert result.regime in ("trending", "ranging", "transitional")
     assert isinstance(result.adx, float)
     assert isinstance(result.atr_pct, float)
+
+
+def test_adx_insufficient_history():
+    """ADX raises InsufficientHistoryError when bars < 2 * period."""
+    import pytest
+    from src.options_agent.signals.regime import _adx
+    from src.options_agent.ivr import InsufficientHistoryError
+
+    # Only 20 bars, less than 2 * 14 = 28 required
+    short_bars = _trending_bars(n=20)
+    with pytest.raises(InsufficientHistoryError):
+        _adx(short_bars, period=14)
