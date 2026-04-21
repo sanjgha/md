@@ -33,7 +33,7 @@ class Stock(Base):
     __tablename__ = "stocks"
 
     id = Column(Integer, primary_key=True)
-    symbol = Column(String(10), unique=True, nullable=False, index=True)
+    symbol = Column(String(16), unique=True, nullable=False, index=True)
     name = Column(String(255))
     sector = Column(String(100))
     created_at = Column(DateTime, default=datetime.utcnow)

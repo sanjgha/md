@@ -16,7 +16,7 @@ def test_validate_symbol_invalid():
     with pytest.raises(SymbolNotFoundError):
         validate_symbol("aapl")  # lowercase
     with pytest.raises(SymbolNotFoundError):
-        validate_symbol("TOOLONGSYMBOL")  # > 10 chars
+        validate_symbol("TOOLONGSYMBOL12345")  # > 16 chars
     with pytest.raises(SymbolNotFoundError):
         validate_symbol("12AB")  # starts with digit
     with pytest.raises(SymbolNotFoundError):
