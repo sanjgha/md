@@ -3,6 +3,7 @@
 import logging
 import subprocess
 from datetime import date
+from pathlib import Path
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -199,6 +200,13 @@ def _run_options_chain_ingest() -> None:
     from sqlalchemy.orm import sessionmaker
 
     cfg = get_config()
+
+    if not Path(cfg.DOLT_REPO_PATH).exists():
+        logger.info(
+            "options agent: dolt repo not configured at %s, skipping chain ingest",
+            cfg.DOLT_REPO_PATH,
+        )
+        return
 
     # Pull latest Dolt data
     subprocess.run(
