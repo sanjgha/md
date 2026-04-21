@@ -59,3 +59,11 @@ line-length = 100
 
 [tool.ruff]
 line-length = 100
+
+[tool.coverage.report]
+# Enforce 85% coverage floor specifically for options_agent/ and api/options/ modules
+# (per SPEC §3.3). The overall repo coverage is lower (~32% for now) because other
+# modules are not fully covered. This config scopes the fail_under check to just
+# these paths.
+fail_under = 85
+include = ["src/options_agent/*", "src/api/options/*"]
