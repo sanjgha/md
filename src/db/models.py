@@ -477,7 +477,7 @@ class RegimeSnapshot(Base):
     __tablename__ = "regime_snapshots"
 
     id = Column(Integer, primary_key=True)
-    symbol = Column(String(16), nullable=False)
+    symbol = Column(String(16), ForeignKey("stocks.symbol", ondelete="CASCADE"), nullable=False)
     as_of_date = Column(DateTime, nullable=False)
     regime = Column(String(16), nullable=False)  # trending|ranging|transitional
     direction = Column(String(16))  # bullish|bearish|neutral|unclear

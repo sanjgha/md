@@ -47,8 +47,12 @@ def test_get_ivr_bulk(client, seed_ivr):
 
 def test_get_regime_for_symbol(client, db_session):
     """Test get_regime route returns regime snapshot for a symbol."""
-    from src.db.models import RegimeSnapshot
+    from src.db.models import RegimeSnapshot, Stock
     from datetime import datetime, timezone
+
+    stock = Stock(symbol="AAPL", name="Apple Inc")
+    db_session.add(stock)
+    db_session.commit()
 
     snap = RegimeSnapshot(
         symbol="AAPL",
