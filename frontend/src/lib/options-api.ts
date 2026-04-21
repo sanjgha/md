@@ -3,7 +3,7 @@ import { apiFetch } from "./api";
 export interface IVRData {
   symbol: string;
   ivr: number;
-  current_hv: number;
+  current_value: number;
   calculation_basis: string;
   as_of_date: string;
 }

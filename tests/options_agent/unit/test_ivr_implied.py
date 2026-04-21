@@ -81,7 +81,7 @@ def test_ivr_from_implied_calculation_basis(db_session):
                 symbol="AAPL",
                 as_of_date=base_date + timedelta(days=i),
                 ivr=float(i % 100),
-                current_hv=0.20 + i * 0.001,
+                current_value=0.20 + i * 0.001,
                 calculation_basis="implied",
                 computed_at=datetime.now(timezone.utc),
             )

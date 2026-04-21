@@ -15,7 +15,7 @@ def _snap_to_response(snap: IVRSnapshot) -> IVRResponse:
     return IVRResponse(
         symbol=str(snap.symbol),
         ivr=float(snap.ivr),  # type: ignore[arg-type]
-        current_hv=float(snap.current_hv),  # type: ignore[arg-type]
+        current_value=float(snap.current_value),  # type: ignore[arg-type]
         calculation_basis=str(snap.calculation_basis),
         as_of_date=snap.as_of_date,
     )

@@ -15,7 +15,7 @@ def seed_ivr(db_session):
         symbol="AAPL",
         as_of_date=date(2026, 4, 18),
         ivr=34.5,
-        current_hv=0.2312,
+        current_value=0.2312,
         calculation_basis="hv_proxy",
         computed_at=datetime.now(timezone.utc),
     )

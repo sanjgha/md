@@ -23,7 +23,7 @@ class IVRResult:
     """Result of an IVR computation."""
 
     ivr: float
-    current_hv: float
+    current_value: float
     hv_min: float
     hv_max: float
     calculation_basis: str
@@ -67,7 +67,7 @@ def compute_ivr_from_hv(
 
     return IVRResult(
         ivr=round(ivr, 2),
-        current_hv=round(float(current), 4),
+        current_value=round(float(current), 4),
         hv_min=round(hv_min, 4),
         hv_max=round(hv_max, 4),
         calculation_basis="hv_proxy",
@@ -94,7 +94,7 @@ def compute_and_store_ivr(
             symbol=symbol,
             as_of_date=as_of,
             ivr=result.ivr,
-            current_hv=result.current_hv,
+            current_value=result.current_value,
             calculation_basis=result.calculation_basis,
             computed_at=now,
         )
@@ -102,7 +102,7 @@ def compute_and_store_ivr(
             constraint="uq_ivr_symbol_date_basis",
             set_={
                 "ivr": result.ivr,
-                "current_hv": result.current_hv,
+                "current_value": result.current_value,
                 "computed_at": now,
             },
         )
@@ -136,7 +136,7 @@ def compute_ivr_from_implied(
     from src.db.models import IVRSnapshot
 
     historical = (
-        session.query(IVRSnapshot.current_hv)
+        session.query(IVRSnapshot.current_value)
         .filter_by(symbol=symbol, calculation_basis="implied")
         .order_by(IVRSnapshot.as_of_date.desc())
         .limit(lookback)
@@ -158,7 +158,7 @@ def compute_ivr_from_implied(
 
     return IVRResult(
         ivr=round(ivr, 2),
-        current_hv=round(current_iv, 4),
+        current_value=round(current_iv, 4),
         hv_min=round(hv_min, 4),
         hv_max=round(hv_max, 4),
         calculation_basis="implied",

@@ -420,7 +420,7 @@ class IVRSnapshot(Base):
     symbol = Column(String(16), ForeignKey("stocks.symbol", ondelete="CASCADE"), nullable=False)
     as_of_date = Column(Date, nullable=False)
     ivr: Column[Decimal] = Column(NUMERIC(5, 2), nullable=False)
-    current_hv: Column[Decimal] = Column(NUMERIC(8, 4), nullable=False)
+    current_value: Column[Decimal] = Column(NUMERIC(8, 4), nullable=False)
     calculation_basis = Column(String(16), nullable=False)  # "hv_proxy" | "implied"
     computed_at = Column(DateTime(timezone=True), nullable=False)
 

@@ -9,7 +9,7 @@ class IVRResponse(BaseModel):
 
     symbol: str
     ivr: float
-    current_hv: float
+    current_value: float
     calculation_basis: str
     as_of_date: date
 

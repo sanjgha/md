@@ -46,7 +46,7 @@ def test_ivr_result_fields():
 
     bars = synthetic_bars_rising_volatility()
     result = compute_ivr_from_hv(bars, window=20, lookback=252)
-    assert result.current_hv > 0
+    assert result.current_value > 0
     assert result.hv_min >= 0
     assert result.hv_max >= result.hv_min
     assert result.as_of is not None
@@ -89,7 +89,7 @@ def test_compute_and_store_ivr_uses_same_timestamp_for_insert_and_update():
         # Verify the function executed and returned a result
         assert "stmt" in captured_stmt, "Statement was not executed"
         assert result.ivr is not None
-        assert result.current_hv is not None
+        assert result.current_value is not None
 
         # Verify datetime.now was called exactly once (regression check)
         # Before fix: would be called twice (once in .values(), once in .set_())
