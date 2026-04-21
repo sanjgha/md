@@ -153,7 +153,9 @@ def test_compute_ivr_from_implied_fallback_preserves_as_of():
 
     # Mock session: empty implied history (0 < 252), so fallback to HV
     mock_session = MagicMock()
-    mock_session.query.return_value.filter_by.return_value.order_by.return_value.limit.return_value.all.return_value = []
+    mock_session.query.return_value.filter_by.return_value.order_by.return_value.limit.return_value.all.return_value = (
+        []
+    )
 
     # Mock chain with minimal ATM IV data (not needed for fallback, but function signature requires it)
     mock_chain = []
