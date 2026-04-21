@@ -17,7 +17,7 @@ def test_get_options_config_returns_correct_fields(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "postgresql://localhost/test")
     monkeypatch.setenv("MARKETDATA_API_TOKEN", "test-token")
     monkeypatch.setenv("DOLT_OPTIONS_URL", "mysql://localhost:3306/options")
-    monkeypatch.setenv("DOLT_REPO_PATH", "/tmp/dolt")
+    monkeypatch.setenv("DOLT_REPO_PATH", "/tmp/dolt")  # nosec: B108
     monkeypatch.setenv("OPTIONS_AGENT_LLM_MODEL", "claude-3-haiku-20240307")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test-key")
 
@@ -31,7 +31,7 @@ def test_get_options_config_returns_correct_fields(monkeypatch):
     cfg = get_options_config()
 
     assert cfg.dolt_options_url == "mysql://localhost:3306/options"
-    assert cfg.dolt_repo_path == "/tmp/dolt"
+    assert cfg.dolt_repo_path == "/tmp/dolt"  # nosec: B108
     assert cfg.llm_model == "claude-3-haiku-20240307"
     assert cfg.anthropic_api_key == "sk-test-key"
 
