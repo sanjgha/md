@@ -66,8 +66,14 @@ class DoltOptionsClient:
         except Exception:
             return False
 
-    def fetch_chain(self, symbol: str, as_of: date, retries: int = 3) -> list[OptionsContract]:
-        """Fetch all options contracts for symbol on as_of date, with retries."""
+    def fetch_chain(
+        self, symbol: str, as_of: date, expiries: list[date] | None = None, retries: int = 3
+    ) -> list[OptionsContract]:
+        """Fetch options contracts for symbol on as_of date.
+
+        If expiries is provided, filters to those expiration dates at the SQL level.
+        Otherwise fetches the entire chain (backward compatible).
+        """
         sql = """
             SELECT underlying, expiration, type, strike,
                    bid, ask, (bid+ask)/2 as mid, last,
@@ -77,11 +83,18 @@ class DoltOptionsClient:
             FROM options
             WHERE underlying = %s AND date = %s
         """
+        params = [symbol.upper(), as_of.isoformat()]
+
+        if expiries:
+            placeholders = ", ".join(["%s"] * len(expiries))
+            sql += f" AND expiration IN ({placeholders})"
+            params.extend([e.isoformat() for e in expiries])
+
         for attempt in range(retries):
             try:
                 conn = self._connect()
                 with conn.cursor() as cur:
-                    cur.execute(sql, (symbol.upper(), as_of.isoformat()))
+                    cur.execute(sql, tuple(params))
                     rows = cur.fetchall()
                 conn.close()
                 return [self._row_to_contract(r) for r in rows]
