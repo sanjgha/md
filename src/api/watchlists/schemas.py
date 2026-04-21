@@ -138,7 +138,7 @@ class WatchlistCloneRequest(BaseModel):
 class WatchlistSymbolAddRequest(BaseModel):
     """Schema for adding a symbol to a watchlist."""
 
-    symbol: str = Field(..., min_length=1, max_length=10, description="Stock symbol to add")
+    symbol: str = Field(..., min_length=1, max_length=16, description="Stock symbol to add")
     notes: Optional[str] = Field(None, description="Optional notes about the symbol")
 
 

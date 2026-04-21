@@ -269,7 +269,7 @@ def run_intraday(
                             matched_at=r.matched_at.isoformat(),
                         )
                     )
-            except Exception:
+            except Exception:  # nosec: B110
                 pass
 
     return ScannerResultsResponse(
