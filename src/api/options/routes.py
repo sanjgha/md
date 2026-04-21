@@ -1,8 +1,5 @@
 """Options API routes."""
 
-from datetime import date, datetime
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -14,20 +11,13 @@ from src.db.models import IVRSnapshot, RegimeSnapshot
 router = APIRouter()
 
 
-def _to_date(value: Any) -> date:
-    """Coerce a datetime or date value to date."""
-    if isinstance(value, datetime):
-        return value.date()
-    return value  # type: ignore[return-value]
-
-
 def _snap_to_response(snap: IVRSnapshot) -> IVRResponse:
     return IVRResponse(
         symbol=str(snap.symbol),
         ivr=float(snap.ivr),  # type: ignore[arg-type]
         current_hv=float(snap.current_hv),  # type: ignore[arg-type]
         calculation_basis=str(snap.calculation_basis),
-        as_of_date=_to_date(snap.as_of_date),
+        as_of_date=snap.as_of_date,
     )
 
 
@@ -87,5 +77,5 @@ def get_regime(symbol: str, db: Session = Depends(get_db)) -> RegimeResponse:
         direction=str(snap.direction) if snap.direction else None,
         adx=float(snap.adx or 0),  # type: ignore[arg-type]
         atr_pct=float(snap.atr_pct or 0),  # type: ignore[arg-type]
-        as_of_date=_to_date(snap.as_of_date),
+        as_of_date=snap.as_of_date,
     )

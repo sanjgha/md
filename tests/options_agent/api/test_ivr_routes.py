@@ -1,11 +1,11 @@
 import pytest
-from datetime import date, datetime, timezone
+from datetime import date, timezone
 
 
 @pytest.fixture
 def seed_ivr(db_session):
     from src.db.models import IVRSnapshot, Stock
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     stock = Stock(symbol="AAPL", name="Apple Inc")
     db_session.add(stock)
@@ -48,7 +48,7 @@ def test_get_ivr_bulk(client, seed_ivr):
 def test_get_regime_for_symbol(client, db_session):
     """Test get_regime route returns regime snapshot for a symbol."""
     from src.db.models import RegimeSnapshot, Stock
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     stock = Stock(symbol="AAPL", name="Apple Inc")
     db_session.add(stock)
@@ -82,19 +82,3 @@ def test_get_regime_unknown_symbol_404(client):
     """Test get_regime route returns 404 for unknown symbol."""
     resp = client.get("/api/options/regime/ZZZZ")
     assert resp.status_code == 404
-
-
-def test_to_date_with_datetime_object(client, db_session):
-    """Test _to_date helper converts datetime to date."""
-    from src.api.options.routes import _to_date
-
-    # Test with datetime object
-    dt = datetime(2026, 4, 18, 14, 30, 45, tzinfo=timezone.utc)
-    result = _to_date(dt)
-    assert result == date(2026, 4, 18)
-    assert isinstance(result, date)
-
-    # Test with date object (passes through)
-    d = date(2026, 4, 18)
-    result = _to_date(d)
-    assert result == d

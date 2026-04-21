@@ -7,6 +7,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     Column,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -417,7 +418,7 @@ class IVRSnapshot(Base):
 
     id = Column(Integer, primary_key=True)
     symbol = Column(String(16), ForeignKey("stocks.symbol", ondelete="CASCADE"), nullable=False)
-    as_of_date = Column(DateTime, nullable=False)
+    as_of_date = Column(Date, nullable=False)
     ivr: Column[Decimal] = Column(NUMERIC(5, 2), nullable=False)
     current_hv: Column[Decimal] = Column(NUMERIC(8, 4), nullable=False)
     calculation_basis = Column(String(16), nullable=False)  # "hv_proxy" | "implied"
@@ -439,8 +440,8 @@ class OptionsEodChain(Base):
 
     id = Column(BigInteger, primary_key=True)
     symbol = Column(String(16), ForeignKey("stocks.symbol", ondelete="CASCADE"), nullable=False)
-    as_of_date = Column(DateTime, nullable=False)
-    expiry_date = Column(DateTime, nullable=False)
+    as_of_date = Column(Date, nullable=False)
+    expiry_date = Column(Date, nullable=False)
     expiry_bucket = Column(String(16), nullable=False)  # current_week/next_week/monthly
     contract_type = Column(String(1), nullable=False)  # C or P
     strike: Column[Decimal] = Column(NUMERIC(10, 2), nullable=False)
@@ -478,7 +479,7 @@ class RegimeSnapshot(Base):
 
     id = Column(Integer, primary_key=True)
     symbol = Column(String(16), ForeignKey("stocks.symbol", ondelete="CASCADE"), nullable=False)
-    as_of_date = Column(DateTime, nullable=False)
+    as_of_date = Column(Date, nullable=False)
     regime = Column(String(16), nullable=False)  # trending|ranging|transitional
     direction = Column(String(16))  # bullish|bearish|neutral|unclear
     adx: Column[Decimal | None] = Column(NUMERIC(6, 2))
