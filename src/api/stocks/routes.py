@@ -57,3 +57,32 @@ def get_candles(
             raise HTTPException(status_code=404, detail=str(e))
         # Other validation errors
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/{symbol}/candles/intraday", response_model=dict)
+def get_intraday_with_realtime(
+    symbol: str,
+    resolution: str = Query("1h", description="Candle resolution (5m, 15m, 1h)"),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Get today's intraday candles merged with latest realtime quote.
+
+    Args:
+        symbol: Stock ticker
+        resolution: Candle resolution (5m, 15m, 1h)
+        db: Database session
+
+    Returns:
+        Dict with 'intraday' (list of candles) and 'realtime' (quote)
+
+    Raises:
+        HTTPException: 404 if symbol not found, 400 for invalid params
+    """
+    from src.api.stocks.service import StockService
+
+    service = StockService(db)
+
+    try:
+        return service.get_intraday_with_realtime(symbol, resolution)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

@@ -1,13 +1,14 @@
 """Service layer for stocks API."""
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import List, cast
 
-from sqlalchemy import select
+from fastapi import HTTPException
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.api.stocks.schemas import CandleResponse
-from src.db.models import DailyCandle, IntradayCandle, Stock
+from src.db.models import DailyCandle, IntradayCandle, RealtimeQuote, Stock
 
 
 class StockService:
@@ -142,3 +143,85 @@ class StockService:
             )
             for c in results
         ]
+
+    def get_intraday_with_realtime(
+        self,
+        symbol: str,
+        resolution: str = "1h",
+    ) -> dict:
+        """Get today's intraday candles and latest realtime quote.
+
+        Args:
+            symbol: Stock ticker
+            resolution: Candle resolution (5m, 15m, 1h)
+
+        Returns:
+            Dict with 'intraday' (list of CandleResponse) and
+            'realtime' (QuoteResponse or None)
+
+        Raises:
+            HTTPException: 404 if symbol not found
+        """
+        # Validate resolution
+        if resolution not in {"5m", "15m", "1h"}:
+            raise ValueError(f"Invalid resolution: {resolution}")
+
+        # Resolve stock_id
+        stock = self.db_session.execute(
+            select(Stock).where(Stock.symbol == symbol.upper())
+        ).scalar_one_or_none()
+
+        if not stock:
+            raise HTTPException(status_code=404, detail=f"Stock not found: {symbol}")
+
+        # Get today's intraday candles
+        today = date.today()
+        intraday_stmt = (
+            select(IntradayCandle)
+            .where(
+                IntradayCandle.stock_id == stock.id,
+                IntradayCandle.resolution == resolution,
+                func.date(IntradayCandle.timestamp) == today,
+            )
+            .order_by(IntradayCandle.timestamp.asc())
+        )
+
+        intraday_results = self.db_session.execute(intraday_stmt).scalars().all()
+
+        candles = [
+            {
+                "time": int(c.timestamp.timestamp()),
+                "open": float(c.open),
+                "high": float(c.high),
+                "low": float(c.low),
+                "close": float(c.close),
+                "volume": c.volume,
+            }
+            for c in intraday_results
+        ]
+
+        # Get latest realtime quote
+        realtime_stmt = (
+            select(RealtimeQuote)
+            .where(
+                RealtimeQuote.stock_id == stock.id,
+                func.date(RealtimeQuote.timestamp) == today,
+            )
+            .order_by(RealtimeQuote.timestamp.desc())
+            .limit(1)
+        )
+
+        realtime_row = self.db_session.execute(realtime_stmt).scalar_one_or_none()
+
+        realtime = None
+        if realtime_row:
+            realtime = {
+                "symbol": symbol,
+                "last": float(realtime_row.last) if realtime_row.last else None,
+                "change": float(realtime_row.change) if realtime_row.change else None,
+                "change_pct": float(realtime_row.change_pct) if realtime_row.change_pct else None,
+                "source": "realtime",
+                "date": None,
+            }
+
+        return {"intraday": candles, "realtime": realtime}
