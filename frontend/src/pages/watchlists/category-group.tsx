@@ -4,6 +4,7 @@
  * Owns: expanded state, quote data, add-input visibility.
  * Fires: onSymbolSelect(symbol) upward to dashboard.
  * Fires: onSymbolSelect("__CLEAR__") when removing the selected symbol.
+ * Registers symbol refs with parent for keyboard navigation.
  */
 
 import {
@@ -12,17 +13,20 @@ import {
   For,
   createSignal,
   onMount,
+  createEffect,
 } from "solid-js";
 import { watchlistsAPI } from "~/lib/watchlists-api";
 import { SymbolRow } from "./symbol-row";
-import type { QuoteResponse, WatchlistSummary } from "./types";
+import type { QuoteResponse, WatchlistSummary, WatchlistSymbolRef } from "./types";
 
 interface CategoryGroupProps {
   watchlist: WatchlistSummary;
   initiallyExpanded: boolean;
   selectedSymbol: string | null;
+  focusedSymbol: string | null;
   onSymbolSelect: (symbol: string | null) => void;
   onExpandChange: (watchlistId: number, expanded: boolean) => void;
+  onRegisterSymbolRefs: (refs: WatchlistSymbolRef[]) => void;
 }
 
 export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
@@ -73,6 +77,22 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
     if (props.initiallyExpanded) {
       fetchQuotes();
     }
+  });
+
+  // Register symbol refs with parent when quotes change
+  createEffect(() => {
+    const currentQuotes = quotes();
+    if (!expanded() || currentQuotes.length === 0) {
+      props.onRegisterSymbolRefs([]);
+      return;
+    }
+
+    const refs: WatchlistSymbolRef[] = currentQuotes.map((quote) => ({
+      symbol: quote.symbol,
+      onRemove: () => handleRemove(quote.symbol),
+    }));
+
+    props.onRegisterSymbolRefs(refs);
   });
 
   async function handleAdd() {
@@ -160,6 +180,7 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
                 <SymbolRow
                   quote={quote}
                   selected={props.selectedSymbol === quote.symbol}
+                  focused={props.focusedSymbol === quote.symbol}
                   onSelect={(sym) => props.onSymbolSelect(sym)}
                   onRemove={handleRemove}
                 />

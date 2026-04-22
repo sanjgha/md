@@ -5,12 +5,13 @@
  * Persists expansion set in localStorage under "watchlist-expanded-ids".
  * Renders one CategoryGroup per watchlist (not per category header).
  * Category names appear as non-interactive section dividers.
+ * Supports keyboard navigation: up/down to navigate symbols, left to delete.
  */
 
-import { Component, For, Show, createSignal, onMount } from "solid-js";
+import { Component, For, Show, createSignal, onMount, onCleanup } from "solid-js";
 import { watchlistsAPI } from "~/lib/watchlists-api";
 import { CategoryGroup } from "./category-group";
-import type { CategoryWatchlists } from "./types";
+import type { CategoryWatchlists, WatchlistSymbolRef } from "./types";
 
 const LS_KEY = "watchlist-expanded-ids";
 
@@ -38,6 +39,8 @@ export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
   const [loading, setLoading] = createSignal(true);
   const [error, setError] = createSignal(false);
   const [expandedIds, setExpandedIds] = createSignal<Set<number>>(loadExpandedIds());
+  const [symbolRefs, setSymbolRefs] = createSignal<WatchlistSymbolRef[]>([]);
+  const [focusedSymbol, setFocusedSymbol] = createSignal<string | null>(null);
 
   onMount(async () => {
     try {
@@ -48,6 +51,44 @@ export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
     } finally {
       setLoading(false);
     }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const refs = symbolRefs();
+      if (refs.length === 0) return;
+
+      // Only handle arrow keys if not in an input
+      if (e.target instanceof HTMLInputElement) return;
+
+      const currentFocused = focusedSymbol();
+      const currentIndex = currentFocused !== null
+        ? refs.findIndex(r => r.symbol === currentFocused)
+        : -1;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = currentIndex === -1 ? 0 : (currentIndex + 1) % refs.length;
+        setFocusedSymbol(refs[next].symbol);
+        props.onSymbolSelect(refs[next].symbol);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prev = currentIndex <= 0 ? refs.length - 1 : currentIndex - 1;
+        setFocusedSymbol(refs[prev].symbol);
+        props.onSymbolSelect(refs[prev].symbol);
+      } else if (e.key === "ArrowLeft" && currentFocused !== null) {
+        e.preventDefault();
+        const ref = refs[currentIndex];
+        ref.onRemove();
+        // Move focus to next symbol, or previous if at end, or clear if last one
+        if (refs.length > 1) {
+          const nextIndex = currentIndex >= refs.length - 1 ? currentIndex - 1 : currentIndex;
+          // Note: refs will update after deletion, so we set a fallback
+          // The actual focus will be set when new refs are registered
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    onCleanup(() => window.removeEventListener("keydown", handleKeyDown));
   });
 
   function handleExpandChange(watchlistId: number, expanded: boolean) {
@@ -59,6 +100,22 @@ export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
     }
     setExpandedIds(next);
     saveExpandedIds(next);
+  }
+
+  function handleRegisterSymbolRefs(refs: WatchlistSymbolRef[]) {
+    setSymbolRefs(refs);
+    // Preserve focused symbol if it still exists, otherwise set to first or null
+    const current = focusedSymbol();
+    if (refs.length === 0) {
+      setFocusedSymbol(null);
+    } else if (current !== null && refs.some(r => r.symbol === current)) {
+      // Current focused symbol still exists, keep it
+      return;
+    } else {
+      // Try to focus first symbol if we had something focused before
+      setFocusedSymbol(refs[0].symbol);
+      props.onSymbolSelect(refs[0].symbol);
+    }
   }
 
   return (
@@ -82,8 +139,10 @@ export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
                     watchlist={wl}
                     initiallyExpanded={expandedIds().has(wl.id)}
                     selectedSymbol={props.selectedSymbol}
+                    focusedSymbol={focusedSymbol()}
                     onSymbolSelect={props.onSymbolSelect}
                     onExpandChange={handleExpandChange}
+                    onRegisterSymbolRefs={handleRegisterSymbolRefs}
                   />
                 )}
               </For>

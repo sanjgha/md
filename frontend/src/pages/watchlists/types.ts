@@ -160,3 +160,11 @@ export interface QuoteResponse {
   source: "realtime" | "eod";
   date: string | null;  // ISO date string (YYYY-MM-DD) for EOD quotes, null for realtime
 }
+
+/**
+ * Symbol reference for keyboard navigation
+ */
+export interface WatchlistSymbolRef {
+  symbol: string;
+  onRemove: () => void;
+}
