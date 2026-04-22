@@ -67,6 +67,15 @@ async def test_batch_empty_symbols():
 
 
 @pytest.mark.asyncio
+async def test_batch_missing_base_url():
+    """Should raise ValueError if provider lacks base_url."""
+    mock_provider = Mock(spec=[])  # Create mock without base_url attribute
+
+    with pytest.raises(ValueError, match="Provider must have base_url attribute"):
+        await _fetch_batch_comma_separated(mock_provider, ["AAPL"])
+
+
+@pytest.mark.asyncio
 async def test_batch_fallback_to_parallel():
     """Should fall back to parallel requests when batch fails."""
     mock_provider = Mock()
