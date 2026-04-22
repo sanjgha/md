@@ -879,7 +879,8 @@ class WatchlistGenerationService:
             # Remove all existing symbols (replace mode)
             self.db.query(WatchlistSymbol).filter(
                 WatchlistSymbol.watchlist_id == existing.id
-            ).delete()
+            ).delete(synchronize_session=False)
+            self.db.flush()  # Ensure delete is committed before adding new symbols
             watchlist = existing
         else:
             # Create new watchlist
