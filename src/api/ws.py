@@ -58,7 +58,7 @@ class PubSubRegistry:
         for ws in sockets:
             try:
                 await ws.close()
-            except Exception:  # nosec: B110
+            except Exception:
                 # Silently ignore errors during shutdown - connections are already being torn down
                 pass
 

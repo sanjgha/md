@@ -7,7 +7,6 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     Column,
-    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -33,7 +32,7 @@ class Stock(Base):
     __tablename__ = "stocks"
 
     id = Column(Integer, primary_key=True)
-    symbol = Column(String(16), unique=True, nullable=False, index=True)
+    symbol = Column(String(10), unique=True, nullable=False, index=True)
     name = Column(String(255))
     sector = Column(String(100))
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -409,85 +408,3 @@ class WatchlistSymbol(Base):
 
     watchlist = relationship("Watchlist", back_populates="symbols")
     stock = relationship("Stock")
-
-
-class IVRSnapshot(Base):
-    """IV Rank snapshots — one row per symbol per date per calculation basis."""
-
-    __tablename__ = "ivr_snapshots"
-
-    id = Column(Integer, primary_key=True)
-    symbol = Column(String(16), ForeignKey("stocks.symbol", ondelete="CASCADE"), nullable=False)
-    as_of_date = Column(Date, nullable=False)
-    ivr: Column[Decimal] = Column(NUMERIC(5, 2), nullable=False)
-    current_value: Column[Decimal] = Column(NUMERIC(8, 4), nullable=False)
-    calculation_basis = Column(String(16), nullable=False)  # "hv_proxy" | "implied"
-    computed_at = Column(DateTime(timezone=True), nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint(
-            "symbol", "as_of_date", "calculation_basis", name="uq_ivr_symbol_date_basis"
-        ),
-        Index("ix_ivr_symbol", "symbol"),
-        Index("ix_ivr_as_of", "as_of_date"),
-    )
-
-
-class OptionsEodChain(Base):
-    """EOD options chain data ingested from Dolthub."""
-
-    __tablename__ = "options_eod_chains"
-
-    id = Column(BigInteger, primary_key=True)
-    symbol = Column(String(16), ForeignKey("stocks.symbol", ondelete="CASCADE"), nullable=False)
-    as_of_date = Column(Date, nullable=False)
-    expiry_date = Column(Date, nullable=False)
-    expiry_bucket = Column(String(16), nullable=False)  # current_week/next_week/monthly
-    contract_type = Column(String(1), nullable=False)  # C or P
-    strike: Column[Decimal] = Column(NUMERIC(10, 2), nullable=False)
-    bid: Column[Decimal | None] = Column(NUMERIC(10, 4))
-    ask: Column[Decimal | None] = Column(NUMERIC(10, 4))
-    mid: Column[Decimal | None] = Column(NUMERIC(10, 4))
-    last: Column[Decimal | None] = Column(NUMERIC(10, 4))
-    volume = Column(Integer)
-    open_interest = Column(Integer)
-    iv: Column[Decimal | None] = Column(NUMERIC(8, 4))
-    delta: Column[Decimal | None] = Column(NUMERIC(8, 4))
-    gamma: Column[Decimal | None] = Column(NUMERIC(10, 6))
-    theta: Column[Decimal | None] = Column(NUMERIC(10, 6))
-    vega: Column[Decimal | None] = Column(NUMERIC(10, 6))
-    ingested_at = Column(DateTime(timezone=True), nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint(
-            "symbol",
-            "as_of_date",
-            "expiry_date",
-            "contract_type",
-            "strike",
-            name="uq_chain_contract",
-        ),
-        Index("ix_chain_symbol_asof", "symbol", "as_of_date"),
-        Index("ix_chain_expiry_bucket", "symbol", "as_of_date", "expiry_bucket"),
-    )
-
-
-class RegimeSnapshot(Base):
-    """Market regime classification per symbol per date."""
-
-    __tablename__ = "regime_snapshots"
-
-    id = Column(Integer, primary_key=True)
-    symbol = Column(String(16), ForeignKey("stocks.symbol", ondelete="CASCADE"), nullable=False)
-    as_of_date = Column(Date, nullable=False)
-    regime = Column(String(16), nullable=False)  # trending|ranging|transitional
-    direction = Column(String(16))  # bullish|bearish|neutral|unclear
-    adx: Column[Decimal | None] = Column(NUMERIC(6, 2))
-    atr_pct: Column[Decimal | None] = Column(NUMERIC(6, 4))
-    spy_trend_20d: Column[Decimal | None] = Column(NUMERIC(8, 6))
-    computed_at = Column(DateTime(timezone=True), nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint("symbol", "as_of_date", name="uq_regime_symbol_date"),
-        Index("ix_regime_symbol", "symbol"),
-    )

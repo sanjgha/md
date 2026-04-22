@@ -5,7 +5,7 @@ import re
 from src.data_provider.exceptions import DataProviderError, SymbolNotFoundError
 
 VALID_RESOLUTIONS = frozenset({"5m", "15m", "1h"})
-_SYMBOL_RE = re.compile(r"^[A-Z]{1,16}$")
+_SYMBOL_RE = re.compile(r"^[A-Z]{1,10}$")
 
 
 def validate_symbol(symbol: str) -> str:

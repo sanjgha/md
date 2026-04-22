@@ -19,7 +19,6 @@ from src.api.schedule.routes import router as schedule_router
 from src.api.scanners.routes import router as scanners_router
 from src.api.stocks import router as stocks_router
 from src.api.watchlists.routes import router as watchlists_router
-from src.api.options.routes import router as options_router
 from src.api.ws import heartbeat_loop, pubsub, ws_endpoint
 
 FRONTEND_DIST = Path(__file__).parent.parent.parent / "frontend" / "dist"
@@ -62,7 +61,6 @@ def create_app() -> FastAPI:
     app.include_router(stocks_router, prefix="/api/stocks", tags=["stocks"])
     app.include_router(watchlists_router, prefix="/api/watchlists")
     app.include_router(schedule_router, prefix="/api/schedule/jobs", tags=["schedule"])
-    app.include_router(options_router, prefix="/api/options", tags=["options"])
     app.add_api_websocket_route("/ws", ws_endpoint)
     if FRONTEND_DIST.exists():
         app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")

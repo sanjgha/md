@@ -3,17 +3,14 @@
  * Shows: source dot, ticker, last price, change, change%, remove button on hover.
  */
 
-import { Component, Show } from "solid-js";
+import { Component } from "solid-js";
 import type { QuoteResponse } from "./types";
-import type { IVRData, RegimeData } from "../../lib/options-api";
 
 interface SymbolRowProps {
   quote: QuoteResponse;
   selected: boolean;
   onSelect: (symbol: string) => void;
   onRemove: (symbol: string) => void;
-  ivr?: IVRData | null;
-  regime?: RegimeData | null;
 }
 
 function fmt(n: number | null, decimals = 2): string {
@@ -30,27 +27,6 @@ export const SymbolRow: Component<SymbolRowProps> = (props) => {
   const isPositive = () => props.quote.change !== null && props.quote.change >= 0;
   const changeClass = () =>
     props.quote.change === null ? "neutral" : isPositive() ? "positive" : "negative";
-
-  function ivrColor(val: number): string {
-    if (val < 30) return "bg-green-100 text-green-800";
-    if (val <= 70) return "bg-amber-100 text-amber-800";
-    return "bg-red-100 text-red-800";
-  }
-
-  function regimeLabel(r: RegimeData): string {
-    if (r.regime === "trending") {
-      return r.direction === "bullish" ? "Trending ↑" : "Trending ↓";
-    }
-    if (r.regime === "ranging") return "Ranging";
-    return "Transitional";
-  }
-
-  function regimeClass(r: RegimeData): string {
-    if (r.regime === "trending" && r.direction === "bullish") return "bg-green-100 text-green-800";
-    if (r.regime === "trending") return "bg-red-100 text-red-800";
-    if (r.regime === "ranging") return "bg-gray-100 text-gray-700";
-    return "bg-amber-100 text-amber-800";
-  }
 
   return (
     <div
@@ -78,29 +54,6 @@ export const SymbolRow: Component<SymbolRowProps> = (props) => {
       <span class={`symbol-change-pct ${changeClass()}`}>
         {props.quote.change_pct !== null ? `${fmtChange(props.quote.change_pct)}%` : "—"}
       </span>
-      <Show
-        when={props.ivr}
-        fallback={<span class="symbol-ivr text-xs text-gray-400">—</span>}
-      >
-        {(data) => (
-          <span
-            class={`symbol-ivr text-xs font-medium px-1.5 py-0.5 rounded ${ivrColor(data().ivr)}`}
-            title="Implied Volatility Rank — low = cheap premium, high = expensive"
-          >
-            IVR {Math.round(data().ivr)}
-          </span>
-        )}
-      </Show>
-      <Show when={props.regime}>
-        {(r) => (
-          <span
-            class={`symbol-regime text-xs font-medium px-1.5 py-0.5 rounded ${regimeClass(r())}`}
-            title={`ADX ${r().adx.toFixed(1)} | ATR% ${(r().atr_pct * 100).toFixed(2)}%`}
-          >
-            {regimeLabel(r())}
-          </span>
-        )}
-      </Show>
       <button
         class="symbol-remove"
         aria-label={`Remove ${props.quote.symbol}`}

@@ -28,6 +28,9 @@ jobs:
       - name: Run ruff (lint)
         run: ruff check .
 
+      - name: Run ruff format check
+        run: ruff format --check .
+
   type-check:
     runs-on: ubuntu-latest
     name: Type Check

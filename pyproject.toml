@@ -23,9 +23,6 @@ dependencies = [
     "uvicorn[standard]>=0.27.0",
     "bcrypt>=4.0.0",
     "python-multipart>=0.0.9",
-    "pymysql>=1.1.0",
-    "scipy>=1.12.0",
-    "anthropic>=0.40.0",
 ]
 
 [project.optional-dependencies]
@@ -38,7 +35,6 @@ dev = [
     "testcontainers[postgres]>=3.7.0",
     "httpx>=0.27.0",
     "pytest-asyncio>=1.3.0",
-    "freezegun>=1.5.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -59,11 +55,3 @@ line-length = 100
 
 [tool.ruff]
 line-length = 100
-
-[tool.coverage.report]
-# Enforce 85% coverage floor specifically for options_agent/ and api/options/ modules
-# (per SPEC §3.3). The overall repo coverage is lower (~32% for now) because other
-# modules are not fully covered. This config scopes the fail_under check to just
-# these paths.
-fail_under = 85
-include = ["src/options_agent/*", "src/api/options/*"]
