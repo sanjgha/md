@@ -114,7 +114,8 @@ async def _fetch_parallel(
 
     async def fetch_one(symbol: str) -> Quote:
         async with semaphore:
-            return provider.get_realtime_quote(symbol)
+            # Run sync method in thread pool to avoid blocking event loop
+            return await asyncio.to_thread(provider.get_realtime_quote, symbol)
 
     tasks = [fetch_one(symbol) for symbol in symbols]
     return await asyncio.gather(*tasks)
