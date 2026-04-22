@@ -787,6 +787,16 @@ class WatchlistGenerationService:
         if not results:
             return None
 
+        # Deduplicate results by stock_id, keeping the most recent match for each stock
+        # This handles multiple scans per day (pre-close, EOD, etc.)
+        seen_stocks = {}
+        for result in results:
+            if result.stock_id not in seen_stocks:
+                seen_stocks[result.stock_id] = result
+            elif result.matched_at > seen_stocks[result.stock_id].matched_at:
+                seen_stocks[result.stock_id] = result
+        results = list(seen_stocks.values())
+
         # Get or create "Scanner Results" category
         scanner_category = self._get_or_create_scanner_category(user_id)
 
@@ -881,6 +891,8 @@ class WatchlistGenerationService:
                 WatchlistSymbol.watchlist_id == existing.id
             ).delete(synchronize_session=False)
             self.db.flush()  # Ensure delete is committed before adding new symbols
+            # Update the source_scan_date to reflect the new scan
+            existing.source_scan_date = scan_date
             watchlist = existing
         else:
             # Create new watchlist
