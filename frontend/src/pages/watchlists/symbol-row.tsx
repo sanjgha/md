@@ -1,6 +1,7 @@
 /**
  * SymbolRow — a single stock row in the watchlist panel.
  * Shows: source dot, ticker, last price, change, change%, remove button on hover.
+ * Supports keyboard focus indication (distinct from mouse selection).
  */
 
 import { Component } from "solid-js";
@@ -9,6 +10,7 @@ import type { QuoteResponse } from "./types";
 interface SymbolRowProps {
   quote: QuoteResponse;
   selected: boolean;
+  focused: boolean;
   onSelect: (symbol: string) => void;
   onRemove: (symbol: string) => void;
 }
@@ -31,7 +33,7 @@ export const SymbolRow: Component<SymbolRowProps> = (props) => {
   return (
     <div
       class="symbol-row"
-      classList={{ selected: props.selected }}
+      classList={{ selected: props.selected, focused: props.focused }}
       onClick={() => props.onSelect(props.quote.symbol)}
     >
       <span
