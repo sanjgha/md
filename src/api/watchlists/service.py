@@ -280,7 +280,7 @@ class WatchlistService:
     def get_quotes(self, watchlist_id: int, user_id: int) -> Optional[list[QuoteResponse]]:
         """Get price quotes for all symbols in a watchlist.
 
-        Uses realtime_quotes (today only) with EOD daily_candles fallback.
+        Uses cache first (30s TTL), falls back to database queries.
         Batch queries — no per-symbol round-trips.
 
         Returns:
@@ -296,6 +296,34 @@ class WatchlistService:
         if not symbol_rows:
             return []
 
+        symbols = [ws.stock.symbol for ws in symbol_rows]
+
+        # Try cache first
+        from src.api.schedule.manager import get_quote_cache_service
+
+        cache_service = get_quote_cache_service()
+        cached = cache_service.get_quotes(symbols)
+
+        if len(cached) == len(symbols):
+            # All symbols in cache - return in watchlist order
+            symbol_to_quote = {q.symbol: q for q in cached}
+            return [symbol_to_quote[symbol] for symbol in symbols]
+
+        # Cache miss: fall back to database queries
+        return self._get_quotes_from_db(symbol_rows)
+
+    def _get_quotes_from_db(
+        self,
+        symbol_rows: List[WatchlistSymbol],
+    ) -> list[QuoteResponse]:
+        """Get quotes from database (realtime + EOD fallback).
+
+        Args:
+            symbol_rows: List of WatchlistSymbol objects
+
+        Returns:
+            List of QuoteResponse objects
+        """
         stock_ids = [int(ws.stock_id) for ws in symbol_rows]
         stock_id_to_symbol: dict[int, str] = {
             int(ws.stock_id): ws.stock.symbol for ws in symbol_rows
