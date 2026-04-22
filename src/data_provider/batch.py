@@ -61,9 +61,14 @@ async def _fetch_batch_comma_separated(
 
     Raises:
         APIConnectionError: If request fails
+        ValueError: If provider doesn't have base_url attribute
     """
     symbol_str = ",".join(symbols)
-    url = f"{provider.base_url}/stocks/quotes/{symbol_str}/"
+    base_url = getattr(provider, "base_url", None)
+    if not base_url:
+        raise ValueError("Provider must have base_url attribute")
+
+    url = f"{base_url}/stocks/quotes/{symbol_str}/"
 
     async with aiohttp.ClientSession() as session:
         async with session.get(url, timeout=(5, 30)) as response:
