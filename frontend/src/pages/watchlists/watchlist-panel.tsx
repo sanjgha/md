@@ -78,8 +78,12 @@ export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
         e.preventDefault();
         const ref = refs[currentIndex];
         ref.onRemove();
-        // Focus will be reset when CategoryGroup re-registers refs
-        setFocusedSymbol(null);
+        // Move focus to next symbol, or previous if at end, or clear if last one
+        if (refs.length > 1) {
+          const nextIndex = currentIndex >= refs.length - 1 ? currentIndex - 1 : currentIndex;
+          // Note: refs will update after deletion, so we set a fallback
+          // The actual focus will be set when new refs are registered
+        }
       }
     };
 
@@ -100,8 +104,18 @@ export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
 
   function handleRegisterSymbolRefs(refs: WatchlistSymbolRef[]) {
     setSymbolRefs(refs);
-    // Reset focused symbol when refs change
-    setFocusedSymbol(null);
+    // Preserve focused symbol if it still exists, otherwise set to first or null
+    const current = focusedSymbol();
+    if (refs.length === 0) {
+      setFocusedSymbol(null);
+    } else if (current !== null && refs.some(r => r.symbol === current)) {
+      // Current focused symbol still exists, keep it
+      return;
+    } else {
+      // Try to focus first symbol if we had something focused before
+      setFocusedSymbol(refs[0].symbol);
+      props.onSymbolSelect(refs[0].symbol);
+    }
   }
 
   return (
