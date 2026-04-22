@@ -24,6 +24,7 @@ interface CategoryGroupProps {
   initiallyExpanded: boolean;
   selectedSymbol: string | null;
   focusedSymbol: string | null;
+  refreshSignal: number;
   onSymbolSelect: (symbol: string | null) => void;
   onExpandChange: (watchlistId: number, expanded: boolean) => void;
   onRegisterSymbolRefs: (refs: WatchlistSymbolRef[]) => void;
@@ -75,6 +76,14 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
 
   onMount(() => {
     if (props.initiallyExpanded) {
+      fetchQuotes();
+    }
+  });
+
+  // Watch refresh signal and fetch quotes when expanded and loaded
+  createEffect(() => {
+    props.refreshSignal; // Track signal
+    if (expanded() && loaded()) {
       fetchQuotes();
     }
   });
