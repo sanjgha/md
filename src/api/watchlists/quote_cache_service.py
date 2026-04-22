@@ -1,5 +1,6 @@
 """In-memory cache for realtime quotes with 30-second TTL."""
 
+import threading
 import time
 from dataclasses import dataclass
 from typing import List
@@ -25,8 +26,9 @@ class QuoteCacheService:
     CACHE_TTL_SECONDS = 30
 
     def __init__(self):
-        """Initialize empty cache."""
+        """Initialize empty cache with thread lock."""
         self._cache: dict[str, CachedQuote] = {}
+        self._lock = threading.Lock()
 
     def get_quotes(self, symbols: List[str]) -> List[QuoteResponse]:
         """Get cached quotes for symbols, filtering expired entries.
@@ -40,10 +42,11 @@ class QuoteCacheService:
         now = time.time()
         result = []
 
-        for symbol in symbols:
-            cached = self._cache.get(symbol)
-            if cached and cached.expires_at > now:
-                result.append(cached.quote)
+        with self._lock:
+            for symbol in symbols:
+                cached = self._cache.get(symbol)
+                if cached and cached.expires_at > now:
+                    result.append(cached.quote)
 
         return result
 
@@ -58,7 +61,8 @@ class QuoteCacheService:
         now = time.time()
         expires_at = now + self.CACHE_TTL_SECONDS
 
-        # Clear old cache and add new entries
-        self._cache.clear()
-        for quote in quotes:
-            self._cache[quote.symbol] = CachedQuote(quote=quote, expires_at=expires_at)
+        with self._lock:
+            # Clear old cache and add new entries
+            self._cache.clear()
+            for quote in quotes:
+                self._cache[quote.symbol] = CachedQuote(quote=quote, expires_at=expires_at)
