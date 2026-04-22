@@ -118,6 +118,14 @@ export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
     }
   }
 
+  function handleSymbolSelect(symbol: string | null) {
+    // Sync focus with selection when user clicks
+    if (symbol !== null) {
+      setFocusedSymbol(symbol);
+    }
+    props.onSymbolSelect(symbol);
+  }
+
   return (
     <div class="watchlist-panel">
       <Show when={loading()}>
@@ -140,7 +148,7 @@ export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
                     initiallyExpanded={expandedIds().has(wl.id)}
                     selectedSymbol={props.selectedSymbol}
                     focusedSymbol={focusedSymbol()}
-                    onSymbolSelect={props.onSymbolSelect}
+                    onSymbolSelect={handleSymbolSelect}
                     onExpandChange={handleExpandChange}
                     onRegisterSymbolRefs={handleRegisterSymbolRefs}
                   />
