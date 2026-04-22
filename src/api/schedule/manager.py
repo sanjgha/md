@@ -14,15 +14,18 @@ with Redis as the backend broker.
 
 import logging
 import threading
-from typing import Callable, Dict
+from typing import TYPE_CHECKING, Callable, Dict
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy.orm import Session
 
-from src.api.schedule.jobs import run_eod_job, run_pre_close_job
+from src.api.schedule.jobs import run_eod_job, run_pre_close_job, run_quote_polling_job
 from src.api.watchlists.service import WatchlistService
 from src.db.models import ScheduleConfig, ScannerResult, User, WatchlistSymbol
+
+if TYPE_CHECKING:
+    from src.api.watchlists.quote_cache_service import QuoteCacheService
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +33,28 @@ logger = logging.getLogger(__name__)
 JOB_RUN_TYPES: Dict[str, str] = {
     "eod_scan": "eod",
     "pre_close_scan": "pre_close",
+    "quote_poller": "quote",
 }
 
 JOB_DISPLAY_NAMES: Dict[str, str] = {
     "eod_scan": "EOD Scan",
     "pre_close_scan": "Pre-Close Scan",
+    "quote_poller": "Quote Polling",
 }
+
+
+# Global cache service instance for quote polling
+_quote_cache_service: "QuoteCacheService | None" = None
+
+
+def get_quote_cache_service() -> "QuoteCacheService":
+    """Get or create the global QuoteCacheService instance."""
+    global _quote_cache_service
+    if _quote_cache_service is None:
+        from src.api.watchlists.quote_cache_service import QuoteCacheService
+
+        _quote_cache_service = QuoteCacheService()
+    return _quote_cache_service
 
 
 class AlreadyRunningError(Exception):
@@ -80,8 +99,10 @@ class ScheduleManager:
         # Register job callbacks
         self._callbacks["eod_scan"] = run_eod_job
         self._callbacks["pre_close_scan"] = run_pre_close_job
+        self._callbacks["quote_poller"] = run_quote_polling_job
         self._locks["eod_scan"] = threading.Lock()
         self._locks["pre_close_scan"] = threading.Lock()
+        self._locks["quote_poller"] = threading.Lock()
 
         # Load ALL jobs from DB (both enabled and disabled)
         configs = db_session.query(ScheduleConfig).all()

@@ -100,3 +100,21 @@ def run_pre_close_job(db: Session) -> int:
     results = executor.run()
     logger.info("Pre-close job complete: %d results", len(results))
     return len(results)
+
+
+def run_quote_polling_job(db: Session) -> int:
+    """Run quote polling job. Returns count of quotes fetched."""
+    from src.workers.quote_worker import QuoteWorker
+    from src.data_provider.marketdata_app import MarketDataAppProvider
+    from src.config import get_config
+
+    cfg = get_config()
+    provider = MarketDataAppProvider(api_token=cfg.MARKETDATA_API_TOKEN)
+
+    # Use global cache service instance (will be created in manager)
+    from src.api.schedule.manager import get_quote_cache_service
+
+    cache_service = get_quote_cache_service()
+
+    worker = QuoteWorker(db, cache_service, provider)
+    return worker.poll()

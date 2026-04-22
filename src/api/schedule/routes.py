@@ -76,6 +76,8 @@ def list_jobs(
                 job_id=job_id,
                 hour=16 if job_id == "eod_scan" else 15,
                 minute=15 if job_id == "eod_scan" else 45,
+                enabled=True,
+                auto_save=False,
             )
 
         run_type = JOB_RUN_TYPES[job_id]
