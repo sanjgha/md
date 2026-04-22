@@ -891,6 +891,8 @@ class WatchlistGenerationService:
                 WatchlistSymbol.watchlist_id == existing.id
             ).delete(synchronize_session=False)
             self.db.flush()  # Ensure delete is committed before adding new symbols
+            # Update the source_scan_date to reflect the new scan
+            existing.source_scan_date = scan_date
             watchlist = existing
         else:
             # Create new watchlist
