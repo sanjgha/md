@@ -12,12 +12,12 @@ def test_create_eod_scheduler_returns_scheduler():
 
 
 def test_scheduler_has_eod_job():
-    """Scheduler has an 'eod_pipeline' job and an 'options_chain_ingest' job."""
+    """Scheduler has exactly one job with id 'eod_pipeline'."""
     callback = MagicMock()
     scheduler = create_eod_scheduler(callback)
-    job_ids = {j.id for j in scheduler.get_jobs()}
-    assert "eod_pipeline" in job_ids
-    assert "options_chain_ingest" in job_ids
+    jobs = scheduler.get_jobs()
+    assert len(jobs) == 1
+    assert jobs[0].id == "eod_pipeline"
 
 
 def test_scheduler_job_name():
