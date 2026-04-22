@@ -9,7 +9,6 @@ Create Date: 2026-04-22 14:38:49.390368
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
@@ -20,38 +19,30 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Upgrade schema - drop options_agent tables and revert schema changes."""
-    # Drop foreign key constraint from regime_snapshots if it exists
-    try:
-        op.drop_constraint(
-            "fk_regime_snapshots_symbol_stocks", "regime_snapshots", type_="foreignkey"
-        )
-    except Exception:
-        pass  # Constraint may not exist
+    """Upgrade schema - drop options_agent tables if they exist."""
+    # Get the database inspector to check what exists
+    from sqlalchemy import inspect
 
-    # Drop options_agent tables (order matters due to FKs)
-    try:
+    # Use batch_alter_table for SQLite compatibility if needed
+    inspector = inspect(op.get_bind())
+    existing_tables = inspector.get_table_names()
+
+    # Drop options_agent tables if they exist (order matters due to FKs)
+    if "regime_snapshots" in existing_tables:
+        # Check if FK constraint exists before dropping
+        try:
+            op.drop_constraint(
+                "fk_regime_snapshots_symbol_stocks", "regime_snapshots", type_="foreignkey"
+            )
+        except Exception:
+            pass  # Constraint may not exist
         op.drop_table("regime_snapshots")
-    except Exception:
-        pass  # Table may not exist
 
-    try:
+    if "options_eod_chains" in existing_tables:
         op.drop_table("options_eod_chains")
-    except Exception:
-        pass  # Table may not exist
 
-    try:
+    if "ivr_snapshots" in existing_tables:
         op.drop_table("ivr_snapshots")
-    except Exception:
-        pass  # Table may not exist
-
-    # Revert stocks.symbol column width from 16 back to 10
-    try:
-        op.alter_column(
-            "stocks", "symbol", existing_type=sa.String(length=16), type_=sa.String(length=10)
-        )
-    except Exception:
-        pass  # Column may already be String(10)
 
 
 def downgrade() -> None:
