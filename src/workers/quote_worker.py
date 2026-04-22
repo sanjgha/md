@@ -62,7 +62,7 @@ class QuoteWorker:
             # Store in database
             self._store_quotes(symbols, quotes)
 
-            # Update cache
+            # Update cache (outside database transaction)
             from src.api.watchlists.schemas import QuoteResponse
 
             cache_quotes = [
@@ -82,6 +82,8 @@ class QuoteWorker:
             return len(quotes)
 
         except Exception as e:
+            # Rollback database if cache update fails
+            self.db.rollback()
             logger.error("Error polling quotes: %s", e)
             return 0
 
