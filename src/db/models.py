@@ -2,10 +2,12 @@
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 
 from sqlalchemy import (
     BigInteger,
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     ForeignKey,
@@ -259,6 +261,16 @@ class ScheduleConfig(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     auto_save: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    trigger_type: Mapped[str] = mapped_column(String(10), nullable=False, server_default="cron")
+    interval_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "(trigger_type = 'cron' AND hour IS NOT NULL AND minute IS NOT NULL) OR "
+            "(trigger_type = 'interval' AND interval_seconds IS NOT NULL AND interval_seconds > 0)",
+            name="check_trigger_config",
+        ),
+    )
 
 
 class EconomicIndicator(Base):
