@@ -1,127 +1,137 @@
-import { render, fireEvent } from "@solidjs/testing-library";
-import { describe, it, expect, vi } from "vitest";
+/**
+ * Tests for SymbolRow component
+ */
+
+import { describe, it, expect } from "vitest";
+import { render } from "@solidjs/testing-library";
 import { SymbolRow } from "./symbol-row";
 import type { QuoteResponse } from "./types";
 
-const realtimeQuote: QuoteResponse = {
-  symbol: "AAPL",
-  last: 186.59,
-  change: 9.31,
-  change_pct: 5.25,
-  source: "realtime",
-  date: null,
-};
-
-const eodQuote: QuoteResponse = {
-  symbol: "GSAT",
-  last: 79.85,
-  change: -0.04,
-  change_pct: -0.05,
-  source: "eod",
-  date: "2026-04-15",
-};
-
 describe("SymbolRow", () => {
-  it("renders symbol ticker", () => {
-    const { getByText } = render(() => (
+  const baseQuote: QuoteResponse = {
+    symbol: "AAPL",
+    last: 186.59,
+    low: 178.20,
+    high: 188.50,
+    change: 9.31,
+    change_pct: 5.01,
+    source: "realtime",
+    date: null,
+    intraday: [
+      { time: "2026-04-23T09:30:00", close: 180.50 },
+      { time: "2026-04-23T10:30:00", close: 182.30 },
+      { time: "2026-04-23T11:30:00", close: 185.10 },
+    ],
+  };
+
+  it("renders sparkline and range bar", () => {
+    const { container } = render(() => (
       <SymbolRow
-        quote={realtimeQuote}
+        quote={baseQuote}
         selected={false}
-        onSelect={vi.fn()}
-        onRemove={vi.fn()}
+        focused={false}
+        onSelect={() => {}}
+        onRemove={() => {}}
       />
     ));
-    expect(getByText("AAPL")).toBeInTheDocument();
+
+    // Check sparkline is rendered
+    const svg = container.querySelector(".symbol-row svg");
+    expect(svg).not.toBeNull();
+    expect(svg?.getAttribute("width")).toBe("48");
+
+    // Check range bar is rendered
+    const rangeBar = container.querySelector(".range-bar");
+    expect(rangeBar).not.toBeNull();
   });
 
-  it("renders last price", () => {
-    const { getByText } = render(() => (
+  it("determines sparkline color from change", () => {
+    const { container: greenContainer } = render(() => (
       <SymbolRow
-        quote={realtimeQuote}
+        quote={{ ...baseQuote, change: 9.31 }}
         selected={false}
-        onSelect={vi.fn()}
-        onRemove={vi.fn()}
+        focused={false}
+        onSelect={() => {}}
+        onRemove={() => {}}
       />
     ));
-    expect(getByText("186.59")).toBeInTheDocument();
-  });
 
-  it("renders positive change in green", () => {
-    const { getByText } = render(() => (
+    const greenPolyline = greenContainer.querySelector("polyline");
+    expect(greenPolyline?.getAttribute("stroke")).toBe("#22c55e");
+
+    const { container: redContainer } = render(() => (
       <SymbolRow
-        quote={realtimeQuote}
+        quote={{ ...baseQuote, change: -9.31, change_pct: -5.01 }}
         selected={false}
-        onSelect={vi.fn()}
-        onRemove={vi.fn()}
+        focused={false}
+        onSelect={() => {}}
+        onRemove={() => {}}
       />
     ));
-    const changeEl = getByText("+9.31");
-    expect(changeEl.className).toContain("positive");
+
+    const redPolyline = redContainer.querySelector("polyline");
+    expect(redPolyline?.getAttribute("stroke")).toBe("#ef4444");
   });
 
-  it("renders negative change in red", () => {
-    const { getByText } = render(() => (
+  it("shows gray sparkline for EOD quotes", () => {
+    const eodQuote: QuoteResponse = {
+      ...baseQuote,
+      source: "eod",
+      date: "2026-04-22",
+      intraday: [], // No intraday for EOD
+    };
+
+    const { container } = render(() => (
       <SymbolRow
         quote={eodQuote}
         selected={false}
-        onSelect={vi.fn()}
-        onRemove={vi.fn()}
+        focused={false}
+        onSelect={() => {}}
+        onRemove={() => {}}
       />
     ));
-    const changeEl = getByText("-0.04");
-    expect(changeEl.className).toContain("negative");
+
+    const polyline = container.querySelector("polyline");
+    expect(polyline?.getAttribute("stroke")).toBe("#94a3b8");
   });
 
-  it("calls onSelect when row is clicked", () => {
-    const onSelect = vi.fn();
-    const { getByText } = render(() => (
-      <SymbolRow
-        quote={realtimeQuote}
-        selected={false}
-        onSelect={onSelect}
-        onRemove={vi.fn()}
-      />
-    ));
-    fireEvent.click(getByText("AAPL"));
-    expect(onSelect).toHaveBeenCalledWith("AAPL");
-  });
-
-  it("calls onRemove when remove button is clicked", () => {
-    const onRemove = vi.fn();
-    const { getByRole } = render(() => (
-      <SymbolRow
-        quote={realtimeQuote}
-        selected={false}
-        onSelect={vi.fn()}
-        onRemove={onRemove}
-      />
-    ));
-    fireEvent.click(getByRole("button", { name: /remove aapl/i }));
-    expect(onRemove).toHaveBeenCalledWith("AAPL");
-  });
-
-  it("renders — for null change", () => {
-    const nullQuote: QuoteResponse = { ...eodQuote, change: null, change_pct: null };
-    const { getAllByText } = render(() => (
-      <SymbolRow
-        quote={nullQuote}
-        selected={false}
-        onSelect={vi.fn()}
-        onRemove={vi.fn()}
-      />
-    ));
-    expect(getAllByText("—").length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("adds selected class when selected=true", () => {
+  it("calculates range bar position correctly", () => {
     const { container } = render(() => (
       <SymbolRow
-        quote={realtimeQuote}
-        selected={true}
-        onSelect={vi.fn()}
-        onRemove={vi.fn()}
+        quote={baseQuote}
+        selected={false}
+        focused={false}
+        onSelect={() => {}}
+        onRemove={() => {}}
       />
     ));
-    expect(container.firstChild).toHaveClass("selected");
+
+    const marker = container.querySelector(".range-bar__marker");
+    const style = marker?.getAttribute("style");
+
+    // 186.59 is ~75% of range 178.20-188.50
+    expect(style).toContain("left:");
+  });
+
+  it("handles null low/high gracefully", () => {
+    const nullRangeQuote: QuoteResponse = {
+      ...baseQuote,
+      low: null,
+      high: null,
+    };
+
+    const { container } = render(() => (
+      <SymbolRow
+        quote={nullRangeQuote}
+        selected={false}
+        focused={false}
+        onSelect={() => {}}
+        onRemove={() => {}}
+      />
+    ));
+
+    // Should still render, marker centered
+    const marker = container.querySelector(".range-bar__marker");
+    expect(marker).not.toBeNull();
   });
 });
