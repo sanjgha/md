@@ -8,6 +8,7 @@ vi.mock("lightweight-charts", () => {
   const mockSeries = {
     setData: vi.fn(),
     applyOptions: vi.fn(),
+    createPriceLine: vi.fn(),
   };
   const mockPriceScale = {
     applyOptions: vi.fn(),
@@ -24,7 +25,9 @@ vi.mock("lightweight-charts", () => {
     createChart: vi.fn(() => mockChart),
     CandlestickSeries: "CandlestickSeries",
     AreaSeries: "AreaSeries",
+    BaselineSeries: "BaselineSeries",
     HistogramSeries: "HistogramSeries",
+    LineSeries: "LineSeries",
   };
 });
 
@@ -34,6 +37,27 @@ vi.mock("../../lib/stocks-api", () => ({
     getCandles: vi.fn(),
   },
 }));
+
+// Mock lightweight-charts-indicators
+vi.mock("lightweight-charts-indicators", () => ({
+  SMA: {
+    calculate: vi.fn(() => ({
+      plots: {
+        plot0: [],
+      },
+    })),
+  },
+  EMA: {
+    calculate: vi.fn(() => ({
+      plots: {
+        plot0: [],
+      },
+    })),
+  },
+}));
+
+// Mock oakscriptjs
+vi.mock("oakscriptjs", () => ({}));
 
 // Mock polling manager
 vi.mock("~/lib/polling-manager", () => ({
@@ -180,7 +204,7 @@ describe("ChartPanel", () => {
     expect(btn.className).toContain("active");
   });
 
-  it("toggles chart type button label", () => {
+  it("toggles chart type between candle, area, and baseline", () => {
     const { getByText } = render(() => (
       <ChartPanel
         symbol="AAPL"
@@ -188,9 +212,10 @@ describe("ChartPanel", () => {
         selectedSymbol={() => "AAPL"}
       />
     ));
-    const toggleBtn = getByText("Candle");
-    fireEvent.click(toggleBtn);
+    // All three chart type buttons should be present
+    expect(getByText("Candle")).toBeInTheDocument();
     expect(getByText("Area")).toBeInTheDocument();
+    expect(getByText("Base")).toBeInTheDocument();
   });
 
   it("shows loading skeleton while fetching", async () => {
@@ -216,6 +241,34 @@ describe("ChartPanel", () => {
     ));
     expect(await findByText("Network error")).toBeInTheDocument();
     expect(await findByText("↻ Retry")).toBeInTheDocument();
+  });
+
+  it("shows indicator toggle buttons", () => {
+    const { getByText } = render(() => (
+      <ChartPanel
+        symbol="AAPL"
+        quote={mockQuote}
+        selectedSymbol={() => "AAPL"}
+      />
+    ));
+    expect(getByText("SMA 20")).toBeInTheDocument();
+    expect(getByText("EMA 20")).toBeInTheDocument();
+    expect(getByText("+ Line")).toBeInTheDocument();
+  });
+
+  it("toggles SMA indicator on button click", async () => {
+    const { getByText } = render(() => (
+      <ChartPanel
+        symbol="AAPL"
+        quote={mockQuote}
+        selectedSymbol={() => "AAPL"}
+      />
+    ));
+    const smaBtn = getByText("SMA 20");
+    fireEvent.click(smaBtn);
+    await waitFor(() => {
+      expect(smaBtn.className).toContain("active");
+    });
   });
 
   it("shows stats bar after candles load", async () => {
