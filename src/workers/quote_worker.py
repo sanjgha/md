@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class QuoteWorker:
     """Background worker that polls MarketData.app for realtime quotes.
 
-    Runs every 30 seconds during market hours (Mon-Fri 9:30 AM - 4:00 PM ET).
+    Runs every 1 minute during regular market hours (Mon-Fri 9:30 AM - 4:00 PM ET).
     Fetches quotes for all unique symbols across all user watchlists.
     Stores results in realtime_quotes table and updates cache.
     """
