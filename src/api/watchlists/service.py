@@ -920,7 +920,7 @@ class WatchlistGenerationService:
             ).delete(synchronize_session=False)
             self.db.flush()  # Ensure delete is committed before adding new symbols
             # Update the source_scan_date to reflect the new scan
-            existing.source_scan_date = scan_date
+            existing.source_scan_date = datetime.combine(scan_date, datetime.min.time())  # type: ignore[assignment]
             watchlist = existing
         else:
             # Create new watchlist
@@ -931,7 +931,7 @@ class WatchlistGenerationService:
                 is_auto_generated=True,
                 scanner_name=scanner_name,
                 watchlist_mode=mode,
-                source_scan_date=scan_date,
+                source_scan_date=datetime.combine(scan_date, datetime.min.time()),
             )
             self.db.add(watchlist)
             self.db.flush()
