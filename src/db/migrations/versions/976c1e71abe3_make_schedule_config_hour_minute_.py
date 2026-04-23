@@ -1,4 +1,4 @@
-"""make_schedule_config_hour_minute_nullable."""
+"""make_schedule_config_hour_minute_nullable.
 
 Revision ID: 976c1e71abe3
 Revises: 2e59203aa215
