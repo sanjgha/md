@@ -256,8 +256,8 @@ class ScheduleConfig(Base):
     __tablename__ = "schedule_config"
 
     job_id: Mapped[str] = mapped_column(Text, primary_key=True)
-    hour: Mapped[int] = mapped_column(Integer, nullable=False)
-    minute: Mapped[int] = mapped_column(Integer, nullable=False)
+    hour: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    minute: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     auto_save: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
