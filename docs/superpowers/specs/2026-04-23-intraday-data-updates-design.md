@@ -16,14 +16,14 @@ The current intraday data update system is misconfigured:
 
 Implement continuous intraday data updates during market hours:
 
-1. **Quote polling**: Every 1 minute during pre-market + regular hours (4:00 AM - 4:00 PM ET)
-2. **Intraday candles**: Every 5 minutes during market hours (4:00 AM - 4:00 PM ET)
+1. **Quote polling**: Every 1 minute during regular market hours (9:30 AM - 4:00 PM ET)
+2. **Intraday candles**: Every 5 minutes during market hours (9:30 AM - 4:00 PM ET)
 3. **Support both trigger types**: CronTrigger (scheduled at specific time) and IntervalTrigger (recurring)
 
 ## Architecture Overview
 
 ```
-Market Hours (4:00 AM - 4:00 PM ET, Mon-Fri)
+Market Hours (9:30 AM - 4:00 PM ET, Mon-Fri)
 ├── Quote Poller (IntervalTrigger, 60 seconds)
 │   └── QuoteWorker.poll()
 │       ├── Fetch realtime quotes for all watchlist symbols
@@ -158,19 +158,16 @@ def is_market_open(dt: datetime | None = None, include_premarket: bool = False) 
 
 **File: `src/workers/quote_worker.py`**
 
-Update `QuoteWorker.poll()` to support pre-market:
+Update `QuoteWorker.poll()` to use existing market hours check:
 
 ```python
-def poll(self, include_premarket: bool = False) -> int:
+def poll(self) -> int:
     """Poll for quotes and update database/cache if market is open.
-
-    Args:
-        include_premarket: If True, runs during pre-market hours (4:00 AM - 4:00 PM ET)
 
     Returns:
         Number of quotes fetched (0 if market closed or error)
     """
-    if not is_market_open(include_premarket=include_premarket):
+    if not is_market_open():
         logger.debug("Market closed, skipping quote poll")
         return 0
 
@@ -193,7 +190,7 @@ def run_quote_polling_job(db: Session) -> int:
     cache_service = get_quote_cache_service()
 
     worker = QuoteWorker(db, cache_service, provider)
-    return worker.poll(include_premarket=True)
+    return worker.poll()
 ```
 
 ### 5. Intraday Candle Job
@@ -212,7 +209,7 @@ def run_intraday_candle_job(db: Session) -> int:
     from src.db.models import Stock
 
     # Skip if market closed
-    if not is_market_open(include_premarket=True):
+    if not is_market_open():
         logger.debug("Market closed, skipping intraday candle sync")
         return 0
 
@@ -249,9 +246,9 @@ ScheduleManager callback
   ↓
 run_quote_polling_job(db)
   ↓
-QuoteWorker.poll(include_premarket=True)
+QuoteWorker.poll()
   ↓
-Check: is_market_open(include_premarket=True)
+Check: is_market_open()
   ↓
 If open:
   - Get all symbols from watchlists
@@ -270,7 +267,7 @@ ScheduleManager callback
   ↓
 run_intraday_candle_job(db)
   ↓
-Check: is_market_open(include_premarket=True)
+Check: is_market_open()
   ↓
 If open:
   - DataFetcher.sync_intraday(resolutions=["5m", "15m", "1h"], days_back=1)
@@ -473,9 +470,9 @@ If issues occur:
 
 **Estimated API usage:**
 
-- **Quote polling**: ~720 requests/day (1 req/min × 720 min during 12-hour market day)
-- **Intraday candles**: ~144 requests/day (1 req/5min × 720 min / 60 symbols × 3 resolutions)
-- **Total**: ~864 requests/day (within typical rate limits)
+- **Quote polling**: ~390 requests/day (1 req/min × 390 min during 6.5-hour market day)
+- **Intraday candles**: ~78 requests/day (1 req/5min × 390 min / 60 symbols × 3 resolutions)
+- **Total**: ~468 requests/day (within typical rate limits)
 
 **Rate limiting:**
 - `API_RATE_LIMIT_DELAY` config: 0.1 seconds between requests
@@ -485,7 +482,7 @@ If issues occur:
 ## Future Considerations
 
 **Potential enhancements:**
-1. Add post-market hours support (4:00 PM - 8:00 PM ET)
+1. Add pre/post-market hours support
 2. Make polling frequency configurable per job
 3. Add metrics/monitoring for job execution times
 4. Implement backfill logic for missed intervals
