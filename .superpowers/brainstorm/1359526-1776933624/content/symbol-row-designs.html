@@ -1,0 +1,129 @@
+<h2>Symbol Row Design Options</h2>
+<p class="subtitle">Choose the layout that best fits your trading workflow. Consider: readability, data density, and what matters most at a glance.</p>
+
+<div class="cards">
+  <div class="card" data-choice="compact" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <div class="mockup">
+        <div class="mockup-header">A. Compact (Current)</div>
+        <div class="mockup-body">
+          <div style="font-family: monospace; font-size: 11px; background: #1e293b; padding: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid #334155;">
+              <span style="color: #22c55e;">●</span>
+              <span style="width: 50px;">AAPL</span>
+              <span style="width: 55px; text-align: right;">186.59</span>
+              <span style="width: 55px; text-align: right; color: #22c55e;">+9.31</span>
+              <span style="width: 55px; text-align: right; color: #22c55e;">+5.01%</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
+              <span style="color: #94a3b8;">○</span>
+              <span style="width: 50px;">TSLA</span>
+              <span style="width: 55px; text-align: right;">245.30</span>
+              <span style="width: 55px; text-align: right; color: #ef4444;">-3.20</span>
+              <span style="width: 55px; text-align: right; color: #ef4444;">-1.29%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size: 12px; margin-top: 8px;">5 columns, minimal. Good for scanning many symbols quickly.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="enhanced" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <div class="mockup">
+        <div class="mockup-header">B. Enhanced Metrics</div>
+        <div class="mockup-body">
+          <div style="font-family: monospace; font-size: 11px; background: #1e293b; padding: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid #334155;">
+              <span style="color: #22c55e;">●</span>
+              <span style="width: 45px;">AAPL</span>
+              <span style="width: 45px; text-align: right;">186.59</span>
+              <span style="width: 35px; text-align: right; color: #ef4444;">178.2</span>
+              <span style="width: 35px; text-align: right; color: #22c55e;">188.5</span>
+              <span style="width: 40px; text-align: right; color: #22c55e;">+5.01%</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
+              <span style="color: #94a3b8;">○</span>
+              <span style="width: 45px;">TSLA</span>
+              <span style="width: 45px; text-align: right;">245.30</span>
+              <span style="width: 35px; text-align: right; color: #22c55e;">242.1</span>
+              <span style="width: 35px; text-align: right; color: #ef4444;">248.0</span>
+              <span style="width: 40px; text-align: right; color: #ef4444;">-1.29%</span>
+            </div>
+          </div>
+          <div style="font-size: 10px; color: #94a3b8; margin-top: 4px; text-align: center;">
+            last &nbsp;&nbsp; low &nbsp;&nbsp; high &nbsp;&nbsp; chg%
+          </div>
+        </div>
+      </div>
+      <p style="font-size: 12px; margin-top: 8px;">Shows day low/high instead of $ change. See range at a glance.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="visual" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <div class="mockup">
+        <div class="mockup-header">C. Visual Sparkline</div>
+        <div class="mockup-body">
+          <div style="font-family: monospace; font-size: 11px; background: #1e293b; padding: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid #334155;">
+              <span style="color: #22c55e;">●</span>
+              <span style="width: 45px;">AAPL</span>
+              <div style="width: 60px; height: 20px; background: linear-gradient(90deg, #22c55e 0%, #22c55e 60%, #ef4444 60%, #ef4444 100%); border-radius: 2px;"></div>
+              <span style="width: 45px; text-align: right;">186.59</span>
+              <span style="width: 40px; text-align: right; color: #22c55e;">+5.01%</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
+              <span style="color: #94a3b8;">○</span>
+              <span style="width: 45px;">TSLA</span>
+              <div style="width: 60px; height: 20px; background: linear-gradient(90deg, #22c55e 0%, #22c55e 30%, #ef4444 30%, #ef4444 100%); border-radius: 2px;"></div>
+              <span style="width: 45px; text-align: right;">245.30</span>
+              <span style="width: 40px; text-align: right; color: #ef4444;">-1.29%</span>
+            </div>
+          </div>
+          <div style="font-size: 10px; color: #94a3b8; margin-top: 4px; text-align: center;">
+            ticker &nbsp;&nbsp; day range bar &nbsp;&nbsp; last &nbsp;&nbsp; chg%
+          </div>
+        </div>
+      </div>
+      <p style="font-size: 12px; margin-top: 8px;">Mini sparkline shows day's price movement visually.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="multi" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <div class="mockup">
+        <div class="mockup-header">D. Two-Line Expandable</div>
+        <div class="mockup-body">
+          <div style="font-family: monospace; font-size: 11px; background: #1e293b; padding: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid #334155;">
+              <span style="color: #22c55e;">●</span>
+              <span style="width: 45px;">AAPL</span>
+              <span style="width: 50px; text-align: right; font-weight: bold;">186.59</span>
+              <span style="width: 45px; text-align: right; color: #22c55e;">+9.31</span>
+              <span style="width: 40px; text-align: right; color: #22c55e;">+5.01%</span>
+              <span style="font-size: 10px; color: #94a3b8;">▼</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 2px 0 2px 20px; font-size: 10px; color: #64748b;">
+              <span>O:178.28</span><span>H:188.50</span><span>L:177.12</span><span>Vol:52.1M</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid #334155;">
+              <span style="color: #94a3b8;">○</span>
+              <span style="width: 45px;">TSLA</span>
+              <span style="width: 50px; text-align: right; font-weight: bold;">245.30</span>
+              <span style="width: 45px; text-align: right; color: #ef4444;">-3.20</span>
+              <span style="width: 40px; text-align: right; color: #ef4444;">-1.29%</span>
+              <span style="font-size: 10px; color: #94a48b;">▶</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size: 12px; margin-top: 8px;">Expandable row with OHLC + volume on demand.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <p class="subtitle" style="text-align: center;">Click a card above to select, or tell me what you'd like to mix and match.</p>
+</div>

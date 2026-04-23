@@ -1,0 +1,177 @@
+<h2>Capturing Trend — Three Scenarios</h2>
+<p class="subtitle">Comparing the gradient bar vs. what you'd want to see.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Scenario Analysis</div>
+  <div class="mockup-body">
+    <div style="background: #0f1117; padding: 16px; border-radius: 4px; font-size: 12px;">
+
+      <!-- Scenario A: Gap up, trend up all day -->
+      <div style="margin-bottom: 24px;">
+        <div style="color: #fbbf24; font-weight: 500; margin-bottom: 6px;">A. Gap up, trend up all day</div>
+        <div style="color: #64748b; font-size: 11px; margin-bottom: 8px;">Open: 100 → High: 110, Low: 100 → Current: 108</div>
+
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="color: #94a3b8; width: 100px;">Current design:</div>
+          <div style="font-family: monospace;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              AAPL
+              <div style="position: relative; width: 50px; height: 14px;">
+                <div style="position: absolute; inset: 0; background: linear-gradient(90deg, #ef4444 0%, #fbbf24 50%, #22c55e 100%); border-radius: 2px; opacity: 0.5;"></div>
+                <div style="position: absolute; top: 50%; transform: translate(-50%, -50%); left: 80%; width: 6px; height: 6px; background: #fbbf24; border-radius: 50%; box-shadow: 0 0 4px #fbbf24;"></div>
+              </div>
+              <span style="color: #22c55e;">+8.0%</span>
+            </div>
+          </div>
+        </div>
+        <div style="color: #64748b; font-size: 10px; margin: 4px 0 0 112px;">
+          ✗ Shows position (near high) but not that it started there and stayed
+        </div>
+      </div>
+
+      <!-- Scenario B: Gap down, trend down all day -->
+      <div style="margin-bottom: 24px;">
+        <div style="color: #fbbf24; font-weight: 500; margin-bottom: 6px;">B. Gap down, trend down all day</div>
+        <div style="color: #64748b; font-size: 11px; margin-bottom: 8px;">Open: 100 → High: 100, Low: 90 → Current: 92</div>
+
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="color: #94a3b8; width: 100px;">Current design:</div>
+          <div style="font-family: monospace;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              CVNA
+              <div style="position: relative; width: 50px; height: 14px;">
+                <div style="position: absolute; inset: 0; background: linear-gradient(90deg, #ef4444 0%, #fbbf24 50%, #22c55e 100%); border-radius: 2px; opacity: 0.5;"></div>
+                <div style="position: absolute; top: 50%; transform: translate(-50%, -50%); left: 20%; width: 6px; height: 6px; background: #fbbf24; border-radius: 50%; box-shadow: 0 0 4px #fbbf24;"></div>
+              </div>
+              <span style="color: #ef4444;">-8.0%</span>
+            </div>
+          </div>
+        </div>
+        <div style="color: #64748b; font-size: 10px; margin: 4px 0 0 112px;">
+          ✗ Shows near low, but same visual as a stock that bounced from lows
+        </div>
+      </div>
+
+      <!-- Scenario C: Start flat, down intraday, end green -->
+      <div style="margin-bottom: 24px;">
+        <div style="color: #fbbf24; font-weight: 500; margin-bottom: 6px;">C. Down then recovery (intraday dip)</div>
+        <div style="color: #64748b; font-size: 11px; margin-bottom: 8px;">Open: 100 → Low: 95, High: 102 → Current: 101</div>
+
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="color: #94a3b8; width: 100px;">Current design:</div>
+          <div style="font-family: monospace;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              TSLA
+              <div style="position: relative; width: 50px; height: 14px;">
+                <div style="position: absolute; inset: 0; background: linear-gradient(90deg, #ef4444 0%, #fbbf24 50%, #22c55e 100%); border-radius: 2px; opacity: 0.5;"></div>
+                <div style="position: absolute; top: 50%; transform: translate(-50%, -50%); left: 75%; width: 6px; height: 6px; background: #fbbf24; border-radius: 50%; box-shadow: 0 0 4px #fbbf24;"></div>
+              </div>
+              <span style="color: #22c55e;">+1.0%</span>
+            </div>
+          </div>
+        </div>
+        <div style="color: #64748b; font-size: 10px; margin: 4px 0 0 112px;">
+          ✗ Can't tell it dipped — looks similar to scenario A
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 16px;">
+  <div class="mockup-header">Proposed: Directional Bar (Mini Candle)</div>
+  <div class="mockup-body">
+    <div style="background: #0f1117; padding: 16px; border-radius: 4px; font-size: 12px;">
+
+      <div style="margin-bottom: 16px;">
+        <div style="color: #22c55e; font-weight: 500; margin-bottom: 6px;">A. Gap up, trend up all day ✓</div>
+        <div style="color: #64748b; font-size: 11px; margin-bottom: 8px;">Open: 100 → Current: 108 (green candle, full body)</div>
+        <div style="font-family: monospace; display: flex; align-items: center; gap: 8px;">
+          <span style="width: 48px;">AAPL</span>
+          <div style="position: relative; width: 50px; height: 14px;">
+            <!-- Wick -->
+            <div style="position: absolute; left: 50%; width: 2px; height: 14px; background: #22c55e; transform: translateX(-50%); top: 0;"></div>
+            <!-- Body - filled green because close > open -->
+            <div style="position: absolute; left: 20%; width: 60%; height: 8px; background: #22c55e; top: 3px; border-radius: 1px;"></div>
+          </div>
+          <span style="color: #22c55e;">+8.0%</span>
+        </div>
+        <div style="color: #64748b; font-size: 10px; margin: 4px 0 0 56px;">
+          ✓ Full green body = opened at/low, stayed strong all day
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="color: #ef4444; font-weight: 500; margin-bottom: 6px;">B. Gap down, trend down all day ✓</div>
+        <div style="color: #64748b; font-size: 11px; margin-bottom: 8px;">Open: 100 → Current: 92 (red candle, full body)</div>
+        <div style="font-family: monospace; display: flex; align-items: center; gap: 8px;">
+          <span style="width: 48px;">CVNA</span>
+          <div style="position: relative; width: 50px; height: 14px;">
+            <!-- Wick -->
+            <div style="position: absolute; left: 50%; width: 2px; height: 14px; background: #ef4444; transform: translateX(-50%); top: 0;"></div>
+            <!-- Body - filled red because close < open -->
+            <div style="position: absolute; left: 20%; width: 60%; height: 8px; background: #ef4444; top: 3px; border-radius: 1px;"></div>
+          </div>
+          <span style="color: #ef4444;">-8.0%</span>
+        </div>
+        <div style="color: #64748b; font-size: 10px; margin: 4px 0 0 56px;">
+          ✓ Full red body = opened at/high, sold off all day
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="color: #fbbf24; font-weight: 500; margin-bottom: 6px;">C. Down then recovery ✓</div>
+        <div style="color: #64748b; font-size: 11px; margin-bottom: 8px;">Open: 100 → Low: 95 → Current: 101 (green with lower wick)</div>
+        <div style="font-family: monospace; display: flex; align-items: center; gap: 8px;">
+          <span style="width: 48px;">TSLA</span>
+          <div style="position: relative; width: 50px; height: 14px;">
+            <!-- Wick - extends below body -->
+            <div style="position: absolute; left: 50%; width: 2px; height: 14px; background: #22c55e; transform: translateX(-50%); top: 0;"></div>
+            <!-- Body - small green body in upper portion -->
+            <div style="position: absolute; left: 35%; width: 40%; height: 6px; background: #22c55e; top: 4px; border-radius: 1px;"></div>
+          </div>
+          <span style="color: #22c55e;">+1.0%</span>
+        </div>
+        <div style="color: #64748b; font-size: 10px; margin: 4px 0 0 56px;">
+          ✓ Small green body + long lower wick = dipped, then recovered
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="color: #94a3b8; font-weight: 500; margin-bottom: 6px;">D. Rangebound (doji)</div>
+        <div style="color: #64748b; font-size: 11px; margin-bottom: 8px;">Open: 100 → Current: 100.50 (tiny body, full wick)</div>
+        <div style="font-family: monospace; display: flex; align-items: center; gap: 8px;">
+          <span style="width: 48px;">GSAT</span>
+          <div style="position: relative; width: 50px; height: 14px;">
+            <!-- Wick - full range -->
+            <div style="position: absolute; left: 50%; width: 2px; height: 14px; background: #94a3b8; transform: translateX(-50%); top: 0;"></div>
+            <!-- Body - tiny -->
+            <div style="position: absolute; left: 48%; width: 4%; height: 4px; background: #94a3b8; top: 5px; border-radius: 1px;"></div>
+          </div>
+          <span style="color: #94a3b8;">+0.5%</span>
+        </div>
+        <div style="color: #64748b; font-size: 10px; margin: 4px 0 0 56px;">
+          ✓ Tiny body = indecision, went nowhere
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 16px;">
+  <h3>How the mini candle works:</h3>
+  <ul style="color: #94a3b8; font-size: 13px; line-height: 1.6;">
+    <li><strong>Body color:</strong> Green if close > open, Red if close < open</li>
+    <li><strong>Body size:</strong> Larger body = stronger trend, smaller = consolidation</li>
+    <li><strong>Wicks:</strong> Show intraday excursions beyond open/close</li>
+  </ul>
+  <p style="color: #94a3b8; font-size: 13px; margin-top: 12px;">
+    This is literally a candlestick, just miniaturized. You can read trend at a glance without clicking the chart.
+  </p>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <p class="subtitle" style="text-align: center;">The mini candle captures trend — that's what traders are trained to read.</p>
+</div>

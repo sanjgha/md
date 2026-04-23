@@ -1,0 +1,131 @@
+<h2>The Industry Standard: Mini Sparkline</h2>
+<p class="subtitle">A tiny 64×20 line chart showing today's intraday price path. Color = net direction.</p>
+
+<div class="mockup">
+  <div class="mockup-header">How Sparklines Capture Your Three Scenarios</div>
+  <div class="mockup-body">
+    <div style="background: #0f1117; padding: 16px; border-radius: 4px; font-size: 12px;">
+
+      <!-- A: Gap up, trend up all day -->
+      <div style="margin-bottom: 20px;">
+        <div style="color: #22c55e; font-weight: 500; margin-bottom: 6px;">A. Gap up, trend up all day</div>
+        <div style="color: #64748b; font-size: 11px; margin-bottom: 8px;">Open: 100 → drifted up to 108 (smooth uptrend)</div>
+
+        <div style="font-family: monospace; display: flex; align-items: center; gap: 8px;">
+          <span style="width: 48px;">AAPL</span>
+          <!-- Mini sparkline showing uptrend -->
+          <svg width="64" height="20" viewBox="0 0 64 20">
+            <polyline
+              points="0,18 10,16 20,14 30,12 40,8 50,6 64,2"
+              fill="none"
+              stroke="#22c55e"
+              stroke-width="1.5"
+            />
+          </svg>
+          <span style="width: 60px; text-align: right; font-weight: 600;">186.59</span>
+          <span style="width: 45px; text-align: right; color: #22c55e;">+8.0%</span>
+        </div>
+        <div style="color: #64748b; font-size: 10px; margin: 4px 0 0 56px;">
+          ✓ Line climbs steadily = momentum all day
+        </div>
+      </div>
+
+      <!-- B: Gap down, trend down all day -->
+      <div style="margin-bottom: 20px;">
+        <div style="color: #ef4444; font-weight: 500; margin-bottom: 6px;">B. Gap down, trend down all day</div>
+        <div style="color: #64748b; font-size: 11px; margin-bottom: 8px;">Open: 100 → sold off to 92 (smooth downtrend)</div>
+
+        <div style="font-family: monospace; display: flex; align-items: center; gap: 8px;">
+          <span style="width: 48px;">CVNA</span>
+          <!-- Mini sparkline showing downtrend -->
+          <svg width="64" height="20" viewBox="0 0 64 20">
+            <polyline
+              points="0,2 10,4 20,8 30,12 40,14 50,16 64,18"
+              fill="none"
+              stroke="#ef4444"
+              stroke-width="1.5"
+            />
+          </svg>
+          <span style="width: 60px; text-align: right; font-weight: 600;">358.55</span>
+          <span style="width: 45px; text-align: right; color: #ef4444;">-8.0%</span>
+        </div>
+        <div style="color: #64748b; font-size: 10px; margin: 4px 0 0 56px;">
+          ✓ Line falls steadily = distribution/selling all day
+        </div>
+      </div>
+
+      <!-- C: Down then recovery (V shape) -->
+      <div style="margin-bottom: 20px;">
+        <div style="color: #fbbf24; font-weight: 500; margin-bottom: 6px;">C. Dip then recovery (intraday reversal)</div>
+        <div style="color: #64748b; font-size: 11px; margin-bottom: 8px;">Open: 100 → dipped to 95 → recovered to 101</div>
+
+        <div style="font-family: monospace; display: flex; align-items: center; gap: 8px;">
+          <span style="width: 48px;">TSLA</span>
+          <!-- Mini sparkline showing V-shape recovery -->
+          <svg width="64" height="20" viewBox="0 0 64 20">
+            <polyline
+              points="0,10 16,14 32,18 48,8 64,4"
+              fill="none"
+              stroke="#22c55e"
+              stroke-width="1.5"
+            />
+          </svg>
+          <span style="width: 60px; text-align: right; font-weight: 600;">245.30</span>
+          <span style="width: 45px; text-align: right; color: #22c55e;">+1.0%</span>
+        </div>
+        <div style="color: #64748b; font-size: 10px; margin: 4px 0 0 56px;">
+          ✓ V-shape visible = bought the dip, recovered
+        </div>
+      </div>
+
+      <!-- D: Rangebound / choppy -->
+      <div style="margin-bottom: 20px;">
+        <div style="color: #94a3b8; font-weight: 500; margin-bottom: 6px;">D. Rangebound / sideways</div>
+        <div style="color: #64748b; font-size: 11px; margin-bottom: 8px;">Open: 100 → choppy between 98-102 → closed 100.50</div>
+
+        <div style="font-family: monospace; display: flex; align-items: center; gap: 8px;">
+          <span style="width: 48px;">GSAT</span>
+          <!-- Mini sparkline showing choppy sideways -->
+          <svg width="64" height="20" viewBox="0 0 64 20">
+            <polyline
+              points="0,10 8,14 16,8 24,12 32,10 40,15 48,6 56,11 64,10"
+              fill="none"
+              stroke="#94a3b8"
+              stroke-width="1.5"
+            />
+          </svg>
+          <span style="width: 60px; text-align: right; font-weight: 600;">79.85</span>
+          <span style="width: 45px; text-align: right; color: #94a3b8;">+0.5%</span>
+        </div>
+        <div style="color: #64748b; font-size: 10px; margin: 4px 0 0 56px;">
+          ✓ Jagged sideways = indecision, no trend
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 16px;">
+  <h3>Why Sparklines Work for Traders:</h3>
+  <ul style="color: #94a3b8; font-size: 13px; line-height: 1.6;">
+    <li><strong>Shows the path, not just position:</strong> You see volatility, trend direction, reversals</li>
+    <li><strong>Quick visual filter:</strong> Upward slope = buy pressure, downward = sell pressure</li>
+    <li><strong>Pattern recognition:</strong> V-shape = dip bought, Λ-shape = rally rejected</li>
+    <li><strong>Industry standard:</strong> Bloomberg, TradingView, Finviz all use this pattern</li>
+  </ul>
+</div>
+
+<div class="section" style="margin-top: 16px;">
+  <h3>Implementation Notes:</h3>
+  <ul style="color: #94a3b8; font-size: 13px; line-height: 1.6;">
+    <li><strong>Data:</strong> Use your existing intraday candles (1h or more granular if available)</li>
+    <li><strong>Color:</strong> Green if close > open, Red if close < open, Gray if flat</li>
+    <li><strong>Size:</strong> 64×20px is standard — fits in row without breaking layout</li>
+    <li><strong>Rendering:</strong> SVG polyline — cheap to render, scales cleanly</li>
+  </ul>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <p class="subtitle" style="text-align: center;">This gives you trend + volatility at a glance before clicking the chart.</p>
+</div>

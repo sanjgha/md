@@ -46,6 +46,8 @@ def test_run_now_raises_when_already_running():
 
 def test_reschedule_changes_next_run_time():
     """reschedule updates the job's CronTrigger in the live scheduler."""
+    from unittest.mock import Mock
+
     manager = _make_manager()
     scheduler = BackgroundScheduler(timezone="America/New_York")
 
@@ -60,8 +62,11 @@ def test_reschedule_changes_next_run_time():
     scheduler.start()
     manager._scheduler = scheduler
 
+    # Mock db_session - we don't need a real one for this test
+    mock_db = Mock()
+
     try:
-        manager.reschedule("eod_scan", hour=17, minute=30)
+        manager.reschedule("eod_scan", hour=17, minute=30, db_session=mock_db)
         job = scheduler.get_job("eod_scan")
         fields = {f.name: f for f in job.trigger.fields}
         assert str(fields["hour"]) == "17"

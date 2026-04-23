@@ -132,7 +132,7 @@ def patch_job(
     # Apply to live scheduler (best-effort; DB is source of truth on next restart)
     try:
         if body.hour is not None or body.minute is not None:
-            schedule_manager.reschedule(job_id, config.hour, config.minute)
+            schedule_manager.reschedule(job_id, config.hour, config.minute, db)
         if body.enabled is not None:
             if config.enabled:
                 schedule_manager.resume(job_id)

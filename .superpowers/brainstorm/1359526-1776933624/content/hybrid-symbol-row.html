@@ -1,0 +1,93 @@
+<h2>Recommended Hybrid Design</h2>
+<p class="subtitle">Compact row with visual range bar, day low/high, and change %. Trades $ change for more actionable trading data.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Symbol Row — Enhanced Metrics + Visual Range Bar</div>
+  <div class="mockup-body">
+    <div style="font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace; font-size: 12px; background: #0f1117; padding: 12px; border-radius: 4px;">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #1e293b; color: #e2e8f0;">
+        <span style="color: #22c55e; font-size: 10px;">●</span>
+        <span style="width: 48px; font-weight: 500;">AAPL</span>
+        <div style="width: 50px; height: 14px; background: linear-gradient(90deg, #22c55e 0%, #22c55e 45%, #fbbf24 45%, #fbbf24 55%, #ef4444 55%, #ef4444 100%); border-radius: 2px; opacity: 0.8;"></div>
+        <span style="width: 60px; text-align: right; font-weight: 600;">186.59</span>
+        <span style="width: 45px; text-align: right; color: #ef4444;">178.20</span>
+        <span style="width: 45px; text-align: right; color: #22c55e;">188.50</span>
+        <span style="width: 50px; text-align: right; color: #22c55e;">+5.01%</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #1e293b; color: #e2e8f0;">
+        <span style="color: #22c55e; font-size: 10px;">●</span>
+        <span style="width: 48px; font-weight: 500;">GSAT</span>
+        <div style="width: 50px; height: 14px; background: linear-gradient(90deg, #ef4444 0%, #ef4444 100%); border-radius: 2px; opacity: 0.8;"></div>
+        <span style="width: 60px; text-align: right; font-weight: 600;">79.85</span>
+        <span style="width: 45px; text-align: right; color: #ef4444;">79.20</span>
+        <span style="width: 45px; text-align: right; color: #22c55e;">80.50</span>
+        <span style="width: 50px; text-align: right; color: #ef4444;">-0.05%</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #1e293b; color: #e2e8f0;">
+        <span style="color: #94a3b8; font-size: 10px;">○</span>
+        <span style="width: 48px; font-weight: 500;">CVNA</span>
+        <div style="width: 50px; height: 14px; background: linear-gradient(90deg, #ef4444 0%, #ef4444 70%, #ef4444 100%); border-radius: 2px; opacity: 0.6;"></div>
+        <span style="width: 60px; text-align: right; font-weight: 600;">358.55</span>
+        <span style="width: 45px; text-align: right; color: #ef4444;">348.00</span>
+        <span style="width: 45px; text-align: right; color: #22c55e;">365.20</span>
+        <span style="width: 50px; text-align: right; color: #ef4444;">-3.38%</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #1e293b; color: #e2e8f0;">
+        <span style="color: #94a3b8; font-size: 10px;">○</span>
+        <span style="width: 48px; font-weight: 500;">NVDA</span>
+        <div style="width: 50px; height: 14px; background: linear-gradient(90deg, #22c55e 0%, #22c55e 85%, #fbbf24 85%, #fbbf24 100%); border-radius: 2px; opacity: 0.6;"></div>
+        <span style="width: 60px; text-align: right; font-weight: 600;">892.30</span>
+        <span style="width: 45px; text-align: right; color: #ef4444;">885.00</span>
+        <span style="width: 45px; text-align: right; color: #22c55e;">898.50</span>
+        <span style="width: 50px; text-align: right; color: #22c55e;">+2.15%</span>
+      </div>
+    </div>
+
+    <div style="font-size: 11px; color: #94a3b8; margin-top: 12px; text-align: center;">
+      <span style="margin-right: 16px;">● realtime</span>
+      <span style="margin-right: 16px;">○ EOD</span>
+      <span style="margin-right: 16px;">[gradient bar] = day range visual</span>
+      <span style="margin-right: 16px;">last</span>
+      <span style="margin-right: 16px;">low</span>
+      <span style="margin-right: 16px;">high</span>
+      <span>chg%</span>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 16px;">
+  <h3>What changed from current:</h3>
+  <ul style="color: #94a3b8; font-size: 13px; line-height: 1.6;">
+    <li><strong>Removed:</strong> <code>$ change</code> column (less actionable when you have %)</li>
+    <li><strong>Added:</strong> <code>low</code> and <code>high</code> columns (day's range)</li>
+    <li><strong>Added:</strong> Mini gradient bar showing intraday movement at a glance</li>
+    <li><strong>Kept:</strong> Source dot (realtime vs EOD), ticker, last price, % change</li>
+  </ul>
+</div>
+
+<div class="pros-cons" style="margin-top: 16px;">
+  <div class="pros">
+    <h4>Pros</h4>
+    <ul>
+      <li>Day range visible without clicking</li>
+      <li>Gradient bar shows trend direction instantly</li>
+      <li>Same row height — scan 500 symbols efficiently</li>
+      <li>Low/high are key intraday support/resistance levels</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>Cons</h4>
+    <ul>
+      <li>3% less width for ticker column</li>
+      <li>Slightly more visual noise</li>
+      <li>Range bar is decorative, not precise data</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <p class="subtitle" style="text-align: center;">Does this work for you? Any tweaks?</p>
+</div>
