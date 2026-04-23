@@ -69,10 +69,13 @@ class QuoteWorker:
                 QuoteResponse(
                     symbol=symbol,
                     last=quote.last,
+                    low=quote.low,
+                    high=quote.high,
                     change=quote.change,
                     change_pct=quote.change_pct,
                     source="realtime",
                     date=None,
+                    intraday=[],
                 )
                 for symbol, quote in zip(symbols, quotes)
             ]
