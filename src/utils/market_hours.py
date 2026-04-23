@@ -3,7 +3,6 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-
 ET = ZoneInfo("America/New_York")
 
 
