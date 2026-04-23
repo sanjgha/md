@@ -14,6 +14,12 @@ importers:
       lightweight-charts:
         specifier: ^5.1.0
         version: 5.1.0
+      lightweight-charts-indicators:
+        specifier: ^0.4.0
+        version: 0.4.0(oakscriptjs@0.2.7(lightweight-charts@5.1.0))
+      oakscriptjs:
+        specifier: ^0.2.7
+        version: 0.2.7(lightweight-charts@5.1.0)
       open-props:
         specifier: ^1.6.0
         version: 1.7.23
@@ -914,6 +920,11 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
+  lightweight-charts-indicators@0.4.0:
+    resolution: {integrity: sha512-RCcJcjZBvAyWGe7CCoFkWG5vttzCI8WvDjtoEQ7oaDA7Hy0Ku2F71G+CI/SxDn1T0ahU4SMefG7BviR5vSzCYQ==}
+    peerDependencies:
+      oakscriptjs: ^0.2.0
+
   lightweight-charts@5.1.0:
     resolution: {integrity: sha512-jEAYR4ODYeyNZcWUigsoLTl52rbPmgXnvd5FLIv/ZoA/2sSDw63YKnef8n4yhzum7W926yHeFwlm7ididKb7YQ==}
 
@@ -991,6 +1002,12 @@ packages:
   npm-run-path@5.3.0:
     resolution: {integrity: sha512-ppwTtiJZq0O/ai0z7yfudtBpWIoxM8yE6nHi1X47eFR2EWORqfbu6CnPlNsjeN683eT0qG6H/Pyf9fCcvjnnnQ==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
+
+  oakscriptjs@0.2.7:
+    resolution: {integrity: sha512-+ecWIUxnj6R9tulDxdKZosrhWAq/9wwq3TI4mn3YHK5AIa9BQMxLnAv5BVep+/Ol0HrPLbBqOnh8W6yhBuGQOA==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      lightweight-charts: ^5.0.0
 
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
@@ -2151,6 +2168,10 @@ snapshots:
 
   json5@2.2.3: {}
 
+  lightweight-charts-indicators@0.4.0(oakscriptjs@0.2.7(lightweight-charts@5.1.0)):
+    dependencies:
+      oakscriptjs: 0.2.7(lightweight-charts@5.1.0)
+
   lightweight-charts@5.1.0:
     dependencies:
       fancy-canvas: 2.1.0
@@ -2225,6 +2246,10 @@ snapshots:
   npm-run-path@5.3.0:
     dependencies:
       path-key: 4.0.0
+
+  oakscriptjs@0.2.7(lightweight-charts@5.1.0):
+    dependencies:
+      lightweight-charts: 5.1.0
 
   once@1.4.0:
     dependencies:

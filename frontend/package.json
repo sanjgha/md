@@ -16,6 +16,8 @@
   "dependencies": {
     "@solidjs/router": "^0.14.0",
     "lightweight-charts": "^5.1.0",
+    "lightweight-charts-indicators": "^0.4.0",
+    "oakscriptjs": "^0.2.7",
     "open-props": "^1.6.0",
     "solid-js": "^1.8.0"
   },
