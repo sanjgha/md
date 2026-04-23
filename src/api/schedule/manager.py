@@ -21,7 +21,12 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from sqlalchemy.orm import Session
 
-from src.api.schedule.jobs import run_eod_job, run_pre_close_job, run_quote_polling_job
+from src.api.schedule.jobs import (
+    run_eod_job,
+    run_pre_close_job,
+    run_quote_polling_job,
+    run_intraday_candle_job,
+)
 from src.api.watchlists.service import WatchlistService
 from src.db.models import ScheduleConfig, ScannerResult, User, WatchlistSymbol
 
@@ -35,6 +40,7 @@ JOB_RUN_TYPES: Dict[str, str] = {
     "eod_scan": "eod",
     "pre_close_scan": "pre_close",
     "quote_poller": "quote",
+    "intraday_candle_5m": "intraday",
 }
 
 JOB_DISPLAY_NAMES: Dict[str, str] = {
@@ -102,9 +108,11 @@ class ScheduleManager:
         self._callbacks["eod_scan"] = run_eod_job
         self._callbacks["pre_close_scan"] = run_pre_close_job
         self._callbacks["quote_poller"] = run_quote_polling_job
+        self._callbacks["intraday_candle_5m"] = run_intraday_candle_job
         self._locks["eod_scan"] = threading.Lock()
         self._locks["pre_close_scan"] = threading.Lock()
         self._locks["quote_poller"] = threading.Lock()
+        self._locks["intraday_candle_5m"] = threading.Lock()
 
         # Load ALL jobs from DB (both enabled and disabled)
         configs = db_session.query(ScheduleConfig).all()
