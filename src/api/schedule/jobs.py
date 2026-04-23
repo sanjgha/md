@@ -118,3 +118,26 @@ def run_quote_polling_job(db: Session) -> int:
 
     worker = QuoteWorker(db, cache_service, provider)
     return worker.poll()
+
+
+def run_intraday_candle_job(db: Session) -> int:
+    """Sync intraday candles every 5 minutes during market hours. Returns 0 on success."""
+    from src.data_fetcher.fetcher import DataFetcher
+    from src.data_provider.marketdata_app import MarketDataAppProvider
+    from src.config import get_config
+    from src.utils.market_hours import is_market_open
+
+    # Skip if market closed
+    if not is_market_open():
+        logger.debug("Market closed, skipping intraday candle sync")
+        return 0
+
+    cfg = get_config()
+    provider = MarketDataAppProvider(api_token=cfg.MARKETDATA_API_TOKEN)
+    fetcher = DataFetcher(provider=provider, db=db, rate_limit_delay=cfg.API_RATE_LIMIT_DELAY)
+
+    # Sync intraday candles for last 1 day (5m, 15m, 1h resolutions)
+    fetcher.sync_intraday(symbols=None, resolutions=["5m", "15m", "1h"], days_back=1)
+
+    logger.info("Intraday candle sync complete")
+    return 0
