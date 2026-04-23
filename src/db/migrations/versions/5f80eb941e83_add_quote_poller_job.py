@@ -19,19 +19,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.execute(
-        """
+    op.execute("""
         INSERT INTO schedule_config (job_id, enabled, hour, minute, auto_save)
         VALUES ('quote_poller', false, 9, 30, false)
         ON CONFLICT (job_id) DO NOTHING
-    """
-    )
+    """)
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.execute(
-        """
+    op.execute("""
         DELETE FROM schedule_config WHERE job_id = 'quote_poller'
-    """
-    )
+    """)
