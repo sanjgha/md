@@ -175,12 +175,24 @@ class WatchlistSymbolRemoveResponse(BaseModel):
     message: str
 
 
+class IntradayPoint(BaseModel):
+    """Single intraday data point for sparkline rendering."""
+
+    time: str = Field(..., description="ISO timestamp string")
+    close: float = Field(..., gt=0, description="Close price at this time")
+
+
 class QuoteResponse(BaseModel):
-    """Quote data for a single watchlist symbol."""
+    """Quote data for a single watchlist symbol with visual indicators."""
 
     symbol: str
     last: Optional[float]
+    low: Optional[float] = Field(None, description="Day's low price")
+    high: Optional[float] = Field(None, description="Day's high price")
     change: Optional[float]
     change_pct: Optional[float]
     source: str  # "realtime" or "eod"
-    date: Optional[str] = None  # ISO date string (YYYY-MM-DD) for EOD quotes, None for realtime
+    date: Optional[str] = None  # ISO date string (YYYY-MM-DD) for EOD quotes
+    intraday: List[IntradayPoint] = Field(
+        default_factory=list, description="Intraday close prices for sparkline (max 30 points)"
+    )
