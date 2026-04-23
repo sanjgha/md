@@ -18,6 +18,8 @@ import {
   type Resolution,
   getDateRange,
 } from "../../lib/chart-utils";
+import { pollingManager } from "~/lib/polling-manager";
+import { isMarketOpen } from "~/lib/market-hours";
 
 interface QuoteData {
   last: number;
@@ -37,6 +39,7 @@ export function ChartPanel(props: Props) {
   const [dailyRange, setDailyRange] = createSignal<DailyRange>("3M");
   const [chartType, setChartType] = createSignal<"candle" | "area">("candle");
   const [candles, setCandles] = createSignal<CandleResponse[]>([]);
+  const [currentDayCandle, setCurrentDayCandle] = createSignal<CandleResponse | null>(null);
   const [isLoading, setIsLoading] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
 
@@ -98,7 +101,20 @@ export function ChartPanel(props: Props) {
       scaleMargins: { top: 0.82, bottom: 0 },
     });
 
-    onCleanup(() => chart?.remove());
+    // Fetch current day candle if applicable
+    fetchCurrentDayCandle();
+
+    // Start polling for updates
+    pollingManager.start(() => {
+      if (resolution() === "D") {
+        fetchCurrentDayCandle();
+      }
+    });
+
+    onCleanup(() => {
+      pollingManager.stop();
+      chart?.remove();
+    });
   });
 
   const toChartTime = (isoStr: string, res: Resolution): any =>
@@ -118,6 +134,45 @@ export function ChartPanel(props: Props) {
       setIsLoading(false);
     }
   };
+
+  async function fetchCurrentDayCandle() {
+    // Only fetch for daily resolution and when market is open
+    if (resolution() !== "D") {
+      setCurrentDayCandle(null);
+      return;
+    }
+
+    if (!isMarketOpen()) {
+      setCurrentDayCandle(null);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(
+        `/api/stocks/${props.symbol}/candles/intraday?resolution=1h`
+      );
+      const data = await response.json();
+
+      if (data.intraday && data.intraday.length > 0 && data.realtime) {
+        // Merge latest intraday candle with realtime quote
+        const latestIntraday = data.intraday[data.intraday.length - 1];
+        const currentCandle: CandleResponse = {
+          time: latestIntraday.time,
+          open: latestIntraday.open,
+          high: Math.max(latestIntraday.high, data.realtime.last || latestIntraday.high),
+          low: Math.min(latestIntraday.low, data.realtime.last || latestIntraday.low),
+          close: data.realtime.last || latestIntraday.close,
+          volume: latestIntraday.volume,
+        };
+        setCurrentDayCandle(currentCandle);
+      }
+    } catch (err) {
+      console.error("Error fetching current day candle:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const paintData = (data: CandleResponse[], res: Resolution) => {
     if (!chart || !priceSeries || !volumeSeries) return;
@@ -156,8 +211,15 @@ export function ChartPanel(props: Props) {
   // Paint data whenever candles arrive
   createEffect(() => {
     const data = candles();
+    const current = currentDayCandle();
     const res = untrack(resolution);
-    paintData(data, res);
+
+    // Merge historical candles with current day candle
+    const allCandles = current
+      ? [...data, current]
+      : data;
+
+    paintData(allCandles, res);
   });
 
   // Rebuild price series when chart type toggles, then repaint

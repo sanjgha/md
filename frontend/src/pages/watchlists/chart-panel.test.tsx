@@ -9,17 +9,22 @@ vi.mock("lightweight-charts", () => {
     setData: vi.fn(),
     applyOptions: vi.fn(),
   };
+  const mockPriceScale = {
+    applyOptions: vi.fn(),
+  };
   const mockChart = {
     addSeries: vi.fn(() => mockSeries),
-    addHistogramSeries: vi.fn(() => mockSeries),
+    removeSeries: vi.fn(),
     applyOptions: vi.fn(),
     remove: vi.fn(),
     timeScale: vi.fn(() => ({ fitContent: vi.fn() })),
+    priceScale: vi.fn(() => mockPriceScale),
   };
   return {
     createChart: vi.fn(() => mockChart),
     CandlestickSeries: "CandlestickSeries",
     AreaSeries: "AreaSeries",
+    HistogramSeries: "HistogramSeries",
   };
 });
 
@@ -28,6 +33,20 @@ vi.mock("../../lib/stocks-api", () => ({
   stocksAPI: {
     getCandles: vi.fn(),
   },
+}));
+
+// Mock polling manager
+vi.mock("~/lib/polling-manager", () => ({
+  pollingManager: {
+    start: vi.fn(),
+    stop: vi.fn(),
+    isPolling: vi.fn(() => false),
+  },
+}));
+
+// Mock market hours
+vi.mock("~/lib/market-hours", () => ({
+  isMarketOpen: vi.fn(() => false),
 }));
 
 // Import after mocks

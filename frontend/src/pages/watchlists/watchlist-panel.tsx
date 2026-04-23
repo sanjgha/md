@@ -10,6 +10,7 @@
 
 import { Component, For, Show, createSignal, onMount, onCleanup } from "solid-js";
 import { watchlistsAPI } from "~/lib/watchlists-api";
+import { pollingManager } from "~/lib/polling-manager";
 import { CategoryGroup } from "./category-group";
 import type { CategoryWatchlists, WatchlistSymbolRef } from "./types";
 
@@ -41,6 +42,7 @@ export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
   const [expandedIds, setExpandedIds] = createSignal<Set<number>>(loadExpandedIds());
   const [symbolRefs, setSymbolRefs] = createSignal<WatchlistSymbolRef[]>([]);
   const [focusedSymbol, setFocusedSymbol] = createSignal<string | null>(null);
+  const [refreshCounter, setRefreshCounter] = createSignal(0);
 
   onMount(async () => {
     try {
@@ -51,6 +53,11 @@ export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
     } finally {
       setLoading(false);
     }
+
+    // Start polling manager for auto-refresh
+    pollingManager.start(() => {
+      setRefreshCounter(c => c + 1);
+    });
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const refs = symbolRefs();
@@ -88,7 +95,10 @@ export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    onCleanup(() => window.removeEventListener("keydown", handleKeyDown));
+    onCleanup(() => {
+      window.removeEventListener("keydown", handleKeyDown);
+      pollingManager.stop();
+    });
   });
 
   function handleExpandChange(watchlistId: number, expanded: boolean) {
@@ -148,6 +158,7 @@ export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
                     initiallyExpanded={expandedIds().has(wl.id)}
                     selectedSymbol={props.selectedSymbol}
                     focusedSymbol={focusedSymbol()}
+                    refreshSignal={refreshCounter()}
                     onSymbolSelect={handleSymbolSelect}
                     onExpandChange={handleExpandChange}
                     onRegisterSymbolRefs={handleRegisterSymbolRefs}
