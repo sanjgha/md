@@ -74,6 +74,7 @@ def list_jobs(
             # Seed defaults if migration hasn't run yet (defensive)
             config = ScheduleConfig(
                 job_id=job_id,
+                trigger_type="cron",
                 hour=16 if job_id == "eod_scan" else 15,
                 minute=15 if job_id == "eod_scan" else 45,
                 enabled=True,
@@ -85,8 +86,10 @@ def list_jobs(
             JobResponse(
                 job_id=job_id,
                 name=JOB_DISPLAY_NAMES[job_id],
+                trigger_type=config.trigger_type or "cron",
                 hour=config.hour,
                 minute=config.minute,
+                interval_seconds=config.interval_seconds,
                 enabled=config.enabled,
                 auto_save=config.auto_save,
                 last_run=_get_last_run(db, run_type),
@@ -146,8 +149,10 @@ def patch_job(
     return JobResponse(
         job_id=job_id,
         name=JOB_DISPLAY_NAMES[job_id],
+        trigger_type=config.trigger_type or "cron",
         hour=config.hour,
         minute=config.minute,
+        interval_seconds=config.interval_seconds,
         enabled=config.enabled,
         auto_save=config.auto_save,
         last_run=_get_last_run(db, run_type),
