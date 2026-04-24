@@ -1,0 +1,25 @@
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]: Market Data
+    - generic [ref=e5]:
+      - link "Dashboard" [ref=e6] [cursor=pointer]:
+        - /url: /dashboard
+      - link "Watchlists" [ref=e7] [cursor=pointer]:
+        - /url: /watchlists
+      - link "Scanners" [ref=e8] [cursor=pointer]:
+        - /url: /scanners
+      - link "Schedule" [ref=e9] [cursor=pointer]:
+        - /url: /schedule
+      - link "Settings" [ref=e10] [cursor=pointer]:
+        - /url: /settings
+    - 'generic "WebSocket: closed" [ref=e12]'
+  - main [ref=e13]:
+    - generic [ref=e14]:
+      - heading "Market Data" [level=1] [ref=e15]
+      - generic [ref=e16]:
+        - text: Username
+        - textbox "Username" [ref=e17]: admin
+      - generic [ref=e18]:
+        - text: Password
+        - textbox "Password" [ref=e19]: adminpass123
+      - button "Sign in" [ref=e20] [cursor=pointer]

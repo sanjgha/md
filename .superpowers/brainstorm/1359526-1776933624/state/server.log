@@ -1,0 +1,10 @@
+{"type":"server-started","port":54966,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:54966","screen_dir":"/home/ubuntu/projects/md/.superpowers/brainstorm/1359526-1776933624/content","state_dir":"/home/ubuntu/projects/md/.superpowers/brainstorm/1359526-1776933624/state"}
+{"type":"screen-added","file":"/home/ubuntu/projects/md/.superpowers/brainstorm/1359526-1776933624/content/symbol-row-designs.html"}
+{"type":"screen-added","file":"/home/ubuntu/projects/md/.superpowers/brainstorm/1359526-1776933624/content/hybrid-symbol-row.html"}
+{"type":"screen-added","file":"/home/ubuntu/projects/md/.superpowers/brainstorm/1359526-1776933624/content/gradient-explained.html"}
+{"type":"screen-added","file":"/home/ubuntu/projects/md/.superpowers/brainstorm/1359526-1776933624/content/gradient-fixed.html"}
+{"type":"screen-added","file":"/home/ubuntu/projects/md/.superpowers/brainstorm/1359526-1776933624/content/trend-capture.html"}
+{"type":"screen-added","file":"/home/ubuntu/projects/md/.superpowers/brainstorm/1359526-1776933624/content/sparkline-design.html"}
+{"type":"screen-added","file":"/home/ubuntu/projects/md/.superpowers/brainstorm/1359526-1776933624/content/space-layout.html"}
+{"type":"screen-added","file":"/home/ubuntu/projects/md/.superpowers/brainstorm/1359526-1776933624/content/combined-visual.html"}
+{"type":"server-stopped","reason":"idle timeout"}

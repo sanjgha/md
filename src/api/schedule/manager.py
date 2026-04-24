@@ -18,9 +18,15 @@ from typing import TYPE_CHECKING, Callable, Dict
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from sqlalchemy.orm import Session
 
-from src.api.schedule.jobs import run_eod_job, run_pre_close_job, run_quote_polling_job
+from src.api.schedule.jobs import (
+    run_eod_job,
+    run_pre_close_job,
+    run_quote_polling_job,
+    run_intraday_candle_job,
+)
 from src.api.watchlists.service import WatchlistService
 from src.db.models import ScheduleConfig, ScannerResult, User, WatchlistSymbol
 
@@ -34,12 +40,14 @@ JOB_RUN_TYPES: Dict[str, str] = {
     "eod_scan": "eod",
     "pre_close_scan": "pre_close",
     "quote_poller": "quote",
+    "intraday_candle_5m": "intraday",
 }
 
 JOB_DISPLAY_NAMES: Dict[str, str] = {
     "eod_scan": "EOD Scan",
     "pre_close_scan": "Pre-Close Scan",
     "quote_poller": "Quote Polling",
+    "intraday_candle_5m": "Intraday Candle Sync",
 }
 
 
@@ -100,9 +108,11 @@ class ScheduleManager:
         self._callbacks["eod_scan"] = run_eod_job
         self._callbacks["pre_close_scan"] = run_pre_close_job
         self._callbacks["quote_poller"] = run_quote_polling_job
+        self._callbacks["intraday_candle_5m"] = run_intraday_candle_job
         self._locks["eod_scan"] = threading.Lock()
         self._locks["pre_close_scan"] = threading.Lock()
         self._locks["quote_poller"] = threading.Lock()
+        self._locks["intraday_candle_5m"] = threading.Lock()
 
         # Load ALL jobs from DB (both enabled and disabled)
         configs = db_session.query(ScheduleConfig).all()
@@ -130,19 +140,23 @@ class ScheduleManager:
         self._scheduler = None
         logger.info("ScheduleManager stopped")
 
-    def reschedule(self, job_id: str, hour: int, minute: int) -> None:
-        """Update the schedule for a job.
+    def reschedule(self, job_id: str, hour: int, minute: int, db_session: Session) -> None:
+        """Update the schedule for a cron job.
 
         Modifies the job's CronTrigger in the live scheduler. The job will
         continue running with the new schedule immediately.
+
+        NOTE: This method only works for cron jobs. Interval jobs use
+        interval_seconds and cannot be rescheduled via this method.
 
         Args:
             job_id: Job identifier (e.g., "eod_scan")
             hour: New hour (0-23)
             minute: New minute (0-59)
+            db_session: SQLAlchemy Session for checking trigger_type
 
         Raises:
-            ValueError: If job_id not found
+            ValueError: If job_id not found or is an interval job
         """
         if self._scheduler is None:
             raise RuntimeError("Scheduler not started")
@@ -150,6 +164,14 @@ class ScheduleManager:
         job = self._scheduler.get_job(job_id)
         if job is None:
             raise ValueError(f"Job {job_id} not found")
+
+        # Guard: interval jobs cannot be rescheduled via hour/minute
+        cfg = db_session.query(ScheduleConfig).filter(ScheduleConfig.job_id == job_id).first()
+        if cfg and cfg.trigger_type == "interval":
+            raise ValueError(
+                f"Cannot reschedule interval job {job_id} via reschedule() - "
+                f"it uses interval_seconds, not hour/minute"
+            )
 
         # Reschedule with new trigger
         self._scheduler.reschedule_job(
@@ -259,27 +281,50 @@ class ScheduleManager:
 
         callback = self._make_scheduled_callback(cfg.job_id, cfg.auto_save)
 
-        self._scheduler.add_job(
-            callback,
-            trigger=CronTrigger(
+        # Create trigger based on trigger_type
+        if cfg.trigger_type == "cron":
+            trigger = CronTrigger(
                 day_of_week="mon-fri",
                 hour=cfg.hour,
                 minute=cfg.minute,
                 timezone="America/New_York",
-            ),
+            )
+        elif cfg.trigger_type == "interval":
+            trigger = IntervalTrigger(
+                seconds=cfg.interval_seconds,
+                timezone="America/New_York",
+            )
+        else:
+            raise ValueError(f"Unknown trigger_type: {cfg.trigger_type}")
+
+        self._scheduler.add_job(
+            callback,
+            trigger=trigger,
             id=cfg.job_id,
             name=JOB_DISPLAY_NAMES.get(cfg.job_id, cfg.job_id),
             replace_existing=True,
             misfire_grace_time=300,
             coalesce=True,
         )
-        logger.info(
-            "Added job %s at %02d:%02d (auto_save=%s)",
-            cfg.job_id,
-            cfg.hour,
-            cfg.minute,
-            cfg.auto_save,
-        )
+
+        # Log with appropriate format based on trigger type
+        if cfg.trigger_type == "cron":
+            logger.info(
+                "Added job %s (trigger_type=%s) at %02d:%02d ET (auto_save=%s)",
+                cfg.job_id,
+                cfg.trigger_type,
+                cfg.hour,
+                cfg.minute,
+                cfg.auto_save,
+            )
+        else:  # interval
+            logger.info(
+                "Added job %s (trigger_type=%s) every %ds (auto_save=%s)",
+                cfg.job_id,
+                cfg.trigger_type,
+                cfg.interval_seconds,
+                cfg.auto_save,
+            )
 
     def _make_scheduled_callback(self, job_id: str, auto_save: bool) -> Callable[[], None]:
         """Create a scheduled callback wrapper with lock and auto-save.

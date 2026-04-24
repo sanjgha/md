@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 from typing import List, Optional, cast
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.api.watchlists.schemas import (
@@ -992,7 +993,19 @@ class WatchlistGenerationService:
                 watchlist_mode=mode,
             )
             self.db.add(watchlist)
-            self.db.flush()
+            try:
+                self.db.flush()
+            except IntegrityError:
+                # Concurrent process already inserted — roll back and re-fetch
+                self.db.rollback()
+                watchlist = (
+                    self.db.query(Watchlist)
+                    .filter(Watchlist.user_id == user_id)
+                    .filter(Watchlist.name == watchlist_name)
+                    .filter(Watchlist.scanner_name == scanner_name)
+                    .filter(Watchlist.watchlist_mode == mode)
+                    .first()
+                )
 
         # Append new symbols (avoid duplicates)
         existing_stock_ids = {

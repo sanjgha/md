@@ -8,6 +8,12 @@
 import { Show, createSignal } from "solid-js";
 import type { ScheduledJob, JobPatch, RunResponse } from "./types";
 
+function formatInterval(seconds: number | null): string {
+  if (!seconds) return "—";
+  if (seconds < 60) return `Every ${seconds}s`;
+  return `Every ${seconds / 60}m`;
+}
+
 interface JobCardProps {
   job: ScheduledJob;
   onPatch: (jobId: string, patch: JobPatch) => Promise<void>;
@@ -15,9 +21,11 @@ interface JobCardProps {
 }
 
 export function JobCard(props: JobCardProps) {
-  // Local state for inline time editing
-  const [editHour, setEditHour] = createSignal(props.job.hour);
-  const [editMinute, setEditMinute] = createSignal(props.job.minute);
+  const isCron = () => props.job.trigger_type === "cron";
+
+  // Local state for inline time editing (cron jobs only)
+  const [editHour, setEditHour] = createSignal(props.job.hour ?? 0);
+  const [editMinute, setEditMinute] = createSignal(props.job.minute ?? 0);
   const [hourError, setHourError] = createSignal<string | null>(null);
   const [minuteError, setMinuteError] = createSignal<string | null>(null);
 
@@ -203,42 +211,52 @@ export function JobCard(props: JobCardProps) {
 
       {/* Controls row */}
       <div class="job-card-controls">
-        {/* Time input */}
-        <div class="time-control">
-          <label class="time-label">Time:</label>
-          <div class="time-inputs">
-            <input
-              type="number"
-              min="0"
-              max="23"
-              value={editHour()}
-              onInput={(e) => setEditHour(parseInt(e.currentTarget.value) || 0)}
-              onBlur={handleTimeBlur}
-              disabled={isPatching()}
-              aria-label="Hour"
-              aria-invalid={hourError() !== null}
-              class="time-input"
-            />
-            <span class="time-separator">:</span>
-            <input
-              type="number"
-              min="0"
-              max="59"
-              value={editMinute()}
-              onInput={(e) => setEditMinute(parseInt(e.currentTarget.value) || 0)}
-              onBlur={handleTimeBlur}
-              disabled={isPatching()}
-              aria-label="Minute"
-              aria-invalid={minuteError() !== null}
-              class="time-input"
-            />
-          </div>
-          <Show when={hourError() || minuteError()}>
-            <div class="time-error">
-              {hourError() || minuteError()}
+        {/* Time input (cron) or interval display */}
+        <Show
+          when={isCron()}
+          fallback={
+            <div class="time-control">
+              <label class="time-label">Interval:</label>
+              <span class="interval-display">{formatInterval(props.job.interval_seconds)}</span>
             </div>
-          </Show>
-        </div>
+          }
+        >
+          <div class="time-control">
+            <label class="time-label">Time:</label>
+            <div class="time-inputs">
+              <input
+                type="number"
+                min="0"
+                max="23"
+                value={editHour()}
+                onInput={(e) => setEditHour(parseInt(e.currentTarget.value) || 0)}
+                onBlur={handleTimeBlur}
+                disabled={isPatching()}
+                aria-label="Hour"
+                aria-invalid={hourError() !== null}
+                class="time-input"
+              />
+              <span class="time-separator">:</span>
+              <input
+                type="number"
+                min="0"
+                max="59"
+                value={editMinute()}
+                onInput={(e) => setEditMinute(parseInt(e.currentTarget.value) || 0)}
+                onBlur={handleTimeBlur}
+                disabled={isPatching()}
+                aria-label="Minute"
+                aria-invalid={minuteError() !== null}
+                class="time-input"
+              />
+            </div>
+            <Show when={hourError() || minuteError()}>
+              <div class="time-error">
+                {hourError() || minuteError()}
+              </div>
+            </Show>
+          </div>
+        </Show>
 
         {/* Auto-save toggle */}
         <div class="toggle-control">

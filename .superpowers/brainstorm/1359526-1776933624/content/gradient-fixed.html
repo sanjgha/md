@@ -1,0 +1,85 @@
+<h2>Gradient Bar — Corrected Design</h2>
+<p class="subtitle">Yellow dot always shows current price position within today's range.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Consistent Visual Language</div>
+  <div class="mockup-body">
+    <div style="font-family: 'SF Mono', 'Monaco', monospace; font-size: 12px; background: #0f1117; padding: 12px; border-radius: 4px;">
+
+      <!-- Example 1: Near high -->
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #1e293b; color: #e2e8f0;">
+        <span style="color: #22c55e; font-size: 10px;">●</span>
+        <span style="width: 48px; font-weight: 500;">AAPL</span>
+        <div style="position: relative; width: 50px; height: 14px;">
+          <div style="position: absolute; inset: 0; background: linear-gradient(90deg, #ef4444 0%, #fbbf24 50%, #22c55e 100%); border-radius: 2px; opacity: 0.5;"></div>
+          <div style="position: absolute; top: 50%; transform: translate(-50%, -50%); left: 85%; width: 6px; height: 6px; background: #fbbf24; border-radius: 50%; box-shadow: 0 0 4px #fbbf24;"></div>
+        </div>
+        <span style="width: 60px; text-align: right; font-weight: 600;">186.59</span>
+        <span style="width: 45px; text-align: right; color: #ef4444;">178.20</span>
+        <span style="width: 45px; text-align: right; color: #22c55e;">188.50</span>
+        <span style="width: 50px; text-align: right; color: #22c55e;">+5.01%</span>
+      </div>
+
+      <!-- Example 2: Near low -->
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #1e293b; color: #e2e8f0;">
+        <span style="color: #94a3b8; font-size: 10px;">○</span>
+        <span style="width: 48px; font-weight: 500;">CVNA</span>
+        <div style="position: relative; width: 50px; height: 14px;">
+          <div style="position: absolute; inset: 0; background: linear-gradient(90deg, #ef4444 0%, #fbbf24 50%, #22c55e 100%); border-radius: 2px; opacity: 0.5;"></div>
+          <div style="position: absolute; top: 50%; transform: translate(-50%, -50%); left: 30%; width: 6px; height: 6px; background: #fbbf24; border-radius: 50%; box-shadow: 0 0 4px #fbbf24;"></div>
+        </div>
+        <span style="width: 60px; text-align: right; font-weight: 600;">358.55</span>
+        <span style="width: 45px; text-align: right; color: #ef4444;">348.00</span>
+        <span style="width: 45px; text-align: right; color: #22c55e;">365.20</span>
+        <span style="width: 50px; text-align: right; color: #ef4444;">-3.38%</span>
+      </div>
+
+      <!-- Example 3: Middle -->
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #1e293b; color: #e2e8f0;">
+        <span style="color: #22c55e; font-size: 10px;">●</span>
+        <span style="width: 48px; font-weight: 500;">GSAT</span>
+        <div style="position: relative; width: 50px; height: 14px;">
+          <div style="position: absolute; inset: 0; background: linear-gradient(90deg, #ef4444 0%, #fbbf24 50%, #22c55e 100%); border-radius: 2px; opacity: 0.5;"></div>
+          <div style="position: absolute; top: 50%; transform: translate(-50%, -50%); left: 52%; width: 6px; height: 6px; background: #fbbf24; border-radius: 50%; box-shadow: 0 0 4px #fbbf24;"></div>
+        </div>
+        <span style="width: 60px; text-align: right; font-weight: 600;">79.85</span>
+        <span style="width: 45px; text-align: right; color: #ef4444;">79.20</span>
+        <span style="width: 45px; text-align: right; color: #22c55e;">80.50</span>
+        <span style="width: 50px; text-align: right; color: #ef4444;">-0.05%</span>
+      </div>
+
+      <!-- Example 4: Very close to high -->
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; color: #e2e8f0;">
+        <span style="color: #94a3b8; font-size: 10px;">○</span>
+        <span style="width: 48px; font-weight: 500;">NVDA</span>
+        <div style="position: relative; width: 50px; height: 14px;">
+          <div style="position: absolute; inset: 0; background: linear-gradient(90deg, #ef4444 0%, #fbbf24 50%, #22c55e 100%); border-radius: 2px; opacity: 0.5;"></div>
+          <div style="position: absolute; top: 50%; transform: translate(-50%, -50%); left: 95%; width: 6px; height: 6px; background: #fbbf24; border-radius: 50%; box-shadow: 0 0 4px #fbbf24;"></div>
+        </div>
+        <span style="width: 60px; text-align: right; font-weight: 600;">892.30</span>
+        <span style="width: 45px; text-align: right; color: #ef4444;">885.00</span>
+        <span style="width: 45px; text-align: right; color: #22c55e;">898.50</span>
+        <span style="width: 50px; text-align: right; color: #22c55e;">+2.15%</span>
+      </div>
+
+    </div>
+
+    <div style="font-size: 11px; color: #94a3b8; margin-top: 12px; text-align: center;">
+      <span style="margin-right: 16px;">bar = day range (red low → green high)</span>
+      <span style="margin-right: 16px;">● = current price</span>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 16px;">
+  <h3>How it works:</h3>
+  <ul style="color: #94a3b8; font-size: 13px; line-height: 1.6;">
+    <li><strong>Bar gradient:</strong> Red (low) → Yellow (middle) → Green (high)</li>
+    <li><strong>Yellow dot:</strong> Always present, shows where current price sits</li>
+    <li><strong>Position:</strong> Dot on left = near low, dot on right = near high</li>
+  </ul>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <p class="subtitle" style="text-align: center;">This makes sense — dot is always visible as a position indicator.</p>
+</div>

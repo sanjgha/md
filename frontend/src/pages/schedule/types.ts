@@ -23,10 +23,14 @@ export interface ScheduledJob {
   job_id: string;
   /** Human-readable display name */
   name: string;
-  /** Hour of day (0-23) when job runs */
-  hour: number;
-  /** Minute of hour (0-59) when job runs */
-  minute: number;
+  /** Trigger type: "cron" for daily jobs, "interval" for polling jobs */
+  trigger_type: string;
+  /** Hour of day (0-23) for cron jobs; null for interval jobs */
+  hour: number | null;
+  /** Minute of hour (0-59) for cron jobs; null for interval jobs */
+  minute: number | null;
+  /** Interval in seconds for interval jobs; null for cron jobs */
+  interval_seconds: number | null;
   /** Whether the job is currently enabled */
   enabled: boolean;
   /** Whether results are automatically saved to database */

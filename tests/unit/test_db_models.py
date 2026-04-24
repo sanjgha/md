@@ -107,4 +107,13 @@ def test_schedule_config_model_has_expected_columns():
 
     mapper = inspect(ScheduleConfig)
     col_names = {c.key for c in mapper.columns}
-    assert col_names == {"job_id", "hour", "minute", "enabled", "auto_save", "updated_at"}
+    assert col_names == {
+        "job_id",
+        "hour",
+        "minute",
+        "enabled",
+        "auto_save",
+        "updated_at",
+        "trigger_type",
+        "interval_seconds",
+    }

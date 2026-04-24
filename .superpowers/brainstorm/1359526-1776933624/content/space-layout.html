@@ -1,0 +1,157 @@
+<h2>Space Management — Fitting the Sparkline</h2>
+<p class="subtitle">Left pane is 260px wide. Here's how to fit everything without crowding.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Current Row (Baseline)</div>
+  <div class="mockup-body">
+    <div style="background: #0f1117; padding: 12px; font-size: 11px;">
+      <div style="font-family: monospace; display: flex; align-items: center; gap: 6px; padding: 8px; background: #1e293b; border-radius: 4px;">
+        <span style="color: #22c55e; font-size: 10px; width: 12px;">●</span>
+        <span style="width: 44px;">AAPL</span>
+        <span style="width: 52px; text-align: right;">186.59</span>
+        <span style="width: 50px; text-align: right; color: #22c55e;">+9.31</span>
+        <span style="width: 52px; text-align: right; color: #22c55e;">+5.01%</span>
+        <span style="width: 16px; text-align: right;">✕</span>
+      </div>
+      <div style="display: flex; font-size: 9px; color: #64748b; margin-top: 4px; padding-left: 6px;">
+        <span style="width: 12px;">dot</span>
+        <span style="width: 44px;">ticker</span>
+        <span style="width: 52px;">last</span>
+        <span style="width: 50px;">$chg</span>
+        <span style="width: 52px;">chg%</span>
+        <span style="width: 16px;">×</span>
+      </div>
+      <div style="color: #64748b; font-size: 10px; margin-top: 8px;">
+        Total: ~236px used + margins. Room to add sparkline by removing $ change.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 16px;">
+  <div class="mockup-header">Proposed: With Sparkline</div>
+  <div class="mockup-body">
+    <div style="background: #0f1117; padding: 12px; font-size: 11px;">
+
+      <!-- Compact version -->
+      <div style="color: #94a3b8; margin-bottom: 6px;">Option A: Compact (recommended)</div>
+      <div style="font-family: monospace; display: flex; align-items: center; gap: 4px; padding: 8px; background: #1e293b; border-radius: 4px; margin-bottom: 12px;">
+        <span style="color: #22c55e; font-size: 10px; width: 10px;">●</span>
+        <span style="width: 40px; font-weight: 500;">AAPL</span>
+        <svg width="56" height="16" viewBox="0 0 56 16">
+          <polyline points="0,14 10,12 20,10 30,6 40,4 56,2" fill="none" stroke="#22c55e" stroke-width="1.2"/>
+        </svg>
+        <span style="width: 44px; text-align: right; font-weight: 600;">186.59</span>
+        <span style="width: 36px; text-align: right; color: #ef4444; font-size: 10px;">178.2</span>
+        <span style="width: 36px; text-align: right; color: #22c55e; font-size: 10px;">188.5</span>
+        <span style="width: 44px; text-align: right; color: #22c55e;">+5.0%</span>
+        <span style="width: 14px; text-align: right;">✕</span>
+      </div>
+      <div style="display: flex; font-size: 9px; color: #64748b; margin-bottom: 16px; padding-left: 4px;">
+        <span style="width: 10px;">dot</span>
+        <span style="width: 40px;">ticker</span>
+        <span style="width: 56px;">spark</span>
+        <span style="width: 44px;">last</span>
+        <span style="width: 36px;">low</span>
+        <span style="width: 36px;">high</span>
+        <span style="width: 44px;">chg%</span>
+        <span style="width: 14px;">×</span>
+      </div>
+
+      <!-- Even more compact - hide low/high on small rows -->
+      <div style="color: #94a3b8; margin-bottom: 6px;">Option B: Ultra-compact (no low/high)</div>
+      <div style="font-family: monospace; display: flex; align-items: center; gap: 6px; padding: 8px; background: #1e293b; border-radius: 4px; margin-bottom: 12px;">
+        <span style="color: #22c55e; font-size: 10px; width: 12px;">●</span>
+        <span style="width: 44px; font-weight: 500;">AAPL</span>
+        <svg width="64" height="18" viewBox="0 0 64 18">
+          <polyline points="0,16 12,14 24,10 36,6 48,4 64,2" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+        </svg>
+        <span style="width: 50px; text-align: right; font-weight: 600;">186.59</span>
+        <span style="width: 50px; text-align: right; color: #22c55e;">+5.01%</span>
+        <span style="width: 16px; text-align: right;">✕</span>
+      </div>
+      <div style="display: flex; font-size: 9px; color: #64748b; margin-bottom: 16px; padding-left: 6px;">
+        <span style="width: 12px;">dot</span>
+        <span style="width: 44px;">ticker</span>
+        <span style="width: 64px;">sparkline</span>
+        <span style="width: 50px;">last</span>
+        <span style="width: 50px;">chg%</span>
+        <span style="width: 16px;">×</span>
+      </div>
+
+      <!-- Multiple rows comparison -->
+      <div style="color: #94a3b8; margin-bottom: 6px;">How it looks at scale:</div>
+      <div style="font-family: monospace; font-size: 11px;">
+        <div style="display: flex; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px solid #1e293b;">
+          <span style="color: #22c55e; font-size: 10px; width: 10px;">●</span>
+          <span style="width: 40px;">AAPL</span>
+          <svg width="56" height="16" viewBox="0 0 56 16"><polyline points="0,14 10,12 20,10 30,6 40,4 56,2" fill="none" stroke="#22c55e" stroke-width="1.2"/></svg>
+          <span style="width: 44px; text-align: right; font-weight: 600;">186.59</span>
+          <span style="width: 36px; text-align: right; color: #ef4444; font-size: 10px;">178.2</span>
+          <span style="width: 36px; text-align: right; color: #22c55e; font-size: 10px;">188.5</span>
+          <span style="width: 44px; text-align: right; color: #22c55e;">+5.0%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px solid #1e293b;">
+          <span style="color: #22c55e; font-size: 10px; width: 10px;">●</span>
+          <span style="width: 40px;">GSAT</span>
+          <svg width="56" height="16" viewBox="0 0 56 16"><polyline points="0,8 14,8 28,10 42,6 56,8" fill="none" stroke="#22c55e" stroke-width="1.2"/></svg>
+          <span style="width: 44px; text-align: right; font-weight: 600;">79.85</span>
+          <span style="width: 36px; text-align: right; color: #ef4444; font-size: 10px;">79.2</span>
+          <span style="width: 36px; text-align: right; color: #22c55e; font-size: 10px;">80.5</span>
+          <span style="width: 44px; text-align: right; color: #ef4444;">-0.0%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px solid #1e293b;">
+          <span style="color: #94a3b8; font-size: 10px; width: 10px;">○</span>
+          <span style="width: 40px;">CVNA</span>
+          <svg width="56" height="16" viewBox="0 0 56 16"><polyline points="0,2 12,6 24,10 36,12 48,14 56,14" fill="none" stroke="#ef4444" stroke-width="1.2"/></svg>
+          <span style="width: 44px; text-align: right; font-weight: 600;">358.55</span>
+          <span style="width: 36px; text-align: right; color: #ef4444; font-size: 10px;">348.0</span>
+          <span style="width: 36px; text-align: right; color: #22c55e; font-size: 10px;">365.2</span>
+          <span style="width: 44px; text-align: right; color: #ef4444;">-3.4%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px; padding: 4px 0;">
+          <span style="color: #94a3b8; font-size: 10px; width: 10px;">○</span>
+          <span style="width: 40px;">NVDA</span>
+          <svg width="56" height="16" viewBox="0 0 56 16"><polyline points="0,10 10,14 20,8 30,12 40,6 56,4" fill="none" stroke="#22c55e" stroke-width="1.2"/></svg>
+          <span style="width: 44px; text-align: right; font-weight: 600;">892.30</span>
+          <span style="width: 36px; text-align: right; color: #ef4444; font-size: 10px;">885.0</span>
+          <span style="width: 36px; text-align: right; color: #22c55e; font-size: 10px;">898.5</span>
+          <span style="width: 44px; text-align: right; color: #22c55e;">+2.1%</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 16px;">
+  <h3>Space Management Strategy:</h3>
+  <ul style="color: #94a3b8; font-size: 13px; line-height: 1.6;">
+    <li><strong>Remove $ change column</strong> — Redundant when you have % change</li>
+    <li><strong>Compress gaps</strong> — Reduce spacing between columns from 6px → 4px</li>
+    <li><strong>Smaller fonts for low/high</strong> — Use 10px instead of 12px</li>
+    <li><strong>Sparkline width</strong> — 56px (not 64px) saves 8px with good clarity</li>
+  </ul>
+</div>
+
+<div class="pros-cons" style="margin-top: 16px;">
+  <div class="pros">
+    <h4>Option A (with low/high)</h4>
+    <ul>
+      <li>See intraday range at a glance</li>
+      <li>Support/resistance levels visible</li>
+      <li>~270px total — fits in 260px pane with padding</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>Option B (no low/high)</h4>
+    <ul>
+      <li>Cleanest, most breathable</li>
+    </ul>
+    <p style="margin-top: 12px; font-size: 11px; color: #fbbf24;">But: loses range info you'd see on chart anyway</p>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+  <p class="subtitle" style="text-align: center;">My recommendation: Option A. Low/high are key intraday levels traders use.</p>
+</div>
