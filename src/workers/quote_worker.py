@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from datetime import datetime
+from typing import Dict
 
 from sqlalchemy.orm import Session
 
@@ -56,15 +57,17 @@ class QuoteWorker:
                 logger.debug("No symbols in watchlists")
                 return 0
 
-            # Fetch quotes from MarketData.app (may skip invalid symbols)
-            quotes = asyncio.run(get_realtime_quotes_batch(self.provider, symbols))
+            # Fetch quotes from MarketData.app — returns dict[symbol, Quote]
+            quotes: Dict[str, Quote] = asyncio.run(
+                get_realtime_quotes_batch(self.provider, symbols)
+            )
 
             if not quotes:
                 logger.warning("No quotes fetched (all symbols may be invalid)")
                 return 0
 
-            # Store in database (match symbols to quotes by index)
-            self._store_quotes(symbols[: len(quotes)], quotes)
+            # Store in database using symbol-keyed dict (no index alignment assumption)
+            self._store_quotes(quotes)
 
             # Update cache (outside database transaction)
             from src.api.watchlists.schemas import QuoteResponse
@@ -81,7 +84,7 @@ class QuoteWorker:
                     date=None,
                     intraday=[],
                 )
-                for symbol, quote in zip(symbols, quotes)
+                for symbol, quote in quotes.items()
             ]
             self.cache.refresh_cache(cache_quotes)
 
@@ -103,19 +106,21 @@ class QuoteWorker:
         rows = (
             self.db.query(Stock.symbol)
             .join(WatchlistSymbol, Stock.id == WatchlistSymbol.stock_id)
+            .distinct()
             .all()
         )
         return [row.symbol for row in rows]
 
-    def _store_quotes(self, symbols: list[str], quotes: list[Quote]) -> None:
+    def _store_quotes(self, quotes: Dict[str, Quote]) -> None:
         """Store quotes in realtime_quotes table.
 
         Deletes today's existing entries before inserting new ones.
 
         Args:
-            symbols: List of symbols (corresponds to quotes by index)
-            quotes: List of Quote objects to store
+            quotes: Dict mapping symbol -> Quote
         """
+        symbols = list(quotes.keys())
+
         # Get stock IDs
         symbol_to_stock = {
             row.symbol: row.id
@@ -128,8 +133,8 @@ class QuoteWorker:
             RealtimeQuote.stock_id.in_(symbol_to_stock.values()), RealtimeQuote.timestamp >= today
         ).delete()
 
-        # Insert new quotes
-        for symbol, quote in zip(symbols, quotes):
+        # Insert new quotes — symbol-keyed so no index alignment needed
+        for symbol, quote in quotes.items():
             if symbol not in symbol_to_stock:
                 continue
 

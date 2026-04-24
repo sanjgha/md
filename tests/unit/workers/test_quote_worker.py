@@ -28,26 +28,24 @@ def mock_provider():
 
 
 def test_get_all_unique_symbols_from_watchlists(mock_db_session):
-    """Should aggregate unique symbols from all watchlists."""
+    """Should aggregate unique symbols from all watchlists (deduplicating via .distinct())."""
     worker = QuoteWorker(mock_db_session, mock_cache_service, mock_provider)
 
-    # Mock query to return symbols directly (Stock.symbol)
+    # Mock query chain: query().join().distinct().all()
     mock_row1 = MagicMock()
     mock_row1.symbol = "AAPL"
     mock_row2 = MagicMock()
     mock_row2.symbol = "MSFT"
-    mock_row3 = MagicMock()
-    mock_row3.symbol = "AAPL"  # Duplicate
 
-    mock_db_session.query.return_value.join.return_value.all.return_value = [
+    mock_db_session.query.return_value.join.return_value.distinct.return_value.all.return_value = [
         mock_row1,
         mock_row2,
-        mock_row3,
     ]
 
     symbols = worker._get_all_symbols()
 
-    assert set(symbols) == {"AAPL", "MSFT"}
+    assert symbols == ["AAPL", "MSFT"]
+    assert len(symbols) == 2
 
 
 def test_poll_during_market_hours(mock_db_session, mock_cache_service, mock_provider):
@@ -58,10 +56,10 @@ def test_poll_during_market_hours(mock_db_session, mock_cache_service, mock_prov
     with patch("src.workers.quote_worker.is_market_open", return_value=True):
         # Mock symbols
         with patch.object(worker, "_get_all_symbols", return_value=["AAPL"]):
-            # Mock batch fetch
+            # Mock batch fetch — returns dict[str, Quote]
             with patch("src.workers.quote_worker.get_realtime_quotes_batch") as mock_fetch:
-                mock_fetch.return_value = [
-                    Quote(
+                mock_fetch.return_value = {
+                    "AAPL": Quote(
                         timestamp=datetime.now(timezone.utc),
                         bid=149.5,
                         ask=150.5,
@@ -72,7 +70,7 @@ def test_poll_during_market_hours(mock_db_session, mock_cache_service, mock_prov
                         change=1.0,
                         change_pct=0.67,
                     )
-                ]
+                }
 
                 result = worker.poll()
 

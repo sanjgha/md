@@ -77,10 +77,12 @@ class TestGetQuotesIntraday:
             )
             db_session.add(candle)
 
-        # Create a realtime quote (triggers intraday lookup)
+        # Create a realtime quote — includes day's true low/high from the market data API
         rt_quote = RealtimeQuote(
             stock_id=stock.id,
             last=Decimal("183.00"),
+            low=Decimal("179.50"),
+            high=Decimal("184.00"),
             change=Decimal("9.31"),
             change_pct=Decimal("5.01"),
             timestamp=datetime.now(),
@@ -97,9 +99,9 @@ class TestGetQuotesIntraday:
         quote = result[0]
         assert quote.symbol == "AAPL"
         assert quote.last == 183.00
-        # Low/high should come from intraday data min/max
-        assert quote.low == 180.50
-        assert quote.high == 183.00
+        # Low/high come directly from RealtimeQuote (true market low/high)
+        assert quote.low == 179.50
+        assert quote.high == 184.00
         assert len(quote.intraday) == 6
         # Verify first intraday point (IntradayPoint is a Pydantic model)
         assert quote.intraday[0].close == 180.50
