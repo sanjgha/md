@@ -1,24 +1,9 @@
 """Test interval job scheduling."""
 
-import pytest
 from apscheduler.triggers.interval import IntervalTrigger
-from sqlalchemy.orm import sessionmaker
 
 from src.api.schedule.manager import ScheduleManager
-from src.config import get_config
-from src.db.connection import get_engine
 from src.db.models import ScheduleConfig
-
-
-@pytest.fixture
-def db_session():
-    """Create test database session."""
-    cfg = get_config()
-    engine = get_engine(cfg.DATABASE_URL)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    yield session
-    session.close()
 
 
 def test_interval_trigger_creation(db_session):
@@ -60,9 +45,8 @@ def test_interval_trigger_creation(db_session):
     assert isinstance(job.trigger, IntervalTrigger), f"Trigger for {job_id} is not IntervalTrigger"
 
     # Verify interval
-    assert job.trigger.interval_length == 60, (
-        f"Expected 60s interval, got {job.trigger.interval_length}"
-    )
+    actual_interval = job.trigger.interval_length
+    assert actual_interval == 60, f"Expected 60s interval, got {actual_interval}"
 
     # Cleanup
     manager.stop()
