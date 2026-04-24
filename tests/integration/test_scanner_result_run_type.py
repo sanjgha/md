@@ -1,4 +1,4 @@
-"""Unit tests for scanner-related model attributes."""
+"""Unit tests for ScannerResult model run_type field."""
 
 
 def test_scanner_result_run_type_default(db_session):
