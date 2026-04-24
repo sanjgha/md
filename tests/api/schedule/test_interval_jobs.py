@@ -60,9 +60,9 @@ def test_interval_trigger_creation(db_session):
     assert isinstance(job.trigger, IntervalTrigger), f"Trigger for {job_id} is not IntervalTrigger"
 
     # Verify interval
-    assert (
-        job.trigger.interval_length == 60
-    ), f"Expected 60s interval, got {job.trigger.interval_length}"
+    assert job.trigger.interval_length == 60, (
+        f"Expected 60s interval, got {job.trigger.interval_length}"
+    )
 
     # Cleanup
     manager.stop()
