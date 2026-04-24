@@ -92,6 +92,7 @@ class TestGetQuotesIntraday:
         result = service.get_quotes(cast(int, watchlist.id), cast(int, user.id))
 
         # Verify results
+        assert result is not None
         assert len(result) == 1
         quote = result[0]
         assert quote.symbol == "AAPL"
@@ -159,6 +160,7 @@ class TestGetQuotesIntraday:
         result = service.get_quotes(cast(int, watchlist.id), cast(int, user.id))
 
         # Verify results - EOD data with low/high from daily candle
+        assert result is not None
         assert len(result) == 1
         assert result[0].source == "eod"
         assert result[0].last == 186.59
