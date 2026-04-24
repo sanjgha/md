@@ -1073,10 +1073,9 @@ main {
    =================================================== */
 
 .symbol-row {
-  display: grid;
-  grid-template-columns: 8px 1fr auto auto auto 18px;
+  display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 4px;
   padding: 0.2rem 0.5rem;
   cursor: pointer;
   font-size: 0.78rem;
@@ -1125,6 +1124,7 @@ main {
 .source-dot--eod      { background: #6b7280; }
 
 .symbol-ticker {
+  width: 38px;
   font-weight: 600;
   color: var(--text-1);
   white-space: nowrap;
@@ -1132,14 +1132,24 @@ main {
   text-overflow: ellipsis;
 }
 
+.symbol-sparkline {
+  flex-shrink: 0;
+}
+
+.symbol-range {
+  flex-shrink: 0;
+}
+
 .symbol-last {
+  width: 40px;
   text-align: right;
   font-variant-numeric: tabular-nums;
   color: var(--text-1);
+  font-weight: 600;
 }
 
-.symbol-change,
-.symbol-change-pct {
+.symbol-change {
+  width: 40px;
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-size: 0.72rem;

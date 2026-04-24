@@ -150,15 +150,26 @@ export interface WatchlistSymbolRemoveResponse {
 }
 
 /**
+ * Single intraday data point for sparkline rendering
+ */
+export interface IntradayPoint {
+  time: string;  // ISO timestamp string
+  close: number; // Close price at this time
+}
+
+/**
  * Quote response for a symbol
  */
 export interface QuoteResponse {
   symbol: string;
   last: number | null;
+  low: number | null;   // Day's low price
+  high: number | null;  // Day's high price
   change: number | null;
   change_pct: number | null;
   source: "realtime" | "eod";
   date: string | null;  // ISO date string (YYYY-MM-DD) for EOD quotes, null for realtime
+  intraday: IntradayPoint[];  // Intraday close prices for sparkline (max 30 points)
 }
 
 /**

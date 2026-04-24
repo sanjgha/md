@@ -14,6 +14,7 @@ import {
   createSignal,
   onMount,
   createEffect,
+  untrack,
 } from "solid-js";
 import { watchlistsAPI } from "~/lib/watchlists-api";
 import { SymbolRow } from "./symbol-row";
@@ -80,19 +81,24 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
     }
   });
 
-  // Watch refresh signal and fetch quotes when expanded and loaded
+  // Watch refresh signal and fetch quotes when expanded and loaded.
+  // untrack() for expanded/loaded prevents this effect from re-firing when those
+  // signals change — it should only fire when the poll signal increments.
   createEffect(() => {
-    props.refreshSignal; // Track signal
-    if (expanded() && loaded()) {
+    props.refreshSignal; // Only track the poll signal
+    if (untrack(expanded) && untrack(loaded)) {
       fetchQuotes();
     }
   });
 
-  // Register symbol refs with parent when quotes change
+  // Register symbol refs with parent when quotes change.
+  // untrack() prevents focusedSymbol (read inside onRegisterSymbolRefs) from
+  // being tracked here — otherwise multiple expanded CategoryGroups ping-pong
+  // focusedSymbol between their first symbols, causing a SolidJS stack overflow.
   createEffect(() => {
     const currentQuotes = quotes();
     if (!expanded() || currentQuotes.length === 0) {
-      props.onRegisterSymbolRefs([]);
+      untrack(() => props.onRegisterSymbolRefs([]));
       return;
     }
 
@@ -101,7 +107,7 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
       onRemove: () => handleRemove(quote.symbol),
     }));
 
-    props.onRegisterSymbolRefs(refs);
+    untrack(() => props.onRegisterSymbolRefs(refs));
   });
 
   async function handleAdd() {

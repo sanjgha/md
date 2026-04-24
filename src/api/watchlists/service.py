@@ -11,11 +11,13 @@ from sqlalchemy.orm import Session
 from src.api.watchlists.schemas import (
     CategoryWatchlists,
     CategoryResponse,
+    IntradayPoint,
     QuoteResponse,
     WatchlistSummary,
 )
 from src.db.models import (
     DailyCandle,
+    IntradayCandle,
     RealtimeQuote,
     Stock,
     Watchlist,
@@ -358,14 +360,59 @@ class WatchlistService:
         covered_ids: set[int] = {int(row.stock_id) for row in realtime_rows}
         missing_ids: list[int] = [sid for sid in stock_ids if sid not in covered_ids]
 
+        # Batch fetch ALL intraday data for covered stock_ids (single query)
+        all_intraday = (
+            self.db_session.query(
+                IntradayCandle.stock_id,
+                IntradayCandle.timestamp,
+                IntradayCandle.close,
+            )
+            .filter(
+                IntradayCandle.stock_id.in_(covered_ids),
+                func.date(IntradayCandle.timestamp) == date.today(),
+            )
+            .order_by(IntradayCandle.timestamp.asc())
+            .all()
+        )
+
+        # Group by stock_id, limiting to 30 points per stock
+        intraday_by_stock: dict[int, List[IntradayPoint]] = defaultdict(list)
+        stock_counter: dict[int, int] = defaultdict(int)
+        for candle in all_intraday:
+            sid = int(candle.stock_id)
+            # Limit to 30 points per stock for sparkline
+            if stock_counter[sid] < 30:
+                if candle.close is not None:
+                    intraday_by_stock[sid].append(
+                        IntradayPoint(time=candle.timestamp.isoformat(), close=float(candle.close))
+                    )
+                    stock_counter[sid] += 1
+
         result: dict[int, QuoteResponse] = {}
         for row in realtime_rows:
+            # Use pre-fetched intraday data
+            intraday_data = intraday_by_stock.get(int(row.stock_id), [])
+
+            # Calculate low/high from intraday data
+            day_low: Optional[float]
+            day_high: Optional[float]
+            if intraday_data:
+                day_low = min(p.close for p in intraday_data)
+                day_high = max(p.close for p in intraday_data)
+            else:
+                # Fallback to last price if no intraday data
+                day_low = float(row.last) if row.last is not None else None
+                day_high = float(row.last) if row.last is not None else None
+
             result[int(row.stock_id)] = QuoteResponse(
                 symbol=stock_id_to_symbol[int(row.stock_id)],
                 last=float(row.last) if row.last is not None else None,
+                low=day_low,
+                high=day_high,
                 change=float(row.change) if row.change is not None else None,
                 change_pct=float(row.change_pct) if row.change_pct is not None else None,
                 source="realtime",
+                intraday=intraday_data,
             )
 
         # Batch 2: EOD fallback (latest 2 candles per missing stock)
@@ -382,6 +429,8 @@ class WatchlistService:
                 select(
                     DailyCandle.stock_id,
                     DailyCandle.close,
+                    DailyCandle.low,
+                    DailyCandle.high,
                     DailyCandle.timestamp,
                     dc_rn,
                 )
@@ -398,6 +447,9 @@ class WatchlistService:
 
             for stock_id, candles in candles_by_stock.items():
                 latest_close = float(candles[0].close) if candles[0].close is not None else None
+                candle_low = float(candles[0].low) if candles[0].low is not None else None
+                candle_high = float(candles[0].high) if candles[0].high is not None else None
+
                 if (
                     len(candles) >= 2
                     and candles[0].close is not None
@@ -413,15 +465,53 @@ class WatchlistService:
                 result[stock_id] = QuoteResponse(
                     symbol=stock_id_to_symbol[stock_id],
                     last=latest_close,
+                    low=candle_low,
+                    high=candle_high,
                     change=change,
                     change_pct=change_pct,
                     source="eod",
                     date=(
                         candles[0].timestamp.strftime("%Y-%m-%d") if candles[0].timestamp else None
                     ),
+                    intraday=[],  # No intraday for EOD
                 )
 
         return [result[int(ws.stock_id)] for ws in symbol_rows if int(ws.stock_id) in result]
+
+    def _get_intraday_points(self, stock_id: int) -> List[IntradayPoint]:
+        """Get intraday close prices for sparkline rendering.
+
+        Fetches the last 30 intraday candles (1h resolution) for today.
+        Returns list of IntradayPoint objects ordered by time ascending.
+
+        Args:
+            stock_id: ID of the stock
+
+        Returns:
+            List of IntradayPoint objects, empty if no intraday data
+        """
+        candles = (
+            self.db_session.query(
+                IntradayCandle.timestamp,
+                IntradayCandle.close,
+            )
+            .filter(
+                IntradayCandle.stock_id == stock_id,
+                func.date(IntradayCandle.timestamp) == date.today(),
+            )
+            .order_by(IntradayCandle.timestamp.asc())
+            .limit(30)
+            .all()
+        )
+
+        return [
+            IntradayPoint(
+                time=candle.timestamp.isoformat(),
+                close=float(candle.close),
+            )
+            for candle in candles
+            if candle.close is not None
+        ]
 
     def create_category(
         self,
