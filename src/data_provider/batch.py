@@ -107,20 +107,31 @@ async def _fetch_parallel(
     """Fetch quotes in parallel using async requests.
 
     Limits concurrent requests to 10 to avoid overwhelming the API.
+    Skips symbols that return 404 (not found) errors.
 
     Args:
         provider: DataProvider instance
         symbols: List of symbols
 
     Returns:
-        List of Quote objects
+        List of Quote objects (excluding symbols that failed)
     """
     semaphore = asyncio.Semaphore(10)
 
-    async def fetch_one(symbol: str) -> Quote:
+    async def fetch_one(symbol: str) -> Quote | None:
         async with semaphore:
-            # Run sync method in thread pool to avoid blocking event loop
-            return await asyncio.to_thread(provider.get_realtime_quote, symbol)
+            try:
+                # Run sync method in thread pool to avoid blocking event loop
+                return await asyncio.to_thread(provider.get_realtime_quote, symbol)
+            except Exception as e:
+                # Skip symbols that are not found or return errors
+                if "404" in str(e) or "not found" in str(e).lower():
+                    logger.warning(f"Skipping symbol {symbol}: {e}")
+                    return None
+                # Re-raise other errors
+                raise
 
     tasks = [fetch_one(symbol) for symbol in symbols]
-    return await asyncio.gather(*tasks)
+    results = await asyncio.gather(*tasks)
+    # Filter out None values (failed symbols)
+    return [r for r in results if r is not None]

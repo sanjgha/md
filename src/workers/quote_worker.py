@@ -56,11 +56,15 @@ class QuoteWorker:
                 logger.debug("No symbols in watchlists")
                 return 0
 
-            # Fetch quotes from MarketData.app
+            # Fetch quotes from MarketData.app (may skip invalid symbols)
             quotes = asyncio.run(get_realtime_quotes_batch(self.provider, symbols))
 
-            # Store in database
-            self._store_quotes(symbols, quotes)
+            if not quotes:
+                logger.warning("No quotes fetched (all symbols may be invalid)")
+                return 0
+
+            # Store in database (match symbols to quotes by index)
+            self._store_quotes(symbols[: len(quotes)], quotes)
 
             # Update cache (outside database transaction)
             from src.api.watchlists.schemas import QuoteResponse
