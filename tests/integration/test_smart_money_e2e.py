@@ -58,12 +58,12 @@ def test_full_scanner_pipeline_with_mock_data():
     assert retrieved_scanner is scanner, "Retrieved scanner should be same instance"
 
     # Step 4: Verify scanner properties
-    assert retrieved_scanner.timeframe == "daily", (
-        f"Expected timeframe 'daily', got '{retrieved_scanner.timeframe}'"
-    )
-    assert retrieved_scanner.description == "ICT-style FVG + MSS entry detection (50-79% zone)", (
-        f"Unexpected description: '{retrieved_scanner.description}'"
-    )
+    assert (
+        retrieved_scanner.timeframe == "daily"
+    ), f"Expected timeframe 'daily', got '{retrieved_scanner.timeframe}'"
+    assert (
+        retrieved_scanner.description == "ICT-style FVG + MSS entry detection (50-79% zone)"
+    ), f"Unexpected description: '{retrieved_scanner.description}'"
 
     # Step 5: Verify scanner can be scanned (even with insufficient data)
     # Create minimal context (insufficient candles for actual detection)
@@ -127,17 +127,17 @@ def test_scanner_properties_match_requirements():
     assert hasattr(scanner, "scan"), "Scanner should have scan method"
     assert hasattr(scanner, "detect_bos"), "Scanner should have detect_bos method"
     assert hasattr(scanner, "detect_mss"), "Scanner should have detect_mss method"
-    assert hasattr(scanner, "calculate_fib_levels"), (
-        "Scanner should have calculate_fib_levels method"
-    )
+    assert hasattr(
+        scanner, "calculate_fib_levels"
+    ), "Scanner should have calculate_fib_levels method"
 
     # Check constants
     assert hasattr(scanner, "MIN_CANDLES"), "Scanner should have MIN_CANDLES constant"
     assert hasattr(scanner, "MSS_LOOKBACK"), "Scanner should have MSS_LOOKBACK constant"
     assert hasattr(scanner, "MIN_FVG_GAP_PCT"), "Scanner should have MIN_FVG_GAP_PCT constant"
-    assert hasattr(scanner, "MAX_MERGED_ZONE_PCT"), (
-        "Scanner should have MAX_MERGED_ZONE_PCT constant"
-    )
+    assert hasattr(
+        scanner, "MAX_MERGED_ZONE_PCT"
+    ), "Scanner should have MAX_MERGED_ZONE_PCT constant"
 
     # Verify values
     assert scanner.MIN_CANDLES == 100, "MIN_CANDLES should be 100"
