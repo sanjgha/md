@@ -23,7 +23,6 @@ import {
   type Resolution,
   getDateRange,
 } from "../../lib/chart-utils";
-import { pollingManager } from "~/lib/polling-manager";
 import { isMarketOpen } from "~/lib/market-hours";
 
 interface QuoteData {
@@ -58,6 +57,7 @@ export function ChartPanel(props: Props) {
     { type: "ema", period: 20, enabled: false },
   ]);
   const [priceLines, setPriceLines] = createSignal<number[]>([]);
+  const [liveQuote, setLiveQuote] = createSignal<QuoteData | null>(null);
 
   let chartContainer: HTMLDivElement | undefined;
   let chart: IChartApi | undefined;
@@ -215,18 +215,15 @@ export function ChartPanel(props: Props) {
       scaleMargins: { top: 0.82, bottom: 0 },
     });
 
-    // Fetch current day candle if applicable
-    fetchCurrentDayCandle();
-
-    // Start polling for updates
-    pollingManager.start(() => {
-      if (resolution() === "D") {
+    // Poll current day candle independently — do not touch the shared pollingManager
+    const pollId = window.setInterval(() => {
+      if (isMarketOpen() && resolution() === "D") {
         fetchCurrentDayCandle();
       }
-    });
+    }, 30_000);
 
     onCleanup(() => {
-      pollingManager.stop();
+      clearInterval(pollId);
       chart?.remove();
     });
   });
@@ -267,10 +264,20 @@ export function ChartPanel(props: Props) {
       );
       const data = await response.json();
 
+      if (data.realtime) {
+        setLiveQuote({
+          last: data.realtime.last ?? 0,
+          change: data.realtime.change ?? 0,
+          change_pct: data.realtime.change_pct ?? 0,
+        });
+      }
+
       if (data.intraday && data.intraday.length > 0 && data.realtime) {
         const latestIntraday = data.intraday[data.intraday.length - 1];
+        // latestIntraday.time is a Unix timestamp (seconds); daily chart needs ISO date string
+        const isoDate = new Date(latestIntraday.time * 1000).toISOString().split("T")[0];
         const currentCandle: CandleResponse = {
-          time: latestIntraday.time,
+          time: isoDate,
           open: latestIntraday.open,
           high: Math.max(latestIntraday.high, data.realtime.last || latestIntraday.high),
           low: Math.min(latestIntraday.low, data.realtime.last || latestIntraday.low),
@@ -319,6 +326,14 @@ export function ChartPanel(props: Props) {
     const res = resolution();
     const range = dailyRange();
     if (sym) fetchCandles(sym, res, range);
+  });
+
+  // Fetch realtime quote whenever symbol or resolution changes
+  createEffect(() => {
+    props.symbol; // track
+    resolution(); // track
+    setLiveQuote(null);
+    untrack(() => fetchCurrentDayCandle());
   });
 
   // Paint data whenever candles arrive
@@ -375,11 +390,14 @@ export function ChartPanel(props: Props) {
         <div class="chart-header">
           <span class="symbol-name">{props.symbol}</span>
           <span class="symbol-price">
-            {props.quote?.last.toFixed(2)}
-            <Show when={props.quote}>
-              <span class={`symbol-change ${props.quote!.change >= 0 ? "positive" : "negative"}`}>
-                {props.quote!.change >= 0 ? "+" : ""}
-                {props.quote!.change.toFixed(2)} ({props.quote!.change_pct.toFixed(2)}%)
+            {(liveQuote() ?? props.quote)?.last.toFixed(2)}
+            <Show when={liveQuote() ?? props.quote}>
+              <span
+                class={`symbol-change ${(liveQuote() ?? props.quote)!.change >= 0 ? "positive" : "negative"}`}
+              >
+                {(liveQuote() ?? props.quote)!.change >= 0 ? "+" : ""}
+                {(liveQuote() ?? props.quote)!.change.toFixed(2)} (
+                {(liveQuote() ?? props.quote)!.change_pct.toFixed(2)}%)
               </span>
             </Show>
           </span>

@@ -308,9 +308,29 @@ class WatchlistService:
         cached = cache_service.get_quotes(symbols)
 
         if len(cached) == len(symbols):
-            # All symbols in cache - return in watchlist order
+            # Prices from cache; always fetch intraday from DB for sparklines
+            stock_ids = [int(ws.stock_id) for ws in symbol_rows]
+            intraday_by_stock = self._fetch_intraday_by_stock_ids(stock_ids)
+            symbol_to_stock_id = {ws.stock.symbol: int(ws.stock_id) for ws in symbol_rows}
             symbol_to_quote = {q.symbol: q for q in cached}
-            return [symbol_to_quote[symbol] for symbol in symbols]
+            result = []
+            for symbol in symbols:
+                q = symbol_to_quote[symbol]
+                intraday_data = intraday_by_stock.get(symbol_to_stock_id[symbol], [])
+                result.append(
+                    QuoteResponse(
+                        symbol=q.symbol,
+                        last=q.last,
+                        low=q.low,
+                        high=q.high,
+                        change=q.change,
+                        change_pct=q.change_pct,
+                        source=q.source,
+                        date=q.date,
+                        intraday=intraday_data,
+                    )
+                )
+            return result
 
         # Cache miss: fall back to database queries
         return self._get_quotes_from_db(symbol_rows)
@@ -345,6 +365,8 @@ class WatchlistService:
             select(
                 RealtimeQuote.stock_id,
                 RealtimeQuote.last,
+                RealtimeQuote.low,
+                RealtimeQuote.high,
                 RealtimeQuote.change,
                 RealtimeQuote.change_pct,
                 rq_rn,
@@ -360,55 +382,16 @@ class WatchlistService:
         covered_ids: set[int] = {int(row.stock_id) for row in realtime_rows}
         missing_ids: list[int] = [sid for sid in stock_ids if sid not in covered_ids]
 
-        # Batch fetch ALL intraday data for covered stock_ids (single query)
-        all_intraday = (
-            self.db_session.query(
-                IntradayCandle.stock_id,
-                IntradayCandle.timestamp,
-                IntradayCandle.close,
-            )
-            .filter(
-                IntradayCandle.stock_id.in_(covered_ids),
-                func.date(IntradayCandle.timestamp) == date.today(),
-            )
-            .order_by(IntradayCandle.timestamp.asc())
-            .all()
-        )
-
-        # Group by stock_id, limiting to 30 points per stock
-        intraday_by_stock: dict[int, List[IntradayPoint]] = defaultdict(list)
-        stock_counter: dict[int, int] = defaultdict(int)
-        for candle in all_intraday:
-            sid = int(candle.stock_id)
-            # Limit to 30 points per stock for sparkline
-            if stock_counter[sid] < 30:
-                if candle.close is not None:
-                    intraday_by_stock[sid].append(
-                        IntradayPoint(time=candle.timestamp.isoformat(), close=float(candle.close))
-                    )
-                    stock_counter[sid] += 1
+        intraday_by_stock = self._fetch_intraday_by_stock_ids(list(covered_ids))
 
         result: dict[int, QuoteResponse] = {}
         for row in realtime_rows:
-            # Use pre-fetched intraday data
             intraday_data = intraday_by_stock.get(int(row.stock_id), [])
-
-            # Calculate low/high from intraday data
-            day_low: Optional[float]
-            day_high: Optional[float]
-            if intraday_data:
-                day_low = min(p.close for p in intraday_data)
-                day_high = max(p.close for p in intraday_data)
-            else:
-                # Fallback to last price if no intraday data
-                day_low = float(row.last) if row.last is not None else None
-                day_high = float(row.last) if row.last is not None else None
-
             result[int(row.stock_id)] = QuoteResponse(
                 symbol=stock_id_to_symbol[int(row.stock_id)],
                 last=float(row.last) if row.last is not None else None,
-                low=day_low,
-                high=day_high,
+                low=float(row.low) if row.low is not None else None,
+                high=float(row.high) if row.high is not None else None,
                 change=float(row.change) if row.change is not None else None,
                 change_pct=float(row.change_pct) if row.change_pct is not None else None,
                 source="realtime",
@@ -477,6 +460,40 @@ class WatchlistService:
                 )
 
         return [result[int(ws.stock_id)] for ws in symbol_rows if int(ws.stock_id) in result]
+
+    def _fetch_intraday_by_stock_ids(self, stock_ids: list[int]) -> dict[int, List[IntradayPoint]]:
+        """Fetch today's intraday close prices for multiple stocks (batch).
+
+        Returns a dict of stock_id → list of IntradayPoint (max 30 per stock).
+        """
+        if not stock_ids:
+            return {}
+
+        rows = (
+            self.db_session.query(
+                IntradayCandle.stock_id,
+                IntradayCandle.timestamp,
+                IntradayCandle.close,
+            )
+            .filter(
+                IntradayCandle.stock_id.in_(stock_ids),
+                func.date(IntradayCandle.timestamp) == date.today(),
+            )
+            .order_by(IntradayCandle.timestamp.asc())
+            .all()
+        )
+
+        intraday_by_stock: dict[int, List[IntradayPoint]] = defaultdict(list)
+        counter: dict[int, int] = defaultdict(int)
+        for candle in rows:
+            sid = int(candle.stock_id)
+            if counter[sid] < 30 and candle.close is not None:
+                intraday_by_stock[sid].append(
+                    IntradayPoint(time=candle.timestamp.isoformat(), close=float(candle.close))
+                )
+                counter[sid] += 1
+
+        return dict(intraday_by_stock)
 
     def _get_intraday_points(self, stock_id: int) -> List[IntradayPoint]:
         """Get intraday close prices for sparkline rendering.

@@ -50,20 +50,20 @@ async def test_batch_comma_separated_success():
         result = await _fetch_batch_comma_separated(mock_provider, ["AAPL", "MSFT"])
 
         assert len(result) == 2
-        assert result[0].bid == 149.5
-        assert result[1].bid == 249.5
-        assert result[0].last == 150.0
-        assert result[1].last == 250.0
+        assert result["AAPL"].bid == 149.5
+        assert result["MSFT"].bid == 249.5
+        assert result["AAPL"].last == 150.0
+        assert result["MSFT"].last == 250.0
 
 
 @pytest.mark.asyncio
 async def test_batch_empty_symbols():
-    """Should return empty list for empty symbols."""
+    """Should return empty dict for empty symbols."""
     mock_provider = Mock()
 
     result = await get_realtime_quotes_batch(mock_provider, [])
 
-    assert result == []
+    assert result == {}
 
 
 @pytest.mark.asyncio
@@ -116,5 +116,48 @@ async def test_batch_fallback_to_parallel():
         result = await get_realtime_quotes_batch(mock_provider, ["AAPL", "MSFT"])
 
         assert len(result) == 2
-        assert result[0].bid == 149.5
-        assert result[1].bid == 249.5
+        assert result["AAPL"].bid == 149.5
+        assert result["MSFT"].bid == 249.5
+
+
+@pytest.mark.asyncio
+async def test_batch_deduplicates_symbols():
+    """Should deduplicate symbols before making API request."""
+    mock_provider = Mock()
+    mock_provider.base_url = "https://api.test.com"
+
+    mock_response_data = {
+        "s": "ok",
+        "symbol": ["AAPL"],
+        "last": [150.0],
+        "change": [1.0],
+        "changepct": [0.67],
+        "updated": [1714560000],
+        "bid": [149.5],
+        "ask": [150.5],
+        "bidSize": [100],
+        "askSize": [150],
+        "volume": [1000000],
+    }
+
+    with patch("src.data_provider.batch.aiohttp.ClientSession") as mock_session_cls:
+        mock_response = AsyncMock()
+        mock_response.json = AsyncMock(return_value=mock_response_data)
+        mock_response.raise_for_status = Mock()
+
+        mock_get = AsyncMock(return_value=mock_response)
+        mock_get.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_get.__aexit__ = AsyncMock()
+
+        mock_session = AsyncMock()
+        mock_session.get = Mock(return_value=mock_get)
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock()
+
+        mock_session_cls.return_value = mock_session
+
+        # Pass duplicates — should deduplicate before API call
+        result = await get_realtime_quotes_batch(mock_provider, ["AAPL", "AAPL", "AAPL"])
+
+        assert len(result) == 1
+        assert result["AAPL"].last == 150.0
