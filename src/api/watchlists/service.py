@@ -920,9 +920,6 @@ class WatchlistGenerationService:
             .all()
         )
 
-        if not results:
-            return None
-
         # Deduplicate results by stock_id, keeping the most recent match for each stock
         # This handles multiple scans per day (pre-close, EOD, etc.)
         seen_stocks = {}
@@ -932,6 +929,11 @@ class WatchlistGenerationService:
             elif result.matched_at > seen_stocks[result.stock_id].matched_at:
                 seen_stocks[result.stock_id] = result
         results = list(seen_stocks.values())
+
+        if not results:
+            # Clear stale symbols from Today watchlist so it never shows prior-day picks
+            self._clear_today_watchlist(scanner_name, user_id, scan_date)
+            return None
 
         # Get or create "Scanner Results" category
         scanner_category = self._get_or_create_scanner_category(user_id)
@@ -956,6 +958,24 @@ class WatchlistGenerationService:
         )
 
         return today_watchlist
+
+    def _clear_today_watchlist(self, scanner_name: str, user_id: int, scan_date: date) -> None:
+        """Clear Today watchlist symbols when today's scan has no matches."""
+        watchlist_name = f"{self._format_scanner_name(scanner_name)} - Today"
+        existing = (
+            self.db.query(Watchlist)
+            .filter(Watchlist.user_id == user_id)
+            .filter(Watchlist.name == watchlist_name)
+            .filter(Watchlist.scanner_name == scanner_name)
+            .filter(Watchlist.watchlist_mode == "replace")
+            .first()
+        )
+        if existing:
+            self.db.query(WatchlistSymbol).filter(
+                WatchlistSymbol.watchlist_id == existing.id
+            ).delete(synchronize_session=False)
+            existing.source_scan_date = datetime.combine(scan_date, datetime.min.time())  # type: ignore[assignment]
+            self.db.commit()
 
     def _get_or_create_scanner_category(self, user_id: int) -> WatchlistCategory:
         """Get or create the 'Scanner Results' category for user.
@@ -1114,7 +1134,15 @@ class WatchlistGenerationService:
                     .first()
                 )
 
-        # Append new symbols (avoid duplicates)
+        # Prune entries older than 5 days (rolling window)
+        cutoff = datetime.utcnow() - timedelta(days=5)
+        self.db.query(WatchlistSymbol).filter(
+            WatchlistSymbol.watchlist_id == watchlist.id,
+            WatchlistSymbol.added_at < cutoff,
+        ).delete(synchronize_session=False)
+        self.db.flush()
+
+        # Append new symbols (avoid duplicates with remaining entries)
         existing_stock_ids = {
             ws.stock_id
             for ws in self.db.query(WatchlistSymbol)
