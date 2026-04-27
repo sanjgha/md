@@ -74,3 +74,57 @@ def test_request_uses_timeout(mock_session_class):
 
     call_kwargs = mock_session.get.call_args
     assert call_kwargs[1].get("timeout") == (5, 30)
+
+
+@patch("src.data_provider.marketdata_app.requests.Session")
+def test_get_daily_candles_sends_adjusted_param(mock_session_class):
+    """get_daily_candles sends adjusted=true to the API."""
+    mock_session = Mock()
+    mock_session_class.return_value = mock_session
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = Mock()
+    mock_response.json.return_value = {
+        "s": "ok",
+        "t": [1704067200],
+        "o": [150.0],
+        "h": [152.0],
+        "l": [149.0],
+        "c": [151.0],
+        "v": [1000000],
+    }
+    mock_session.get.return_value = mock_response
+
+    provider = MarketDataAppProvider(api_token="test_token", max_retries=1, retry_backoff_base=0)
+    provider.get_daily_candles("AAPL", datetime(2024, 1, 1), datetime(2024, 1, 31))
+
+    call_kwargs = mock_session.get.call_args
+    params = call_kwargs[1].get("params", {})
+    assert params.get("adjusted") == "true"
+
+
+@patch("src.data_provider.marketdata_app.requests.Session")
+def test_get_intraday_candles_sends_adjusted_param(mock_session_class):
+    """get_intraday_candles sends adjusted=true to the API."""
+    mock_session = Mock()
+    mock_session_class.return_value = mock_session
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = Mock()
+    mock_response.json.return_value = {
+        "s": "ok",
+        "t": [1704067200],
+        "o": [150.0],
+        "h": [152.0],
+        "l": [149.0],
+        "c": [151.0],
+        "v": [500000],
+    }
+    mock_session.get.return_value = mock_response
+
+    provider = MarketDataAppProvider(api_token="test_token", max_retries=1, retry_backoff_base=0)
+    provider.get_intraday_candles("AAPL", "5m", datetime(2024, 1, 1), datetime(2024, 1, 31))
+
+    call_kwargs = mock_session.get.call_args
+    params = call_kwargs[1].get("params", {})
+    assert params.get("adjusted") == "true"

@@ -82,10 +82,14 @@ class MarketDataAppProvider(DataProvider):
         from_date: datetime,
         to_date: datetime,
     ) -> List[Candle]:
-        """Fetch daily OHLCV candles using cached feed."""
+        """Fetch daily OHLCV candles (split-adjusted)."""
         validate_symbol(symbol)
         url = f"{self.base_url}/stocks/candles/1d/{symbol}"
-        params = {"from": from_date.strftime("%Y-%m-%d"), "to": to_date.strftime("%Y-%m-%d")}
+        params = {
+            "from": from_date.strftime("%Y-%m-%d"),
+            "to": to_date.strftime("%Y-%m-%d"),
+            "adjusted": "true",
+        }
         data = self._request_with_retry(url, params=params)
         return self._parse_candles(data)
 
@@ -96,11 +100,15 @@ class MarketDataAppProvider(DataProvider):
         from_date: datetime,
         to_date: datetime,
     ) -> List[Candle]:
-        """Fetch intraday bars at specified resolution (5m, 15m, 1h)."""
+        """Fetch intraday bars at specified resolution (split-adjusted)."""
         validate_symbol(symbol)
         validate_resolution(resolution)
         url = f"{self.base_url}/stocks/candles/{resolution}/{symbol}"
-        params = {"from": from_date.strftime("%Y-%m-%d"), "to": to_date.strftime("%Y-%m-%d")}
+        params = {
+            "from": from_date.strftime("%Y-%m-%d"),
+            "to": to_date.strftime("%Y-%m-%d"),
+            "adjusted": "true",
+        }
         data = self._request_with_retry(url, params=params)
         return self._parse_candles(data)
 
