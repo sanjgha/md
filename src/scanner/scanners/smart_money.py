@@ -74,3 +74,78 @@ class SmartMoneyScanner(Scanner):
                 }
 
         return None
+
+    def detect_mss(self, context: ScanContext) -> Optional[Dict]:
+        """Detect Market Structure Shift (MSS) confirmation.
+
+        MSS occurs after BOS when price retests and closes beyond broken swing.
+        Bullish MSS: BOS up, then close below broken swing high
+        Bearish MSS: BOS down, then close above broken swing low
+
+        Returns:
+            Dict with MSS state or None if no MSS detected
+        """
+        candles = context.daily_candles
+
+        if len(candles) < self.MIN_CANDLES:
+            return None
+
+        # Detect swings
+        swing_detector = FractalSwings()
+        swings = swing_detector.detect_swings(candles)
+
+        swing_highs = [s for s in swings if s.is_high]
+        swing_lows = [s for s in swings if not s.is_high]
+
+        if len(swing_highs) < 3 or len(swing_lows) < 3:
+            return None
+
+        # Check for bullish BOS then MSS (iterate through recent swing highs)
+        for swing_high in swing_highs[-5:]:  # Check last 5 swing highs
+            # Look for BOS within lookback window after the swing high
+            start_idx = max(swing_high.candle_index + 1, len(candles) - self.MSS_LOOKBACK)
+
+            for i in range(start_idx, len(candles)):
+                candle_close = float(candles[i].close)
+
+                # Bullish BOS: closed above swing high
+                if candle_close > swing_high.price:
+                    # Now look for MSS in subsequent candles
+                    for j in range(i + 1, len(candles)):
+                        subsequent_close = float(candles[j].close)
+
+                        # Bullish MSS: closed below the broken swing high
+                        if subsequent_close < swing_high.price:
+                            return {
+                                "bos_type": "bullish",
+                                "bos_candle_index": i,
+                                "broken_swing_price": swing_high.price,
+                                "mss_confirmed": True,
+                                "mss_candle_index": j,
+                            }
+
+        # Check for bearish BOS then MSS (iterate through recent swing lows)
+        for swing_low in swing_lows[-5:]:  # Check last 5 swing lows
+            # Look for BOS within lookback window after the swing low
+            start_idx = max(swing_low.candle_index + 1, len(candles) - self.MSS_LOOKBACK)
+
+            for i in range(start_idx, len(candles)):
+                candle_close = float(candles[i].close)
+
+                # Bearish BOS: closed below swing low
+                if candle_close < swing_low.price:
+                    # Now look for MSS in subsequent candles
+                    for j in range(i + 1, len(candles)):
+                        subsequent_close = float(candles[j].close)
+
+                        # Bearish MSS: closed above the broken swing low
+                        if subsequent_close > swing_low.price:
+                            return {
+                                "bos_type": "bearish",
+                                "bos_candle_index": i,
+                                "broken_swing_price": swing_low.price,
+                                "mss_confirmed": True,
+                                "mss_candle_index": j,
+                            }
+
+        return None
