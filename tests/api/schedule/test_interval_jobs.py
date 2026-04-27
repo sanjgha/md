@@ -59,18 +59,24 @@ def test_market_hours_check():
     from zoneinfo import ZoneInfo
 
     ET = ZoneInfo("America/New_York")
+    # Use a fixed Tuesday to avoid weekend/holiday sensitivity
+    tuesday = datetime(2026, 4, 28, tzinfo=ET)
 
-    # Test regular market hours (10:00 AM ET)
-    market_time = datetime.now(ET).replace(hour=10, minute=0, second=0, microsecond=0)
+    # Test regular market hours (10:00 AM ET on a Tuesday)
+    market_time = tuesday.replace(hour=10, minute=0, second=0, microsecond=0)
     assert is_market_open(market_time), "Should be open at 10:00 AM ET"
 
     # Test pre-market (8:00 AM ET)
-    pre_market_time = datetime.now(ET).replace(hour=8, minute=0, second=0, microsecond=0)
+    pre_market_time = tuesday.replace(hour=8, minute=0, second=0, microsecond=0)
     assert not is_market_open(pre_market_time), "Should be closed at 8:00 AM ET"
 
     # Test after hours (5:00 PM ET)
-    after_hours_time = datetime.now(ET).replace(hour=17, minute=0, second=0, microsecond=0)
+    after_hours_time = tuesday.replace(hour=17, minute=0, second=0, microsecond=0)
     assert not is_market_open(after_hours_time), "Should be closed at 5:00 PM ET"
+
+    # Test weekend (same time on a Sunday)
+    sunday = datetime(2026, 4, 26, hour=10, minute=0, tzinfo=ET)
+    assert not is_market_open(sunday), "Should be closed on Sunday"
 
 
 def test_quote_worker_market_check():
