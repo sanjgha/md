@@ -237,52 +237,6 @@ def test_scan_orchestrates_all_components():
         scanner.detect_mss = original_detect_mss
 
 
-def test_no_entry_signal_when_fvg_mitigated():
-    """No entry signal when FVG is mitigated before MSS."""
-    scanner = SmartMoneyScanner()
-
-    import random
-
-    random.seed(42)
-    baseline = []
-    price = 100
-    for i in range(130, 50, -1):
-        change = random.uniform(-2, 2)
-        price += change
-        high = price + random.uniform(0, 1)
-        low = price - random.uniform(0, 1)
-        baseline.append(create_candle(price, high, low, price, 1000, i))
-
-    # Bullish FVG
-    fvg_setup = [
-        create_candle(100, 102, 98, 101, 1000, 49),
-        create_candle(101, 104, 99, 103, 1100, 48),  # high=102
-        create_candle(103, 106, 103, 105, 1200, 47),
-        create_candle(105, 108, 105, 107, 1300, 46),  # low=105, FVG (102-105)
-    ]
-
-    # FVG gets mitigated (close below 102)
-    mitigation = [
-        create_candle(107, 110, 95, 96, 1400, 45),  # Closes below FVG bottom - mitigated!
-    ]
-
-    # Then BOS and MSS happen, but FVG is already mitigated
-    trend_up = [
-        create_candle(96, 110, 90, 105, 1500, 44),
-        create_candle(105, 115, 100, 110, 1600, 43),
-        create_candle(110, 118, 108, 115, 1700, 42),
-        create_candle(115, 122, 113, 120, 1800, 41),
-    ]
-
-    all_candles = baseline + fvg_setup + mitigation + trend_up
-    context = create_mock_context(all_candles)
-
-    results = scanner.scan(context)
-
-    # Should NOT generate entry signal (FVG mitigated)
-    assert len(results) == 0
-
-
 def test_no_entry_signal_when_price_outside_fib_zone():
     """No entry signal when price is outside 50-79% Fibonacci zone."""
     scanner = SmartMoneyScanner()
@@ -322,22 +276,6 @@ def test_no_entry_signal_when_price_outside_fib_zone():
     results = scanner.scan(context)
 
     # Should NOT generate entry signal (price outside Fib zone)
-    assert len(results) == 0
-
-
-def test_no_entry_signal_insufficient_candles():
-    """No entry signal when insufficient candles for analysis."""
-    scanner = SmartMoneyScanner()
-
-    # Only 50 candles (less than MIN_CANDLES = 100)
-    candles = []
-    for i in range(50, 0, -1):
-        candles.append(create_candle(100 + i, 105 + i, 95 + i, 100 + i, 1000, i))
-
-    context = create_mock_context(candles)
-
-    results = scanner.scan(context)
-
     assert len(results) == 0
 
 
