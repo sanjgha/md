@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime, timezone
 from src.workers.quote_worker import QuoteWorker
 from src.data_provider.base import Quote
+from src.db.models import RealtimeQuote
 
 
 @pytest.fixture
@@ -125,3 +126,72 @@ def test_poll_handles_exceptions(mock_db_session, mock_cache_service, mock_provi
             assert result == 0
             # Verify cache was not updated
             mock_cache_service.refresh_cache.assert_not_called()
+
+
+def test_poll_caches_none_when_high_low_are_zero(
+    mock_db_session, mock_cache_service, mock_provider
+):
+    """When API omits high/low (defaults to 0.0), cache must store None — not 0.0.
+
+    0.0 === 0.0 in the frontend RangeBar makes every stock show the same 50% center marker.
+    """
+    worker = QuoteWorker(mock_db_session, mock_cache_service, mock_provider)
+
+    with patch("src.workers.quote_worker.is_market_open", return_value=True):
+        with patch.object(worker, "_get_all_symbols", return_value=["AAPL"]):
+            with patch("src.workers.quote_worker.get_realtime_quotes_batch") as mock_fetch:
+                mock_fetch.return_value = {
+                    "AAPL": Quote(
+                        timestamp=datetime.now(timezone.utc),
+                        bid=149.5,
+                        ask=150.5,
+                        bid_size=100,
+                        ask_size=150,
+                        last=150.0,
+                        volume=1000000,
+                        change=1.0,
+                        change_pct=0.67,
+                        high=0.0,  # API omitted "high" key → default 0.0
+                        low=0.0,  # API omitted "low" key → default 0.0
+                    )
+                }
+
+                worker.poll()
+
+                call_args = mock_cache_service.refresh_cache.call_args[0][0]
+                assert len(call_args) == 1
+                assert call_args[0].high is None, "high=0.0 must be stored as None in cache"
+                assert call_args[0].low is None, "low=0.0 must be stored as None in cache"
+
+
+def test_store_quotes_stores_none_when_high_low_are_zero(mock_db_session):
+    """_store_quotes must write None (not 0.0) for high/low to the DB when value is 0."""
+    worker = QuoteWorker(mock_db_session, MagicMock(), Mock())
+
+    # Mock the stock ID lookup query
+    mock_stock_row = MagicMock()
+    mock_stock_row.symbol = "AAPL"
+    mock_stock_row.id = 1
+    mock_db_session.query.return_value.filter.return_value.all.return_value = [mock_stock_row]
+
+    quote = Quote(
+        timestamp=datetime(2024, 5, 1, 12, 0, 0),
+        bid=149.5,
+        ask=150.5,
+        bid_size=100,
+        ask_size=150,
+        last=150.0,
+        volume=1000000,
+        change=1.0,
+        change_pct=0.67,
+        high=0.0,
+        low=0.0,
+    )
+
+    worker._store_quotes({"AAPL": quote})
+
+    added = [call.args[0] for call in mock_db_session.add.call_args_list]
+    rt_quotes = [obj for obj in added if isinstance(obj, RealtimeQuote)]
+    assert len(rt_quotes) == 1, "Expected one RealtimeQuote to be added to DB"
+    assert rt_quotes[0].high is None, "high=0.0 must be stored as None in DB"
+    assert rt_quotes[0].low is None, "low=0.0 must be stored as None in DB"

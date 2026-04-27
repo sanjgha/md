@@ -477,6 +477,7 @@ class WatchlistService:
             )
             .filter(
                 IntradayCandle.stock_id.in_(stock_ids),
+                IntradayCandle.resolution == "1h",
                 func.date(IntradayCandle.timestamp) == date.today(),
             )
             .order_by(IntradayCandle.timestamp.asc())
