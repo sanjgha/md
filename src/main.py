@@ -80,7 +80,12 @@ def scan():
     from src.scanner.indicators.volatility import BollingerBands, ATR
     from src.scanner.indicators.support_resistance import SupportResistance
     from src.scanner.indicators.patterns.breakouts import BreakoutDetector
-    from src.scanner.scanners import PriceActionScanner, MomentumScanner, VolumeScanner
+    from src.scanner.scanners import (
+        PriceActionScanner,
+        MomentumScanner,
+        VolumeScanner,
+        SmartMoneyScanner,
+    )
     from src.output.cli import CLIOutputHandler
     from src.output.logger import LogFileOutputHandler
     from src.output.composite import CompositeOutputHandler
@@ -110,6 +115,7 @@ def scan():
         scanner_registry.register("price_action", PriceActionScanner())
         scanner_registry.register("momentum", MomentumScanner())
         scanner_registry.register("volume", VolumeScanner())
+        scanner_registry.register("smart_money", SmartMoneyScanner())
 
         output = CompositeOutputHandler(
             [
@@ -855,7 +861,12 @@ def schedule_pre_close_cmd():
         from src.scanner.indicators.volatility import BollingerBands, ATR
         from src.scanner.indicators.support_resistance import SupportResistance
         from src.scanner.indicators.patterns.breakouts import BreakoutDetector
-        from src.scanner.scanners import PriceActionScanner, MomentumScanner, VolumeScanner
+        from src.scanner.scanners import (
+            PriceActionScanner,
+            MomentumScanner,
+            VolumeScanner,
+            SmartMoneyScanner,
+        )
         from src.output.cli import CLIOutputHandler
         from src.output.logger import LogFileOutputHandler
         from src.output.composite import CompositeOutputHandler
@@ -878,6 +889,7 @@ def schedule_pre_close_cmd():
             scanner_registry.register("price_action", PriceActionScanner())
             scanner_registry.register("momentum", MomentumScanner())
             scanner_registry.register("volume", VolumeScanner())
+            scanner_registry.register("smart_money", SmartMoneyScanner())
 
             output = CompositeOutputHandler(
                 [
