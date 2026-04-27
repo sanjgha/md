@@ -222,6 +222,41 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
 
       {/* Symbol list */}
       <Show when={expanded()}>
+        {/* Column header row */}
+        <div class="symbol-header">
+          <span class="symbol-header__dot"></span>
+          <button
+            class="symbol-header__cell symbol-header__ticker"
+            onDblClick={() => handleHeaderDblClick("ticker")}
+          >
+            TICKER
+            <Show when={sortCol() === "ticker"}>
+              <span class="symbol-header__sort">{sortDir() === "asc" ? "▲" : "▼"}</span>
+            </Show>
+          </button>
+          <span class="symbol-header__spark"></span>
+          <span class="symbol-header__range"></span>
+          <button
+            class="symbol-header__cell symbol-header__last"
+            onDblClick={() => handleHeaderDblClick("last")}
+          >
+            LAST
+            <Show when={sortCol() === "last"}>
+              <span class="symbol-header__sort">{sortDir() === "asc" ? "▲" : "▼"}</span>
+            </Show>
+          </button>
+          <button
+            class="symbol-header__cell symbol-header__change"
+            onDblClick={() => handleHeaderDblClick("chg_pct")}
+          >
+            CHG%
+            <Show when={sortCol() === "chg_pct"}>
+              <span class="symbol-header__sort">{sortDir() === "asc" ? "▲" : "▼"}</span>
+            </Show>
+          </button>
+          <span class="symbol-header__remove"></span>
+        </div>
+
         <div class="category-group__symbols">
           <Show when={quotesLoading() && !loaded()}>
             <For each={Array(Math.max(props.watchlist.symbol_count, 1)).fill(0)}>

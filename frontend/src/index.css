@@ -1171,6 +1171,76 @@ main {
 }
 
 /* ===================================================
+   SYMBOL HEADER — sortable column headers
+   =================================================== */
+
+.symbol-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0.5rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.symbol-header__dot {
+  width: 10px;
+  flex-shrink: 0;
+}
+
+.symbol-header__spark {
+  width: 48px;
+  flex-shrink: 0;
+}
+
+.symbol-header__range {
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.symbol-header__remove {
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.symbol-header__cell {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.symbol-header__cell:hover {
+  color: var(--text-1);
+}
+
+.symbol-header__ticker {
+  width: 56px;
+  text-align: left;
+}
+
+.symbol-header__last {
+  width: 40px;
+}
+
+.symbol-header__change {
+  width: 40px;
+}
+
+.symbol-header__sort {
+  font-size: 0.6rem;
+  color: var(--accent);
+}
+
+/* ===================================================
    WATCHLIST DETAIL PLACEHOLDER
    =================================================== */
 
