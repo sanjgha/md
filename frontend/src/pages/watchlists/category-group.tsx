@@ -1,10 +1,9 @@
 /**
  * CategoryGroup — collapsible watchlist group in the left panel.
  *
- * Owns: expanded state, quote data, add-input visibility.
+ * Owns: expanded state, quote data, add-input visibility, keyboard navigation.
  * Fires: onSymbolSelect(symbol) upward to dashboard.
- * Fires: onSymbolSelect("__CLEAR__") when removing the selected symbol.
- * Registers symbol refs with parent for keyboard navigation.
+ * Handles keyboard nav (up/down to navigate, left to delete) when containing the selected symbol.
  */
 
 import {
@@ -14,21 +13,21 @@ import {
   createSignal,
   onMount,
   createEffect,
+  onCleanup,
   untrack,
 } from "solid-js";
 import { watchlistsAPI } from "~/lib/watchlists-api";
 import { SymbolRow } from "./symbol-row";
-import type { QuoteResponse, WatchlistSummary, WatchlistSymbolRef } from "./types";
+import { navigateQuotes } from "./watchlist-utils";
+import type { QuoteResponse, WatchlistSummary } from "./types";
 
 interface CategoryGroupProps {
   watchlist: WatchlistSummary;
   initiallyExpanded: boolean;
   selectedSymbol: string | null;
-  focusedSymbol: string | null;
   refreshSignal: number;
   onSymbolSelect: (symbol: string | null) => void;
   onExpandChange: (watchlistId: number, expanded: boolean) => void;
-  onRegisterSymbolRefs: (refs: WatchlistSymbolRef[]) => void;
 }
 
 export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
@@ -75,10 +74,74 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
     }
   }
 
+  async function handleRemove(symbol: string) {
+    setRemoveError(null);  // clear previous error
+    const original = quotes();
+    const idx = original.findIndex((q) => q.symbol === symbol);
+    // Optimistic remove
+    setQuotes(original.filter((q) => q.symbol !== symbol));
+    // Clear selection if removing the currently selected symbol
+    if (props.selectedSymbol === symbol) {
+      props.onSymbolSelect(null);
+    }
+    try {
+      await watchlistsAPI.symbols.remove(props.watchlist.id, symbol);
+    } catch {
+      // Restore at original index on error
+      const restored = [...quotes()];
+      restored.splice(idx, 0, original[idx]);
+      setQuotes(restored);
+      setRemoveError(`Failed to remove ${symbol}`);
+    }
+  }
+
   onMount(() => {
     if (props.initiallyExpanded) {
       fetchQuotes();
     }
+
+    // Keyboard navigation: only respond when this group contains the selected symbol
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Guard: only handle if this group contains the selected symbol
+      if (!quotes().some(q => q.symbol === props.selectedSymbol)) return;
+
+      // Only handle arrow keys if not in an input
+      if (e.target instanceof HTMLInputElement) return;
+
+      const currentQuotes = quotes();
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const nextSymbol = navigateQuotes(currentQuotes, props.selectedSymbol, "down");
+        props.onSymbolSelect(nextSymbol);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const nextSymbol = navigateQuotes(currentQuotes, props.selectedSymbol, "up");
+        props.onSymbolSelect(nextSymbol);
+      } else if (e.key === "ArrowLeft" && props.selectedSymbol !== null) {
+        e.preventDefault();
+        const currentSymbol = props.selectedSymbol;
+        const currentIndex = currentQuotes.findIndex(q => q.symbol === currentSymbol);
+
+        // Calculate the next symbol BEFORE removing (while currentQuotes is still accurate)
+        let nextSymbol: string | null = null;
+        if (currentQuotes.length > 1) {
+          const nextIndex = currentIndex >= currentQuotes.length - 1 ? currentIndex - 1 : currentIndex;
+          nextSymbol = currentQuotes[nextIndex].symbol;
+        }
+
+        // Remove the selected symbol
+        handleRemove(currentSymbol);
+
+        // Select the pre-calculated next symbol
+        props.onSymbolSelect(nextSymbol);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    onCleanup(() => {
+      window.removeEventListener("keydown", handleKeyDown);
+    });
   });
 
   // Watch refresh signal and fetch quotes when expanded and loaded.
@@ -89,25 +152,6 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
     if (untrack(expanded) && untrack(loaded)) {
       fetchQuotes();
     }
-  });
-
-  // Register symbol refs with parent when quotes change.
-  // untrack() prevents focusedSymbol (read inside onRegisterSymbolRefs) from
-  // being tracked here — otherwise multiple expanded CategoryGroups ping-pong
-  // focusedSymbol between their first symbols, causing a SolidJS stack overflow.
-  createEffect(() => {
-    const currentQuotes = quotes();
-    if (!expanded() || currentQuotes.length === 0) {
-      untrack(() => props.onRegisterSymbolRefs([]));
-      return;
-    }
-
-    const refs: WatchlistSymbolRef[] = currentQuotes.map((quote) => ({
-      symbol: quote.symbol,
-      onRemove: () => handleRemove(quote.symbol),
-    }));
-
-    untrack(() => props.onRegisterSymbolRefs(refs));
   });
 
   async function handleAdd() {
@@ -131,27 +175,6 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
       }
     } finally {
       setAddLoading(false);
-    }
-  }
-
-  async function handleRemove(symbol: string) {
-    setRemoveError(null);  // clear previous error
-    const original = quotes();
-    const idx = original.findIndex((q) => q.symbol === symbol);
-    // Optimistic remove
-    setQuotes(original.filter((q) => q.symbol !== symbol));
-    // Clear selection if removing the currently selected symbol
-    if (props.selectedSymbol === symbol) {
-      props.onSymbolSelect(null);
-    }
-    try {
-      await watchlistsAPI.symbols.remove(props.watchlist.id, symbol);
-    } catch {
-      // Restore at original index on error
-      const restored = [...quotes()];
-      restored.splice(idx, 0, original[idx]);
-      setQuotes(restored);
-      setRemoveError(`Failed to remove ${symbol}`);
     }
   }
 
