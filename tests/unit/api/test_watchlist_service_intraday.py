@@ -169,3 +169,92 @@ class TestGetQuotesIntraday:
         assert result[0].low == 178.20
         assert result[0].high == 188.50
         assert result[0].intraday == []
+
+    def test_sparkline_uses_1h_resolution_only(self, db_session: Session):
+        """Sparkline intraday data must use 1h candles only — not mix 5m/15m/1h."""
+        user = User(username="testuser2", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        category = WatchlistCategory(
+            user_id=cast(int, user.id),
+            name="Test Cat",
+            icon="🧪",
+            is_system=False,
+            sort_order=1,
+        )
+        db_session.add(category)
+        db_session.commit()
+
+        service = WatchlistService(db_session)
+        watchlist = service.create_watchlist(
+            user_id=cast(int, user.id),
+            name="Test WL",
+            category_id=cast(int, category.id),
+        )
+
+        stock = Stock(symbol="MSFT", name="Microsoft Corp")
+        db_session.add(stock)
+        db_session.commit()
+
+        db_session.add(
+            WatchlistSymbol(watchlist_id=cast(int, watchlist.id), stock_id=stock.id, priority=0)
+        )
+        db_session.commit()
+
+        today = date.today()
+        base_ts = datetime.combine(today, datetime.min.time()).replace(hour=9, minute=30)
+
+        # 5m candles — close=999.99 (distinctive; must NOT appear in sparkline)
+        for i in range(12):
+            db_session.add(
+                IntradayCandle(
+                    stock_id=stock.id,
+                    resolution="5m",
+                    timestamp=base_ts + timedelta(minutes=5 * i),
+                    open=Decimal("999.99"),
+                    high=Decimal("999.99"),
+                    low=Decimal("999.99"),
+                    close=Decimal("999.99"),
+                    volume=100,
+                )
+            )
+
+        # 1h candles — close=180.50, 181.00, ... (expected in sparkline)
+        for i in range(4):
+            db_session.add(
+                IntradayCandle(
+                    stock_id=stock.id,
+                    resolution="1h",
+                    timestamp=base_ts + timedelta(hours=i),
+                    open=Decimal("180.00"),
+                    high=Decimal("182.00"),
+                    low=Decimal("179.00"),
+                    close=Decimal(str(180.50 + i * 0.5)),
+                    volume=50000,
+                )
+            )
+
+        # Realtime quote so we use the realtime path (not EOD)
+        db_session.add(
+            RealtimeQuote(
+                stock_id=stock.id,
+                last=Decimal("182.00"),
+                low=Decimal("179.00"),
+                high=Decimal("183.00"),
+                change=Decimal("1.5"),
+                change_pct=Decimal("0.83"),
+                timestamp=datetime.now(),
+            )
+        )
+        db_session.commit()
+
+        result = service.get_quotes(cast(int, watchlist.id), cast(int, user.id))
+
+        assert result is not None and len(result) == 1
+        intraday = result[0].intraday
+        # All sparkline points must be 1h candles (close < 200), none from 5m (close=999.99)
+        assert len(intraday) == 4
+        assert all(p.close < 200 for p in intraday), (
+            "5m candles (close=999.99) leaked into sparkline"
+        )
