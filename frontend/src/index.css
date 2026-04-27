@@ -854,7 +854,7 @@ main {
 
 /* Left panel */
 .watchlist-layout__panel {
-  width: 260px;
+  width: 300px;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
   display: flex;
@@ -1119,7 +1119,7 @@ main {
 .source-dot--eod      { background: #6b7280; }
 
 .symbol-ticker {
-  width: 38px;
+  width: 56px;
   font-weight: 600;
   color: var(--text-1);
   white-space: nowrap;
