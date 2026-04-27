@@ -1,6 +1,7 @@
 """Fair Value Gap (FVG) detection indicator."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import List
 from src.data_provider.base import Candle
 
@@ -111,3 +112,74 @@ class FVGDetector:
                 if candle.close > fvg.top:
                     return True
         return False
+
+
+@dataclass
+class SwingPoint:
+    """Represents a fractal swing high or low."""
+
+    price: float
+    is_high: bool
+    candle_index: int
+    timestamp: datetime
+
+
+class FractalSwings:
+    """Detects 5-bar fractal swing highs and lows."""
+
+    def detect_swings(self, candles: List[Candle]) -> List[SwingPoint]:
+        """Detect all swing highs and lows using 5-bar fractal."""
+        if len(candles) < 5:
+            return []
+
+        swings = []
+
+        # Need 2 candles on each side: [i-2, i-1, i, i+1, i+2]
+        for i in range(2, len(candles) - 2):
+            candle = candles[i]
+
+            # Check for swing high
+            if self._is_swing_high(candles, i):
+                swings.append(
+                    SwingPoint(
+                        price=float(candle.high),
+                        is_high=True,
+                        candle_index=i,
+                        timestamp=candle.timestamp,
+                    )
+                )
+
+            # Check for swing low
+            elif self._is_swing_low(candles, i):
+                swings.append(
+                    SwingPoint(
+                        price=float(candle.low),
+                        is_high=False,
+                        candle_index=i,
+                        timestamp=candle.timestamp,
+                    )
+                )
+
+        return swings
+
+    def _is_swing_high(self, candles: List[Candle], index: int) -> bool:
+        """Check if candle at index is a swing high."""
+        current = candles[index]
+
+        return (
+            candles[index - 2].high < current.high
+            and candles[index - 1].high < current.high
+            and current.high > candles[index + 1].high
+            and current.high > candles[index + 2].high
+        )
+
+    def _is_swing_low(self, candles: List[Candle], index: int) -> bool:
+        """Check if candle at index is a swing low."""
+        current = candles[index]
+
+        return (
+            candles[index - 2].low > current.low
+            and candles[index - 1].low > current.low
+            and current.low < candles[index + 1].low
+            and current.low < candles[index + 2].low
+        )
