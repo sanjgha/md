@@ -96,3 +96,18 @@ class FVGDetector:
                 merged.append(current)
 
         return merged
+
+    def check_mitigation(self, fvg: FVGZone, candles: List[Candle]) -> bool:
+        """Check if FVG has been mitigated (filled by price).
+
+        Bullish FVG mitigated: any candle closes below FVG.bottom
+        Bearish FVG mitigated: any candle closes above FVG.top
+        """
+        for candle in candles:
+            if fvg.bullish:
+                if candle.close < fvg.bottom:
+                    return True
+            else:
+                if candle.close > fvg.top:
+                    return True
+        return False

@@ -114,3 +114,66 @@ def test_fvg_merging_overlapping():
     assert len(merged) == 1
     assert merged[0].bottom == 100.0
     assert merged[0].top == 105.0
+
+
+def test_fvg_mitigation_bullish():
+    """Bullish FVG is mitigated when price closes below the zone bottom."""
+    from src.scanner.indicators.patterns.fvg import FVGZone
+
+    detector = FVGDetector()
+
+    # FVG from 100-102 (bullish gap up)
+    fvg = FVGZone(top=102.0, bottom=100.0, bullish=True, candle_index=0)
+
+    # Candles after FVG: price drops and closes below 100
+    candles = [
+        create_candle(102, 104, 101, 103, 1000, 5),  # Inside FVG
+        create_candle(103, 105, 98, 99, 1200, 4),  # Close at 99 (< 100) → mitigated!
+        create_candle(99, 101, 97, 98, 1300, 3),
+    ]
+
+    mitigated = detector.check_mitigation(fvg, candles)
+
+    assert mitigated is True
+
+
+def test_fvg_mitigation_bearish():
+    """Bearish FVG is mitigated when price closes above the zone top."""
+    from src.scanner.indicators.patterns.fvg import FVGZone
+
+    detector = FVGDetector()
+
+    # FVG from 102-100 (bearish gap down)
+    fvg = FVGZone(top=102.0, bottom=100.0, bullish=False, candle_index=0)
+
+    # Candles after FVG: price rises and closes above 102
+    candles = [
+        create_candle(101, 102, 99, 100.5, 1000, 5),  # Inside FVG
+        create_candle(100.5, 103, 100, 102.5, 1200, 4),  # Close at 102.5 (> 102) → mitigated!
+        create_candle(102.5, 104, 102, 103, 1300, 3),
+    ]
+
+    mitigated = detector.check_mitigation(fvg, candles)
+
+    assert mitigated is True
+
+
+def test_fvg_not_mitigated():
+    """FVG remains unmitigated if price never closes through it."""
+    from src.scanner.indicators.patterns.fvg import FVGZone
+
+    detector = FVGDetector()
+
+    # Bullish FVG from 100-102
+    fvg = FVGZone(top=102.0, bottom=100.0, bullish=True, candle_index=0)
+
+    # Price stays above FVG bottom
+    candles = [
+        create_candle(102, 104, 101, 103, 1000, 5),
+        create_candle(103, 105, 102, 104, 1200, 4),
+        create_candle(104, 106, 103, 105, 1300, 3),
+    ]
+
+    mitigated = detector.check_mitigation(fvg, candles)
+
+    assert mitigated is False
