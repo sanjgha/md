@@ -15,12 +15,12 @@ test-cov:
 	pytest tests/ --cov=src --cov-report=html
 
 lint:
-	black --check src/ tests/
 	ruff check src/ tests/
+	ruff format --check src/ tests/
 	mypy src/ --ignore-missing-imports
 
 format:
-	black src/ tests/
+	ruff format src/ tests/
 
 typecheck:
 	mypy src/ --ignore-missing-imports
