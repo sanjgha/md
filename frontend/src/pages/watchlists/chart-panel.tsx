@@ -215,10 +215,15 @@ export function ChartPanel(props: Props) {
       scaleMargins: { top: 0.82, bottom: 0 },
     });
 
-    // Poll current day candle independently — do not touch the shared pollingManager
+    // Poll live quote and candles independently — do not touch the shared pollingManager
     const pollId = window.setInterval(() => {
-      if (isMarketOpen() && resolution() === "D") {
-        fetchCurrentDayCandle();
+      if (!isMarketOpen()) return;
+      fetchCurrentDayCandle(); // updates liveQuote (all resolutions) + currentDayCandle (D only)
+      if (resolution() !== "D") {
+        const { from, to } = getDateRange(resolution(), dailyRange());
+        stocksAPI.getCandles(props.symbol, resolution(), from, to)
+          .then((data) => setCandles(data))
+          .catch(() => {});
       }
     }, 30_000);
 
@@ -247,18 +252,12 @@ export function ChartPanel(props: Props) {
   };
 
   async function fetchCurrentDayCandle() {
-    if (resolution() !== "D") {
-      setCurrentDayCandle(null);
-      return;
-    }
-
     if (!isMarketOpen()) {
       setCurrentDayCandle(null);
       return;
     }
 
     try {
-      setIsLoading(true);
       const response = await fetch(
         `/api/stocks/${props.symbol}/candles/intraday?resolution=1h`
       );
@@ -272,7 +271,7 @@ export function ChartPanel(props: Props) {
         });
       }
 
-      if (data.intraday && data.intraday.length > 0 && data.realtime) {
+      if (resolution() === "D" && data.intraday && data.intraday.length > 0 && data.realtime) {
         const latestIntraday = data.intraday[data.intraday.length - 1];
         // latestIntraday.time is a Unix timestamp (seconds); daily chart needs ISO date string
         const isoDate = new Date(latestIntraday.time * 1000).toISOString().split("T")[0];
@@ -285,11 +284,11 @@ export function ChartPanel(props: Props) {
           volume: latestIntraday.volume,
         };
         setCurrentDayCandle(currentCandle);
+      } else {
+        setCurrentDayCandle(null);
       }
     } catch (err) {
       console.error("Error fetching current day candle:", err);
-    } finally {
-      setIsLoading(false);
     }
   }
 

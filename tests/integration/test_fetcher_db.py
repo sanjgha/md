@@ -106,6 +106,7 @@ def test_resync_overwrites_stale_candle(db_session: Session):
     fetcher.sync_daily(symbols=["SPLITCO"])
 
     splitco = db_session.query(Stock).filter_by(symbol="SPLITCO").first()
+    assert splitco is not None
     assert float(splitco.daily_candles[0].close) == 100.0
 
     # Second sync: adjusted price $50 (2:1 split applied retrospectively)
@@ -116,6 +117,7 @@ def test_resync_overwrites_stale_candle(db_session: Session):
 
     db_session.expire_all()
     splitco = db_session.query(Stock).filter_by(symbol="SPLITCO").first()
+    assert splitco is not None
     assert len(splitco.daily_candles) == 1  # no duplicate
     assert float(splitco.daily_candles[0].close) == 50.0  # overwritten
 

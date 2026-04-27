@@ -329,6 +329,7 @@ def test_generate_twice_replaces_today_and_appends_history(db_session: Session):
     # Today must have exactly 1 symbol (stock_b only — replaced, not accumulated)
     assert db_session.query(WatchlistSymbol).filter_by(watchlist_id=today_wl.id).count() == 1
     today_sym = db_session.query(WatchlistSymbol).filter_by(watchlist_id=today_wl.id).first()
+    assert today_sym is not None
     assert today_sym.stock_id == stock_b.id
 
     # History must have 2 symbols (stock_a from run1, stock_b from run2)

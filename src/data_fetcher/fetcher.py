@@ -126,7 +126,7 @@ class DataFetcher:
         days_back: int = 365,
     ) -> None:
         """Sync daily candles for all (or specified) stocks."""
-        stock_map = {s.symbol: int(s.id) for s in self.db.query(Stock).all()}
+        stock_map = {str(s.symbol): int(s.id) for s in self.db.query(Stock).all()}
         if symbols is None:
             symbols = list(stock_map.keys())
 
@@ -134,7 +134,7 @@ class DataFetcher:
         from_date = to_date - timedelta(days=days_back)
 
         for symbol in symbols:
-            stock_id = stock_map.get(str(symbol))
+            stock_id = stock_map.get(symbol)
             if not stock_id:
                 logger.warning(f"Stock {symbol} not found in DB — skipping")
                 continue
@@ -159,7 +159,7 @@ class DataFetcher:
         """Sync intraday candles for 5m, 15m, 1h resolutions."""
         if resolutions is None:
             resolutions = ["5m", "15m", "1h"]
-        stock_map = {s.symbol: int(s.id) for s in self.db.query(Stock).all()}
+        stock_map = {str(s.symbol): int(s.id) for s in self.db.query(Stock).all()}
         if symbols is None:
             symbols = list(stock_map.keys())
 
@@ -167,7 +167,7 @@ class DataFetcher:
         from_date = to_date - timedelta(days=days_back)
 
         for symbol in symbols:
-            stock_id = stock_map.get(str(symbol))
+            stock_id = stock_map.get(symbol)
             if not stock_id:
                 continue
             for resolution in resolutions:
@@ -191,12 +191,12 @@ class DataFetcher:
         countback: int = 50,
     ) -> None:
         """Sync news articles for all stocks."""
-        stock_map = {s.symbol: int(s.id) for s in self.db.query(Stock).all()}
+        stock_map = {str(s.symbol): int(s.id) for s in self.db.query(Stock).all()}
         if symbols is None:
             symbols = list(stock_map.keys())
 
         for symbol in symbols:
-            stock_id = stock_map.get(str(symbol))
+            stock_id = stock_map.get(symbol)
             if not stock_id:
                 continue
             try:
@@ -224,12 +224,12 @@ class DataFetcher:
 
     def sync_earnings(self, symbols: Optional[List[str]] = None) -> None:
         """Sync earnings calendar."""
-        stock_map = {s.symbol: int(s.id) for s in self.db.query(Stock).all()}
+        stock_map = {str(s.symbol): int(s.id) for s in self.db.query(Stock).all()}
         if symbols is None:
             symbols = list(stock_map.keys())
 
         for symbol in symbols:
-            stock_id = stock_map.get(str(symbol))
+            stock_id = stock_map.get(symbol)
             if not stock_id:
                 continue
             try:

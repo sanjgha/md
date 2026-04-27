@@ -1,7 +1,8 @@
 import { render, fireEvent, waitFor } from "@solidjs/testing-library";
-import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from "vitest";
 import { ChartPanel } from "./chart-panel";
 import type { CandleResponse } from "../../lib/stocks-api";
+import { isMarketOpen } from "~/lib/market-hours";
 
 // Mock lightweight-charts — WebGL unavailable in jsdom
 vi.mock("lightweight-charts", () => {
@@ -299,5 +300,65 @@ describe("ChartPanel", () => {
         expect.any(String)
       );
     });
+  });
+});
+
+describe("ChartPanel — realtime live quote", () => {
+  beforeEach(() => {
+    vi.mocked(isMarketOpen).mockReturnValue(true);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            realtime: { last: 150.25, change: 1.5, change_pct: 1.01 },
+            intraday: [],
+          }),
+      })
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("shows live quote in header for intraday resolution when market is open", async () => {
+    const { findByText } = render(() => (
+      <ChartPanel
+        symbol="AAPL"
+        quote={null}
+        selectedSymbol={() => "AAPL"}
+        defaultResolution="1h"
+      />
+    ));
+    expect(await findByText("150.25")).toBeInTheDocument();
+  });
+
+  it("re-fetches intraday candles every 30 seconds during market hours", async () => {
+    vi.useFakeTimers();
+
+    render(() => (
+      <ChartPanel
+        symbol="AAPL"
+        quote={null}
+        selectedSymbol={() => "AAPL"}
+        defaultResolution="1h"
+      />
+    ));
+
+    // Allow initial createEffect to settle
+    await new Promise((r) => queueMicrotask(r as () => void));
+    await new Promise((r) => queueMicrotask(r as () => void));
+
+    const initialCalls = vi.mocked(stocksAPI.getCandles).mock.calls.length;
+    expect(initialCalls).toBeGreaterThan(0);
+
+    // Advance 30s to trigger the polling interval
+    vi.advanceTimersByTime(30_000);
+
+    expect(stocksAPI.getCandles).toHaveBeenCalledTimes(initialCalls + 1);
+
+    vi.useRealTimers();
   });
 });

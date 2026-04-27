@@ -1,6 +1,6 @@
 # MarketData.app Reference Guide
 
-**Last Updated:** 2026-04-04  
+**Last Updated:** 2026-04-04
 **Purpose:** Complete reference for marketdata.app API capabilities, endpoints, data depth, feeds, and latency considerations
 
 ---
@@ -232,7 +232,7 @@ GET https://api.marketdata.app/v1/stocks/candles/5m/AAPL/?countback=50
 Authorization: Bearer YOUR_TOKEN
 ```
 
-**Data Limitations:** 
+**Data Limitations:**
 - Intraday requests cannot exceed 1 year of data per request
 - Data through previous trading day only (not current day intraday)
 
@@ -1170,21 +1170,21 @@ import (
 func main() {
 	// Initialize client with token
 	client := md.New("YOUR_TOKEN")
-	
+
 	// Get stock quote
 	quote, err := client.GetQuote("AAPL")
 	if err != nil {
 		panic(err)
 	}
-	
+
 	fmt.Printf("AAPL: Bid=$%.2f, Ask=$%.2f\n", quote.Bid, quote.Ask)
-	
+
 	// Get historical candles
 	candles, err := client.GetCandles("AAPL", "1d", nil)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	for _, c := range candles {
 		fmt.Printf("Date: %s, Close: $%.2f\n", c.Timestamp, c.Close)
 	}
@@ -1201,19 +1201,19 @@ class MarketDataAPI:
     def __init__(self, token):
         self.base_url = "https://api.marketdata.app/v1"
         self.headers = {"Authorization": f"Bearer {token}"}
-    
+
     def get_quote(self, symbol, feed="live"):
         """Fetch real-time stock quote"""
         url = f"{self.base_url}/stocks/quotes/{symbol}/"
         params = {"feed": feed}
         response = requests.get(url, headers=self.headers, params=params)
         return response.json()
-    
+
     def get_candles(self, symbol, resolution, days=365):
         """Fetch historical candles"""
         to_date = datetime.now().date()
         from_date = to_date - timedelta(days=days)
-        
+
         url = f"{self.base_url}/stocks/candles/{resolution}/{symbol}/"
         params = {
             "from": from_date.isoformat(),
@@ -1221,7 +1221,7 @@ class MarketDataAPI:
         }
         response = requests.get(url, headers=self.headers, params=params)
         return response.json()
-    
+
     def get_bulk_quotes(self, symbols, feed="cached"):
         """Fetch multiple quotes at once"""
         url = f"{self.base_url}/stocks/bulkquotes"

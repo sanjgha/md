@@ -20,6 +20,8 @@ def test_quote_cache_service_returns_cached_quotes(db_session: Session):
         QuoteResponse(
             symbol="AAPL",
             last=150.0,
+            low=None,
+            high=None,
             change=1.0,
             change_pct=0.67,
             source="realtime",
@@ -28,6 +30,8 @@ def test_quote_cache_service_returns_cached_quotes(db_session: Session):
         QuoteResponse(
             symbol="MSFT",
             last=300.0,
+            low=None,
+            high=None,
             change=2.0,
             change_pct=0.67,
             source="realtime",
@@ -137,6 +141,8 @@ def test_quote_cache_invalidate_old_entries(db_session: Session):
         QuoteResponse(
             symbol="AAPL",
             last=150.0,
+            low=None,
+            high=None,
             change=1.0,
             change_pct=0.67,
             source="realtime",

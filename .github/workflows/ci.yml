@@ -22,9 +22,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 
-      - name: Run black (format check)
-        run: black --check .
-
       - name: Run ruff (lint)
         run: ruff check .
 

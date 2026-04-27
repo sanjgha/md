@@ -1125,7 +1125,7 @@ class WatchlistGenerationService:
             except IntegrityError:
                 # Concurrent process already inserted — roll back and re-fetch
                 self.db.rollback()
-                watchlist = (
+                refetched = (
                     self.db.query(Watchlist)
                     .filter(Watchlist.user_id == user_id)
                     .filter(Watchlist.name == watchlist_name)
@@ -1133,6 +1133,11 @@ class WatchlistGenerationService:
                     .filter(Watchlist.watchlist_mode == mode)
                     .first()
                 )
+                if refetched is None:
+                    raise ValueError(
+                        f"Watchlist not found after IntegrityError for user {user_id}, scanner {scanner_name}"
+                    )
+                watchlist = refetched
 
         # Prune entries older than 5 days (rolling window)
         cutoff = datetime.utcnow() - timedelta(days=5)
