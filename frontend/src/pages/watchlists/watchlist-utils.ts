@@ -45,3 +45,57 @@ export function navigateQuotes(
     return quotes[prevIndex].symbol;
   }
 }
+
+/**
+ * Sort quotes by column with direction.
+ * Returns a new sorted array without mutating the original.
+ *
+ * @param quotes - Array of quote responses to sort
+ * @param col - Column to sort by ("ticker" | "last" | "chg_pct" | null)
+ * @param dir - Sort direction ("asc" | "desc")
+ * @returns New sorted array (original is unchanged)
+ */
+export function sortQuotes(
+  quotes: QuoteResponse[],
+  col: "ticker" | "last" | "chg_pct" | null,
+  dir: "asc" | "desc",
+): QuoteResponse[] {
+  // Return copy of original when col is null
+  if (col === null) {
+    return [...quotes];
+  }
+
+  // Create a copy to avoid mutating the original
+  const sorted = [...quotes];
+
+  sorted.sort((a, b) => {
+    let aValue: string | number;
+    let bValue: string | number;
+
+    // Extract values based on column
+    if (col === "ticker") {
+      aValue = a.symbol;
+      bValue = b.symbol;
+    } else if (col === "last") {
+      // Use -Infinity for null values
+      aValue = a.last ?? -Infinity;
+      bValue = b.last ?? -Infinity;
+    } else {
+      // col === "chg_pct"
+      // Use -Infinity for null values
+      aValue = a.change_pct ?? -Infinity;
+      bValue = b.change_pct ?? -Infinity;
+    }
+
+    // Compare values
+    if (aValue < bValue) {
+      return dir === "asc" ? -1 : 1;
+    } else if (aValue > bValue) {
+      return dir === "asc" ? 1 : -1;
+    } else {
+      return 0;
+    }
+  });
+
+  return sorted;
+}
