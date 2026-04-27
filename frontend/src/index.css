@@ -854,7 +854,7 @@ main {
 
 /* Left panel */
 .watchlist-layout__panel {
-  width: 260px;
+  width: 300px;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
   display: flex;
@@ -1094,11 +1094,6 @@ main {
   background: rgba(14, 165, 233, 0.1);
 }
 
-.symbol-row.focused {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-
 .symbol-row--skeleton {
   height: 28px;
   background: var(--surface-1);
@@ -1124,7 +1119,7 @@ main {
 .source-dot--eod      { background: #6b7280; }
 
 .symbol-ticker {
-  width: 38px;
+  width: 56px;
   font-weight: 600;
   color: var(--text-1);
   white-space: nowrap;
@@ -1173,6 +1168,76 @@ main {
 
 .symbol-remove:hover {
   color: #f87171;
+}
+
+/* ===================================================
+   SYMBOL HEADER — sortable column headers
+   =================================================== */
+
+.symbol-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0.5rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.symbol-header__dot {
+  width: 10px;
+  flex-shrink: 0;
+}
+
+.symbol-header__spark {
+  width: 48px;
+  flex-shrink: 0;
+}
+
+.symbol-header__range {
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.symbol-header__remove {
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.symbol-header__cell {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.symbol-header__cell:hover {
+  color: var(--text-1);
+}
+
+.symbol-header__ticker {
+  width: 56px;
+  text-align: left;
+}
+
+.symbol-header__last {
+  width: 40px;
+}
+
+.symbol-header__change {
+  width: 40px;
+}
+
+.symbol-header__sort {
+  font-size: 0.6rem;
+  color: var(--accent);
 }
 
 /* ===================================================

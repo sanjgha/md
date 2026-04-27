@@ -171,11 +171,3 @@ export interface QuoteResponse {
   date: string | null;  // ISO date string (YYYY-MM-DD) for EOD quotes, null for realtime
   intraday: IntradayPoint[];  // Intraday close prices for sparkline (max 30 points)
 }
-
-/**
- * Symbol reference for keyboard navigation
- */
-export interface WatchlistSymbolRef {
-  symbol: string;
-  onRemove: () => void;
-}
