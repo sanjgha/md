@@ -142,8 +142,8 @@ def scan():
             from src.api.watchlists.service import WatchlistGenerationService
             from src.db.models import User
 
-            # Get first user (single-user deployment)
-            user = db.query(User).first()
+            # Get first user (single-user deployment) — order by id for determinism
+            user = db.query(User).order_by(User.id).first()
             if user:
                 watchlist_service = WatchlistGenerationService(db)
 

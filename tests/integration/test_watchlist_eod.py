@@ -103,12 +103,10 @@ def test_eod_watchlist_generation_workflow(db_session: Session):
 
 def test_watchlist_generation_handles_no_results(db_session: Session):
     """Test that watchlist generation handles case with no scanner results gracefully."""
-    # Create a user
     user = User(username="test_user", password_hash="test_hash")
     db_session.add(user)
     db_session.commit()
 
-    # Try to generate watchlist with no scanner results
     watchlist_service = WatchlistGenerationService(db_session)
 
     watchlist = watchlist_service.generate_from_scanner_results(
@@ -117,8 +115,105 @@ def test_watchlist_generation_handles_no_results(db_session: Session):
         user_id=cast(int, user.id),
     )
 
-    # Should return None when no results exist
     assert watchlist is None
+
+
+def test_today_watchlist_cleared_when_no_results(db_session: Session):
+    """Today watchlist symbols are wiped when today's scan produces no matches."""
+    user = User(username="clear_user", password_hash="hash")
+    db_session.add(user)
+    stock = Stock(symbol="CLR1", name="Clear Corp")
+    db_session.add(stock)
+    db_session.commit()
+
+    # First run: stock matches
+    result = ScannerResult(
+        stock_id=stock.id,
+        scanner_name="momentum",
+        result_metadata={"reason": "initial"},
+        matched_at=datetime.now(),
+    )
+    db_session.add(result)
+    db_session.commit()
+
+    svc = WatchlistGenerationService(db_session)
+    svc.generate_from_scanner_results("momentum", date.today(), cast(int, user.id))
+
+    today_wl = (
+        db_session.query(Watchlist)
+        .filter_by(user_id=user.id, scanner_name="momentum", watchlist_mode="replace")
+        .first()
+    )
+    assert today_wl is not None
+    assert db_session.query(WatchlistSymbol).filter_by(watchlist_id=today_wl.id).count() == 1
+
+    # Second run: no matches today (scanner result deleted to simulate no match)
+    db_session.delete(result)
+    db_session.commit()
+
+    svc.generate_from_scanner_results("momentum", date.today(), cast(int, user.id))
+
+    db_session.expire_all()
+    # Today watchlist must be empty — not showing yesterday's stock
+    assert db_session.query(WatchlistSymbol).filter_by(watchlist_id=today_wl.id).count() == 0
+
+
+def test_history_prunes_entries_older_than_5_days(db_session: Session):
+    """History watchlist evicts symbols whose added_at is older than 5 days."""
+    user = User(username="prune_user", password_hash="hash")
+    db_session.add(user)
+    stock_old = Stock(symbol="OLD1", name="Old Corp")
+    stock_new = Stock(symbol="NEW1", name="New Corp")
+    db_session.add_all([stock_old, stock_new])
+    db_session.commit()
+
+    # Seed a new match so the History watchlist gets created
+    result_new = ScannerResult(
+        stock_id=stock_new.id,
+        scanner_name="volume",
+        result_metadata={"reason": "today"},
+        matched_at=datetime.now(),
+    )
+    db_session.add(result_new)
+    db_session.commit()
+
+    svc = WatchlistGenerationService(db_session)
+    svc.generate_from_scanner_results("volume", date.today(), cast(int, user.id))
+
+    history_wl = (
+        db_session.query(Watchlist)
+        .filter_by(user_id=user.id, scanner_name="volume", watchlist_mode="append")
+        .first()
+    )
+    assert history_wl is not None
+
+    # Manually inject an old symbol (6 days ago) directly into the watchlist
+    old_sym = WatchlistSymbol(
+        watchlist_id=history_wl.id,
+        stock_id=stock_old.id,
+        added_at=datetime.utcnow() - timedelta(days=6),
+    )
+    db_session.add(old_sym)
+    db_session.commit()
+    assert db_session.query(WatchlistSymbol).filter_by(watchlist_id=history_wl.id).count() == 2
+
+    # Run again — pruning should evict stock_old (6 days old), stock_new survives
+    result_new2 = ScannerResult(
+        stock_id=stock_new.id,
+        scanner_name="volume",
+        result_metadata={"reason": "today again"},
+        matched_at=datetime.now(),
+    )
+    db_session.add(result_new2)
+    db_session.commit()
+
+    svc.generate_from_scanner_results("volume", date.today(), cast(int, user.id))
+
+    db_session.expire_all()
+    symbols = db_session.query(WatchlistSymbol).filter_by(watchlist_id=history_wl.id).all()
+    stock_ids = {s.stock_id for s in symbols}
+    assert stock_old.id not in stock_ids, "Old symbol should be pruned after 5 days"
+    assert stock_new.id in stock_ids, "Recent symbol should remain"
 
 
 def test_watchlist_generation_handles_multiple_scanners(db_session: Session):
