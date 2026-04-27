@@ -60,7 +60,7 @@ def test_watchlist_creation(db_session):
     user = User(username="test", password_hash="hash")
     db_session.add(user)
     db_session.flush()
-    
+
     watchlist = Watchlist(
         user_id=user.id,
         name="My Watchlist",
@@ -68,7 +68,7 @@ def test_watchlist_creation(db_session):
     )
     db_session.add(watchlist)
     db_session.commit()
-    
+
     assert watchlist.id is not None
     assert watchlist.name == "My Watchlist"
     assert watchlist.is_auto_generated is False
@@ -88,7 +88,7 @@ Expected: FAIL with "Class 'Watchlist' not defined"
 class Watchlist(Base):
     """User watchlists for organizing stock lists."""
     __tablename__ = "watchlists"
-    
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(255), nullable=False)
@@ -100,11 +100,11 @@ class Watchlist(Base):
     source_scan_date = Column(Date, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     user = relationship("User", back_populates="watchlists")
     category = relationship("WatchlistCategory", back_populates="watchlists")
     symbols = relationship("WatchlistSymbol", back_populates="watchlist", cascade="all, delete-orphan")
-    
+
     __table_args__ = (
         UniqueConstraint("user_id", "name", name="uq_watchlists_user_name"),
         Index("ix_watchlists_user_category", "user_id", "category_id"),
@@ -119,16 +119,16 @@ class Watchlist(Base):
 class WatchlistSymbol(Base):
     """Symbols in a watchlist."""
     __tablename__ = "watchlist_symbols"
-    
+
     id = Column(BigInteger, primary_key=True)
     watchlist_id = Column(Integer, ForeignKey("watchlists.id", ondelete="CASCADE"), nullable=False)
     stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
     added_at = Column(DateTime, default=datetime.utcnow)
     notes = Column(Text)
-    
+
     watchlist = relationship("Watchlist", back_populates="symbols")
     stock = relationship("Stock")
-    
+
     __table_args__ = (
         UniqueConstraint("watchlist_id", "stock_id", name="uq_watchlist_symbols_watchlist_stock"),
         Index("ix_watchlist_symbols_watchlist", "watchlist_id"),
@@ -143,7 +143,7 @@ class WatchlistSymbol(Base):
 class WatchlistCategory(Base):
     """Categories for organizing watchlists."""
     __tablename__ = "watchlist_categories"
-    
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(100), nullable=False)
@@ -151,10 +151,10 @@ class WatchlistCategory(Base):
     sort_order = Column(Integer, default=0)
     is_system = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     user = relationship("User", back_populates="watchlist_categories")
     watchlists = relationship("Watchlist", back_populates="category")
-    
+
     __table_args__ = (
         UniqueConstraint("user_id", "name", name="uq_watchlist_categories_user_name"),
     )
@@ -167,7 +167,7 @@ class WatchlistCategory(Base):
 
 class User(Base):
     # ... existing fields ...
-    
+
     # Add these two new relationships:
     watchlists = relationship("Watchlist", back_populates="user", cascade="all, delete-orphan")
     watchlist_categories = relationship("WatchlistCategory", back_populates="user", cascade="all, delete-orphan")
@@ -184,22 +184,22 @@ Expected: PASS
 def test_watchlist_with_symbols(db_session):
     """Test adding symbols to watchlist."""
     from src.db.models import Stock
-    
+
     user = User(username="test", password_hash="hash")
     db_session.add(user)
     db_session.flush()
-    
+
     stock = Stock(symbol="AAPL", name="Apple Inc")
     db_session.add(stock)
     db_session.flush()
-    
+
     watchlist = Watchlist(
         user_id=user.id,
         name="Tech Stocks"
     )
     db_session.add(watchlist)
     db_session.flush()
-    
+
     symbol = WatchlistSymbol(
         watchlist_id=watchlist.id,
         stock_id=stock.id,
@@ -207,7 +207,7 @@ def test_watchlist_with_symbols(db_session):
     )
     db_session.add(symbol)
     db_session.commit()
-    
+
     assert len(watchlist.symbols) == 1
     assert watchlist.symbols[0].stock.symbol == "AAPL"
 ```
@@ -281,7 +281,7 @@ def upgrade():
         sa.UniqueConstraint('user_id', 'name', name='uq_watchlist_categories_user_name'),
         sa.PrimaryKeyConstraint('id')
     )
-    
+
     op.create_table(
         'watchlists',
         sa.Column('id', sa.Integer(), nullable=False),
@@ -301,7 +301,7 @@ def upgrade():
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index('ix_watchlists_user_category', 'watchlists', ['user_id', 'category_id'])
-    
+
     op.create_table(
         'watchlist_symbols',
         sa.Column('id', sa.BigInteger(), nullable=False),
@@ -521,14 +521,14 @@ def test_create_watchlist(db_session):
     user = User(username="test", password_hash="hash")
     db_session.add(user)
     db_session.commit()
-    
+
     service = WatchlistService(db_session)
     watchlist = service.create_watchlist(
         user_id=user.id,
         name="My Watchlist",
         description="Test"
     )
-    
+
     assert watchlist.id is not None
     assert watchlist.name == "My Watchlist"
     assert watchlist.user_id == user.id
@@ -550,10 +550,10 @@ from src.db.models import Watchlist, WatchlistSymbol, WatchlistCategory, Stock
 
 class WatchlistService:
     """Service for watchlist business logic."""
-    
+
     def __init__(self, db: Session):
         self.db = db
-    
+
     def create_watchlist(
         self,
         user_id: int,
@@ -572,7 +572,7 @@ class WatchlistService:
         self.db.commit()
         self.db.refresh(watchlist)
         return watchlist
-    
+
     def get_user_watchlists(self, user_id: int) -> List[Watchlist]:
         """Get all watchlists for user."""
         return (
@@ -581,7 +581,7 @@ class WatchlistService:
             .order_by(Watchlist.created_at.desc())
             .all()
         )
-    
+
     def get_watchlist(self, watchlist_id: int, user_id: int) -> Optional[Watchlist]:
         """Get watchlist by ID if owned by user."""
         return (
@@ -590,7 +590,7 @@ class WatchlistService:
             .filter(Watchlist.user_id == user_id)
             .first()
         )
-    
+
     def update_watchlist(
         self,
         watchlist_id: int,
@@ -603,24 +603,24 @@ class WatchlistService:
         watchlist = self.get_watchlist(watchlist_id, user_id)
         if not watchlist:
             return None
-        
+
         if name is not None:
             watchlist.name = name
         if category_id is not None:
             watchlist.category_id = category_id
         if description is not None:
             watchlist.description = description
-        
+
         self.db.commit()
         self.db.refresh(watchlist)
         return watchlist
-    
+
     def delete_watchlist(self, watchlist_id: int, user_id: int) -> bool:
         """Delete watchlist if owned by user."""
         watchlist = self.get_watchlist(watchlist_id, user_id)
         if not watchlist:
             return False
-        
+
         self.db.delete(watchlist)
         self.db.commit()
         return True
@@ -637,25 +637,25 @@ Expected: PASS
 def test_add_symbol_to_watchlist(db_session):
     """Test adding symbol to watchlist."""
     from src.db.models import Stock
-    
+
     user = User(username="test", password_hash="hash")
     db_session.add(user)
     db_session.flush()
-    
+
     stock = Stock(symbol="AAPL", name="Apple Inc")
     db_session.add(stock)
     db_session.flush()
-    
+
     service = WatchlistService(db_session)
     watchlist = service.create_watchlist(user_id=user.id, name="Tech")
-    
+
     result = service.add_symbol(
         watchlist_id=watchlist.id,
         user_id=user.id,
         symbol="AAPL",
         notes="Good momentum"
     )
-    
+
     assert result is True
     assert len(watchlist.symbols) == 1
     assert watchlist.symbols[0].stock.symbol == "AAPL"
@@ -663,21 +663,21 @@ def test_add_symbol_to_watchlist(db_session):
 def test_remove_symbol_from_watchlist(db_session):
     """Test removing symbol from watchlist."""
     from src.db.models import Stock
-    
+
     user = User(username="test", password_hash="hash")
     db_session.add(user)
     db_session.flush()
-    
+
     stock = Stock(symbol="AAPL", name="Apple Inc")
     db_session.add(stock)
     db_session.flush()
-    
+
     service = WatchlistService(db_session)
     watchlist = service.create_watchlist(user_id=user.id, name="Tech")
     service.add_symbol(watchlist.id, user.id, "AAPL")
-    
+
     result = service.remove_symbol(watchlist.id, user.id, "AAPL")
-    
+
     assert result is True
     assert len(watchlist.symbols) == 0
 ```
@@ -698,16 +698,16 @@ def add_symbol(
     watchlist = self.get_watchlist(watchlist_id, user_id)
     if not watchlist:
         return False
-    
+
     stock = (
         self.db.query(Stock)
         .filter(Stock.symbol == symbol.upper())
         .first()
     )
-    
+
     if not stock:
         return False
-    
+
     # Check if already in watchlist
     existing = (
         self.db.query(WatchlistSymbol)
@@ -715,10 +715,10 @@ def add_symbol(
         .filter(WatchlistSymbol.stock_id == stock.id)
         .first()
     )
-    
+
     if existing:
         return False  # Already exists
-    
+
     symbol_entry = WatchlistSymbol(
         watchlist_id=watchlist.id,
         stock_id=stock.id,
@@ -734,26 +734,26 @@ def remove_symbol(self, watchlist_id: int, user_id: int, symbol: str) -> bool:
     watchlist = self.get_watchlist(watchlist_id, user_id)
     if not watchlist:
         return False
-    
+
     stock = (
         self.db.query(Stock)
         .filter(Stock.symbol == symbol.upper())
         .first()
     )
-    
+
     if not stock:
         return False
-    
+
     symbol_entry = (
         self.db.query(WatchlistSymbol)
         .filter(WatchlistSymbol.watchlist_id == watchlist_id)
         .filter(WatchlistSymbol.stock_id == stock.id)
         .first()
     )
-    
+
     if not symbol_entry:
         return False
-    
+
     self.db.delete(symbol_entry)
     self.db.commit()
     return True
@@ -764,7 +764,7 @@ def get_watchlist_symbols(self, watchlist_id: int, user_id: int) -> List[Watchli
     watchlist = self.get_watchlist(watchlist_id, user_id)
     if not watchlist:
         return []
-    
+
     return (
         self.db.query(WatchlistSymbol)
         .filter(WatchlistSymbol.watchlist_id == watchlist_id)
@@ -799,18 +799,18 @@ git commit -m "feat: add WatchlistService with CRUD and symbol management"
 def test_create_category(db_session):
     """Test creating a category."""
     from src.api.watchlists.service import WatchlistService
-    
+
     user = User(username="test", password_hash="hash")
     db_session.add(user)
     db_session.commit()
-    
+
     service = WatchlistService(db_session)
     category = service.create_category(
         user_id=user.id,
         name="My Category",
         icon="🔥"
     )
-    
+
     assert category.id is not None
     assert category.name == "My Category"
     assert category.icon == "🔥"
@@ -818,14 +818,14 @@ def test_create_category(db_session):
 def test_get_default_categories(db_session):
     """Test getting/creating default system categories."""
     from src.api.watchlists.service import WatchlistService
-    
+
     user = User(username="test", password_hash="hash")
     db_session.add(user)
     db_session.commit()
-    
+
     service = WatchlistService(db_session)
     categories = service.get_or_create_default_categories(user.id)
-    
+
     assert len(categories) == 4
     category_names = [c.name for c in categories]
     assert "Active Trading" in category_names
@@ -872,7 +872,7 @@ def get_or_create_default_categories(self, user_id: int) -> List[WatchlistCatego
         {"name": "Research", "icon": "🔬", "sort_order": 3},
         {"name": "Archived", "icon": "📦", "sort_order": 4},
     ]
-    
+
     categories = []
     for cat_def in default_categories:
         category = (
@@ -882,7 +882,7 @@ def get_or_create_default_categories(self, user_id: int) -> List[WatchlistCatego
             .filter(WatchlistCategory.is_system == True)
             .first()
         )
-        
+
         if not category:
             category = WatchlistCategory(
                 user_id=user_id,
@@ -894,9 +894,9 @@ def get_or_create_default_categories(self, user_id: int) -> List[WatchlistCatego
             self.db.add(category)
             self.db.commit()
             self.db.refresh(category)
-        
+
         categories.append(category)
-    
+
     return categories
 
 
@@ -936,25 +936,25 @@ def test_clone_watchlist(db_session):
     """Test cloning a watchlist."""
     from src.api.watchlists.service import WatchlistService
     from src.db.models import Stock
-    
+
     user = User(username="test", password_hash="hash")
     db_session.add(user)
     db_session.flush()
-    
+
     stock = Stock(symbol="AAPL", name="Apple Inc")
     db_session.add(stock)
     db_session.flush()
-    
+
     service = WatchlistService(db_session)
     original = service.create_watchlist(user_id=user.id, name="Original")
     service.add_symbol(original.id, user.id, "AAPL")
-    
+
     clone = service.clone_watchlist(
         watchlist_id=original.id,
         user_id=user.id,
         new_name="Copy of Original"
     )
-    
+
     assert clone is not None
     assert clone.name == "Copy of Original"
     assert clone.id != original.id
@@ -982,7 +982,7 @@ def clone_watchlist(
     original = self.get_watchlist(watchlist_id, user_id)
     if not original:
         return None
-    
+
     clone = Watchlist(
         user_id=user_id,
         name=new_name,
@@ -992,7 +992,7 @@ def clone_watchlist(
     )
     self.db.add(clone)
     self.db.flush()
-    
+
     # Copy symbols
     for symbol_entry in original.symbols:
         new_symbol = WatchlistSymbol(
@@ -1001,7 +1001,7 @@ def clone_watchlist(
             notes=symbol_entry.notes
         )
         self.db.add(new_symbol)
-    
+
     self.db.commit()
     self.db.refresh(clone)
     return clone
@@ -1010,7 +1010,7 @@ def clone_watchlist(
 def get_watchlists_grouped(self, user_id: int) -> List[dict]:
     """Get user's watchlists grouped by category."""
     categories = self.get_user_categories(user_id)
-    
+
     result = []
     for category in categories:
         watchlists = (
@@ -1019,7 +1019,7 @@ def get_watchlists_grouped(self, user_id: int) -> List[dict]:
             .filter(Watchlist.category_id == category.id)
             .all()
         )
-        
+
         # Convert to response format with symbol counts
         watchlist_responses = []
         for wl in watchlists:
@@ -1040,7 +1040,7 @@ def get_watchlists_grouped(self, user_id: int) -> List[dict]:
                 "updated_at": wl.updated_at,
                 "symbol_count": symbol_count
             })
-        
+
         result.append({
             "category_id": category.id,
             "category_name": category.name,
@@ -1048,7 +1048,7 @@ def get_watchlists_grouped(self, user_id: int) -> List[dict]:
             "is_system": category.is_system,
             "watchlists": watchlist_responses
         })
-    
+
     return result
 ```
 
@@ -1081,7 +1081,7 @@ from src.api.watchlists.schemas import WatchlistCreate
 def test_list_watchlists(authenticated_client):
     """Test GET /api/watchlists returns grouped watchlists."""
     response = authenticated_client.get("/api/watchlists")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "categories" in data
@@ -1126,12 +1126,12 @@ def list_watchlists(
 ):
     """List all watchlists grouped by category."""
     service = WatchlistService(db)
-    
+
     # Ensure default categories exist
     service.get_or_create_default_categories(current_user.id)
-    
+
     categories = service.get_watchlists_grouped(current_user.id)
-    
+
     return {"categories": categories}
 
 
@@ -1143,14 +1143,14 @@ def create_watchlist(
 ):
     """Create a new watchlist."""
     service = WatchlistService(db)
-    
+
     watchlist = service.create_watchlist(
         user_id=current_user.id,
         name=data.name,
         description=data.description,
         category_id=data.category_id
     )
-    
+
     return watchlist
 
 
@@ -1163,10 +1163,10 @@ def get_watchlist(
     """Get watchlist details."""
     service = WatchlistService(db)
     watchlist = service.get_watchlist(watchlist_id, current_user.id)
-    
+
     if not watchlist:
         raise HTTPException(status_code=404, detail="Watchlist not found")
-    
+
     # Add symbol count
     from src.db.models import WatchlistSymbol
     symbol_count = (
@@ -1174,7 +1174,7 @@ def get_watchlist(
         .filter(WatchlistSymbol.watchlist_id == watchlist_id)
         .count()
     )
-    
+
     return WatchlistResponse(
         **{k: v for k, v in watchlist.__dict__.items() if not k.startswith('_')},
         symbol_count=symbol_count
@@ -1197,10 +1197,10 @@ def update_watchlist(
         category_id=data.category_id,
         description=data.description
     )
-    
+
     if not watchlist:
         raise HTTPException(status_code=404, detail="Watchlist not found")
-    
+
     return watchlist
 
 
@@ -1213,10 +1213,10 @@ def delete_watchlist(
     """Delete watchlist."""
     service = WatchlistService(db)
     success = service.delete_watchlist(watchlist_id, current_user.id)
-    
+
     if not success:
         raise HTTPException(status_code=404, detail="Watchlist not found")
-    
+
     return None
 ```
 
@@ -1260,13 +1260,13 @@ def test_add_symbol_to_watchlist(authenticated_client):
         "name": "Tech Stocks"
     })
     watchlist_id = response.json()["id"]
-    
+
     # Add symbol
     response = authenticated_client.post(
         f"/api/watchlists/{watchlist_id}/symbols",
         json={"symbol": "AAPL", "notes": "Good momentum"}
     )
-    
+
     assert response.status_code == 200
     assert response.json()["success"] is True
 
@@ -1277,17 +1277,17 @@ def test_remove_symbol_from_watchlist(authenticated_client):
         "name": "Tech"
     })
     watchlist_id = response.json()["id"]
-    
+
     authenticated_client.post(
         f"/api/watchlists/{watchlist_id}/symbols",
         json={"symbol": "AAPL"}
     )
-    
+
     # Remove symbol
     response = authenticated_client.delete(
         f"/api/watchlists/{watchlist_id}/symbols/AAPL"
     )
-    
+
     assert response.status_code == 200
     assert response.json()["success"] is True
 ```
@@ -1311,7 +1311,7 @@ def list_watchlist_symbols(
     """List symbols in watchlist."""
     service = WatchlistService(db)
     symbols = service.get_watchlist_symbols(watchlist_id, current_user.id)
-    
+
     return [
         WatchlistSymbolResponse(
             id=s.id,
@@ -1338,10 +1338,10 @@ def add_symbol_to_watchlist(
         symbol=data.symbol,
         notes=data.notes
     )
-    
+
     if not success:
         raise HTTPException(status_code=400, detail="Failed to add symbol")
-    
+
     return {"success": True}
 
 
@@ -1359,10 +1359,10 @@ def remove_symbol_from_watchlist(
         user_id=current_user.id,
         symbol=symbol.upper()
     )
-    
+
     if not success:
         raise HTTPException(status_code=404, detail="Symbol not found in watchlist")
-    
+
     return {"success": True}
 ```
 
@@ -1391,7 +1391,7 @@ git commit -m "feat: add symbol management API endpoints"
 def test_list_categories(authenticated_client):
     """Test GET /api/watchlists/categories."""
     response = authenticated_client.get("/api/watchlists/categories")
-    
+
     assert response.status_code == 200
     categories = response.json()
     assert len(categories) == 4  # Default categories
@@ -1402,7 +1402,7 @@ def test_create_category(authenticated_client):
         "name": "My Custom Category",
         "icon": "🚀"
     })
-    
+
     assert response.status_code == 201
     assert response.json()["name"] == "My Custom Category"
 ```
@@ -1424,10 +1424,10 @@ def list_categories(
 ):
     """List all categories for user."""
     service = WatchlistService(db)
-    
+
     # Ensure defaults exist
     service.get_or_create_default_categories(current_user.id)
-    
+
     return service.get_user_categories(current_user.id)
 
 
@@ -1439,14 +1439,14 @@ def create_category(
 ):
     """Create a new category."""
     service = WatchlistService(db)
-    
+
     category = service.create_category(
         user_id=current_user.id,
         name=data.name,
         icon=data.icon,
         is_system=False
     )
-    
+
     return category
 
 
@@ -1458,23 +1458,23 @@ def delete_category(
 ):
     """Delete a category (only if not system)."""
     from src.db.models import WatchlistCategory
-    
+
     category = (
         db.query(WatchlistCategory)
         .filter(WatchlistCategory.id == category_id)
         .filter(WatchlistCategory.user_id == current_user.id)
         .first()
     )
-    
+
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
-    
+
     if category.is_system:
         raise HTTPException(status_code=400, detail="Cannot delete system category")
-    
+
     db.delete(category)
     db.commit()
-    
+
     return None
 
 
@@ -1487,16 +1487,16 @@ def clone_watchlist(
 ):
     """Clone a watchlist."""
     service = WatchlistService(db)
-    
+
     clone = service.clone_watchlist(
         watchlist_id=watchlist_id,
         user_id=current_user.id,
         new_name=data.new_name
     )
-    
+
     if not clone:
         raise HTTPException(status_code=404, detail="Watchlist not found")
-    
+
     return clone
 ```
 
@@ -2029,11 +2029,11 @@ def test_generate_watchlist_from_scanner(db_session):
     user = User(username="test", password_hash="hash")
     db_session.add(user)
     db_session.flush()
-    
+
     stock = Stock(symbol="AAPL", name="Apple Inc")
     db_session.add(stock)
     db_session.flush()
-    
+
     # Create scanner result
     result = ScannerResult(
         stock_id=stock.id,
@@ -2043,14 +2043,14 @@ def test_generate_watchlist_from_scanner(db_session):
     )
     db_session.add(result)
     db_session.commit()
-    
+
     service = WatchlistGenerationService(db_session)
     watchlist = service.generate_from_scanner_results(
         scanner_name="price_action",
         scan_date=date.today(),
         user_id=user.id
     )
-    
+
     assert watchlist is not None
     assert "Price Action - Today" in watchlist.name
     assert len(watchlist.symbols) == 1
@@ -2068,10 +2068,10 @@ Expected: FAIL with "cannot import name 'WatchlistGenerationService'"
 
 class WatchlistGenerationService:
     """Service for auto-generating watchlists from scanner results."""
-    
+
     def __init__(self, db: Session):
         self.db = db
-    
+
     def generate_from_scanner_results(
         self,
         scanner_name: str,
@@ -2080,15 +2080,15 @@ class WatchlistGenerationService:
     ):
         """
         Generate watchlists from scanner results.
-        
+
         Creates two watchlists if scanner has matches:
         - "{Scanner} - Today" (replace mode)
         - "{Scanner} - History" (append mode)
-        
+
         Returns: The "Today" watchlist if created, None if no matches
         """
         from src.db.models import ScannerResult as ScannerResultModel
-        
+
         # Query scanner results for this date
         results = (
             self.db.query(ScannerResultModel)
@@ -2098,13 +2098,13 @@ class WatchlistGenerationService:
             .filter(ScannerResultModel.matched_at < scan_date + timedelta(days=1))
             .all()
         )
-        
+
         if not results:
             return None
-        
+
         # Get or create "Scanner Results" category
         scanner_category = self._get_or_create_scanner_category(user_id)
-        
+
         # Create "{Scanner} - Today" watchlist (replace mode)
         today_watchlist = self._create_or_replace_watchlist(
             scanner_name=scanner_name,
@@ -2114,7 +2114,7 @@ class WatchlistGenerationService:
             user_id=user_id,
             results=results
         )
-        
+
         # Create "{Scanner} - History" watchlist (append mode)
         self._create_or_append_watchlist(
             scanner_name=scanner_name,
@@ -2123,9 +2123,9 @@ class WatchlistGenerationService:
             user_id=user_id,
             results=results
         )
-        
+
         return today_watchlist
-    
+
     def _get_or_create_scanner_category(self, user_id: int) -> WatchlistCategory:
         """Get or create the 'Scanner Results' category for user."""
         category = (
@@ -2135,7 +2135,7 @@ class WatchlistGenerationService:
             .filter(WatchlistCategory.is_system == True)
             .first()
         )
-        
+
         if not category:
             category = WatchlistCategory(
                 user_id=user_id,
@@ -2146,9 +2146,9 @@ class WatchlistGenerationService:
             )
             self.db.add(category)
             self.db.commit()
-        
+
         return category
-    
+
     def _create_or_replace_watchlist(
         self,
         scanner_name: str,
@@ -2160,7 +2160,7 @@ class WatchlistGenerationService:
     ) -> Watchlist:
         """Create watchlist or replace existing symbols."""
         watchlist_name = f"{self._format_scanner_name(scanner_name)} - Today"
-        
+
         # Look for existing watchlist
         existing = (
             self.db.query(Watchlist)
@@ -2170,7 +2170,7 @@ class WatchlistGenerationService:
             .filter(Watchlist.watchlist_mode == mode)
             .first()
         )
-        
+
         if existing:
             # Remove all existing symbols (replace mode)
             self.db.query(WatchlistSymbol).filter(
@@ -2190,7 +2190,7 @@ class WatchlistGenerationService:
             )
             self.db.add(watchlist)
             self.db.flush()
-        
+
         # Add new symbols
         for result in results:
             symbol_entry = WatchlistSymbol(
@@ -2199,10 +2199,10 @@ class WatchlistGenerationService:
                 notes=f"Matched at {result.matched_at}: {result.result_metadata.get('reason', 'N/A')}"
             )
             self.db.add(symbol_entry)
-        
+
         self.db.commit()
         return watchlist
-    
+
     def _create_or_append_watchlist(
         self,
         scanner_name: str,
@@ -2213,7 +2213,7 @@ class WatchlistGenerationService:
     ) -> Watchlist:
         """Create watchlist or append new symbols to existing."""
         watchlist_name = f"{self._format_scanner_name(scanner_name)} - History"
-        
+
         # Look for existing watchlist
         existing = (
             self.db.query(Watchlist)
@@ -2223,7 +2223,7 @@ class WatchlistGenerationService:
             .filter(Watchlist.watchlist_mode == mode)
             .first()
         )
-        
+
         if existing:
             watchlist = existing
         else:
@@ -2237,7 +2237,7 @@ class WatchlistGenerationService:
             )
             self.db.add(watchlist)
             self.db.flush()
-        
+
         # Append new symbols (avoid duplicates)
         existing_stock_ids = {
             ws.stock_id
@@ -2245,7 +2245,7 @@ class WatchlistGenerationService:
             .filter(WatchlistSymbol.watchlist_id == watchlist.id)
             .all()
         }
-        
+
         for result in results:
             if result.stock_id not in existing_stock_ids:
                 symbol_entry = WatchlistSymbol(
@@ -2254,10 +2254,10 @@ class WatchlistGenerationService:
                     notes=f"{result.matched_at.date()}: {result.result_metadata.get('reason', 'N/A')}"
                 )
                 self.db.add(symbol_entry)
-        
+
         self.db.commit()
         return watchlist
-    
+
     def _format_scanner_name(self, scanner_name: str) -> str:
         """Format scanner name for display."""
         return scanner_name.replace("_", " ").title()
@@ -2294,7 +2294,7 @@ def scan():
     from src.scanner.registry import ScannerRegistry
     from src.scanner.executor import ScannerExecutor
     # ... existing imports ...
-    
+
     cfg = get_config()
     logging.basicConfig(level=cfg.LOG_LEVEL)
     logger.info("Starting scanner...")
@@ -2302,23 +2302,23 @@ def scan():
     db = _get_db_session()
     try:
         # ... existing scanner setup code ...
-        
+
         results = executor.run_eod(stocks_with_candles)
         logger.info(f"Scan complete. Found {len(results)} matches.")
-        
+
         # NEW: Auto-generate watchlists from scanner results
         try:
             from src.api.watchlists.service import WatchlistGenerationService
             from src.db.models import User
-            
+
             # Get first user (single-user deployment)
             user = db.query(User).first()
             if user:
                 watchlist_service = WatchlistGenerationService(db)
-                
+
                 # Group results by scanner
                 scanner_names = set(r.scanner_name for r in results)
-                
+
                 for scanner_name in scanner_names:
                     watchlist = watchlist_service.generate_from_scanner_results(
                         scanner_name=scanner_name,
@@ -2327,7 +2327,7 @@ def scan():
                     )
                     if watchlist:
                         logger.info(f"Created watchlist: {watchlist.name}")
-                
+
                 logger.info("Watchlist generation complete.")
         except Exception as e:
             logger.error(f"Watchlist generation failed: {e}", exc_info=True)
@@ -2382,35 +2382,35 @@ def test_full_watchlist_workflow(db_session, authenticated_client):
     })
     assert response.status_code == 201
     watchlist_id = response.json()["id"]
-    
+
     # 2. Add symbols to watchlist
     response = authenticated_client.post(
         f"/api/watchlists/{watchlist_id}/symbols",
         json={"symbol": "AAPL", "notes": "Test position"}
     )
     assert response.status_code == 200
-    
+
     # 3. List symbols in watchlist
     response = authenticated_client.get(f"/api/watchlists/{watchlist_id}/symbols")
     assert response.status_code == 200
     symbols = response.json()
     assert len(symbols) == 1
     assert symbols[0]["symbol"] == "AAPL"
-    
+
     # 4. Remove symbol
     response = authenticated_client.delete(f"/api/watchlists/{watchlist_id}/symbols/AAPL")
     assert response.status_code == 200
-    
+
     # 5. Verify symbol removed
     response = authenticated_client.get(f"/api/watchlists/{watchlist_id}/symbols")
     assert response.status_code == 200
     symbols = response.json()
     assert len(symbols) == 0
-    
+
     # 6. Delete watchlist
     response = authenticated_client.delete(f"/api/watchlists/{watchlist_id}")
     assert response.status_code == 204
-    
+
     # 7. Verify deleted
     response = authenticated_client.get(f"/api/watchlists/{watchlist_id}")
     assert response.status_code == 404
@@ -2420,14 +2420,14 @@ def test_eod_creates_watchlists(db_session):
     from src.main import eod
     from click.testing import CliRunner
     from src.db.models import Watchlist, User
-    
+
     # Get user
     user = db_session.query(User).first()
-    
+
     # Run EOD (this will scan and generate watchlists)
     runner = CliRunner()
     result = runner.invoke(eod, [])
-    
+
     # Check that watchlists were created
     watchlists = (
         db_session.query(Watchlist)
@@ -2435,10 +2435,10 @@ def test_eod_creates_watchlists(db_session):
         .filter(Watchlist.is_auto_generated == True)
         .all()
     )
-    
+
     # Should have created "Today" and "History" watchlists for each scanner
     assert len(watchlists) > 0
-    
+
     # Verify watchlist structure
     for wl in watchlists:
         assert wl.scanner_name is not None
