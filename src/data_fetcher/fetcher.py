@@ -98,6 +98,28 @@ class DataFetcher:
         self.db.commit()
         return result.rowcount  # type: ignore[attr-defined]
 
+    def _detect_corporate_action(self, symbol: str, candles) -> bool:
+        """Return True if any overnight open/close gap exceeds 35%, logging a warning.
+
+        Threshold catches 2:1 forward splits (50% drop), 1:10 reverse splits (900% rise),
+        and anything in between. Genuine earnings gaps rarely exceed 35% on daily data.
+        """
+        sorted_c = sorted(candles, key=lambda c: c.timestamp)
+        for prev, curr in zip(sorted_c, sorted_c[1:]):
+            if prev.close <= 0:
+                continue
+            gap = abs(curr.open / prev.close - 1)
+            if gap > 0.35:
+                logger.warning(
+                    "Possible corporate action %s: prev_close=%.2f curr_open=%.2f gap=%.1f%%",
+                    symbol,
+                    prev.close,
+                    curr.open,
+                    gap * 100,
+                )
+                return True
+        return False
+
     def sync_daily(
         self,
         symbols: Optional[List[str]] = None,
@@ -119,6 +141,7 @@ class DataFetcher:
                 candles = self.provider.get_daily_candles(
                     symbol=symbol, from_date=from_date, to_date=to_date
                 )
+                self._detect_corporate_action(symbol, candles)
                 inserted = self._bulk_upsert_daily_candles(int(stock.id), candles)
                 logger.info(f"sync_daily {symbol}: {inserted} new rows")
                 time.sleep(self.rate_limit_delay)
