@@ -1094,11 +1094,6 @@ main {
   background: rgba(14, 165, 233, 0.1);
 }
 
-.symbol-row.focused {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-
 .symbol-row--skeleton {
   height: 28px;
   background: var(--surface-1);

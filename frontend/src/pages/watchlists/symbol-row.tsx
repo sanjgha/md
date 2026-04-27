@@ -3,7 +3,6 @@
  *
  * Shows: source dot, ticker, sparkline (trend), range bar (position),
  * last price, change%, remove button on hover.
- * Supports keyboard focus indication (distinct from mouse selection).
  */
 
 import { Component } from "solid-js";
@@ -14,7 +13,6 @@ import type { QuoteResponse } from "./types";
 interface SymbolRowProps {
   quote: QuoteResponse;
   selected: boolean;
-  focused: boolean;
   onSelect: (symbol: string) => void;
   onRemove: (symbol: string) => void;
 }
@@ -46,7 +44,7 @@ export const SymbolRow: Component<SymbolRowProps> = (props) => {
   return (
     <div
       class="symbol-row"
-      classList={{ selected: props.selected, focused: props.focused }}
+      classList={{ selected: props.selected }}
       onClick={() => props.onSelect(props.quote.symbol)}
     >
       {/* Source dot */}

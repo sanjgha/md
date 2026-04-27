@@ -29,7 +29,6 @@ describe("SymbolRow", () => {
       <SymbolRow
         quote={baseQuote}
         selected={false}
-        focused={false}
         onSelect={() => {}}
         onRemove={() => {}}
       />
@@ -50,7 +49,6 @@ describe("SymbolRow", () => {
       <SymbolRow
         quote={{ ...baseQuote, change: 9.31 }}
         selected={false}
-        focused={false}
         onSelect={() => {}}
         onRemove={() => {}}
       />
@@ -63,7 +61,6 @@ describe("SymbolRow", () => {
       <SymbolRow
         quote={{ ...baseQuote, change: -9.31, change_pct: -5.01 }}
         selected={false}
-        focused={false}
         onSelect={() => {}}
         onRemove={() => {}}
       />
@@ -85,7 +82,6 @@ describe("SymbolRow", () => {
       <SymbolRow
         quote={eodQuote}
         selected={false}
-        focused={false}
         onSelect={() => {}}
         onRemove={() => {}}
       />
@@ -100,7 +96,6 @@ describe("SymbolRow", () => {
       <SymbolRow
         quote={baseQuote}
         selected={false}
-        focused={false}
         onSelect={() => {}}
         onRemove={() => {}}
       />
@@ -124,7 +119,6 @@ describe("SymbolRow", () => {
       <SymbolRow
         quote={nullRangeQuote}
         selected={false}
-        focused={false}
         onSelect={() => {}}
         onRemove={() => {}}
       />
@@ -133,5 +127,20 @@ describe("SymbolRow", () => {
     // Should still render, marker centered
     const marker = container.querySelector(".range-bar__marker");
     expect(marker).not.toBeNull();
+  });
+
+  it("renders without focused prop", () => {
+    const { container } = render(() => (
+      <SymbolRow
+        quote={baseQuote}
+        selected={false}
+        onSelect={() => {}}
+        onRemove={() => {}}
+      />
+    ));
+
+    // Should render without errors
+    const svg = container.querySelector(".symbol-row svg");
+    expect(svg).not.toBeNull();
   });
 });

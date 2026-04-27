@@ -195,7 +195,6 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
                 <SymbolRow
                   quote={quote}
                   selected={props.selectedSymbol === quote.symbol}
-                  focused={props.focusedSymbol === quote.symbol}
                   onSelect={(sym) => props.onSymbolSelect(sym)}
                   onRemove={handleRemove}
                 />
