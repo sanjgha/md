@@ -381,3 +381,103 @@ def test_no_entry_signal_without_mss():
 
     # Should NOT generate entry signal (no MSS)
     assert len(results) == 0
+
+
+def test_insufficient_candles():
+    """Verify scanner returns empty list when fewer than 100 candles."""
+    scanner = SmartMoneyScanner()
+
+    # Create only 50 candles (below MIN_CANDLES=100)
+    candles = []
+    for i in range(50, 0, -1):
+        candles.append(create_candle(100 + i, 105 + i, 95 + i, 100 + i, 1000, i))
+
+    context = create_mock_context(candles)
+
+    results = scanner.scan(context)
+
+    # Should return empty list due to insufficient candles
+    assert len(results) == 0
+
+
+def test_all_fvgs_mitigated():
+    """Verify scanner returns empty when all FVGs have been filled."""
+    scanner = SmartMoneyScanner()
+
+    import random
+
+    random.seed(42)
+    baseline = []
+    price = 100
+    for i in range(150, 50, -1):
+        change = random.uniform(-2, 2)
+        price += change
+        high = price + random.uniform(0, 1)
+        low = price - random.uniform(0, 1)
+        baseline.append(create_candle(price, high, low, price, 1000, i))
+
+    # Create FVG that gets immediately filled
+    fvg_setup = [
+        create_candle(100, 102, 98, 101, 1000, 49),
+        create_candle(101, 104, 99, 103, 1100, 48),  # high=102
+        create_candle(103, 106, 103, 105, 1200, 47),
+        create_candle(105, 108, 105, 107, 1300, 46),  # low=105, FVG (102-105)
+    ]
+
+    # FVG gets mitigated immediately (close below FVG bottom at 102)
+    mitigation = [
+        create_candle(107, 110, 95, 96, 1400, 45),  # Closes at 96 < 102 (FVG bottom) - mitigated!
+    ]
+
+    # Continue with more price action
+    continuation = [
+        create_candle(96, 100, 90, 95, 1500, 44),
+        create_candle(95, 99, 92, 96, 1600, 43),
+    ]
+
+    all_candles = baseline + fvg_setup + mitigation + continuation
+    context = create_mock_context(all_candles)
+
+    results = scanner.scan(context)
+
+    # Should return empty list since FVG was mitigated
+    assert len(results) == 0
+
+
+def test_overmerged_fvg_filtered():
+    """Verify scanner skips FVG zones wider than 5% of price."""
+    scanner = SmartMoneyScanner()
+
+    import random
+
+    random.seed(42)
+    baseline = []
+    price = 100
+    for i in range(150, 50, -1):
+        change = random.uniform(-2, 2)
+        price += change
+        high = price + random.uniform(0, 1)
+        low = price - random.uniform(0, 1)
+        baseline.append(create_candle(price, high, low, price, 1000, i))
+
+    # Create huge FVG (> 5% zone, e.g., 20-point gap on 100 price = 20%)
+    overmerged_fvg = [
+        create_candle(100, 105, 95, 100, 1000, 49),
+        create_candle(100, 110, 98, 105, 1100, 48),  # high=110
+        create_candle(105, 115, 103, 108, 1200, 47),
+        create_candle(108, 120, 90, 115, 1300, 46),  # low=90, FVG (110-90) = 20-point gap = 20%!
+    ]
+
+    # Continue with normal price action
+    continuation = [
+        create_candle(115, 118, 112, 116, 1400, 45),
+        create_candle(116, 120, 114, 118, 1500, 44),
+    ]
+
+    all_candles = baseline + overmerged_fvg + continuation
+    context = create_mock_context(all_candles)
+
+    results = scanner.scan(context)
+
+    # Should return empty list since FVG zone is too wide (> 5%)
+    assert len(results) == 0
