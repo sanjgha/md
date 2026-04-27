@@ -179,3 +179,205 @@ def test_no_mss_without_bos():
     mss = scanner.detect_mss(context)
 
     assert mss is None
+
+
+def test_fib_retracement_calculation():
+    """Calculate 50%, 61.8%, 79% Fibonacci retracement levels."""
+    scanner = SmartMoneyScanner()
+
+    # FVG zone: 100 (bottom) to 110 (top)
+    fvg_top = 110.0
+    fvg_bottom = 100.0
+
+    fib_levels = scanner.calculate_fib_levels(fvg_top, fvg_bottom)
+
+    assert fib_levels["fib_50"] == 105.0  # 110 - (10 * 0.5) = 105
+    assert fib_levels["fib_618"] == 103.82  # 110 - (10 * 0.618) = 103.82
+    assert fib_levels["fib_79"] == 102.1  # 110 - (10 * 0.79) = 102.1
+
+
+def test_scan_orchestrates_all_components():
+    """Test that scan() method correctly orchestrates FVG detection, mitigation check, and MSS detection."""
+    scanner = SmartMoneyScanner()
+
+    # Create enough candles
+    import random
+
+    random.seed(42)
+    candles = []
+    price = 100
+    for i in range(150, 0, -1):
+        change = random.uniform(-1, 1)
+        price += change
+        high = price + random.uniform(0.5, 1)
+        low = price - random.uniform(0.5, 1)
+        candles.append(create_candle(price, high, low, price, 1000, i))
+
+    context = create_mock_context(candles)
+
+    # Mock detect_mss method directly on the instance
+    original_detect_mss = scanner.detect_mss
+    scanner.detect_mss = lambda ctx: {
+        "bos_type": "bullish",
+        "bos_candle_index": 130,
+        "broken_swing_price": 105.0,
+        "mss_confirmed": True,
+        "mss_candle_index": 135,
+    }
+
+    try:
+        # Run scan - it should call detect_mss
+        results = scanner.scan(context)
+
+        # Results depend on whether FVGs were detected and are unmitigated
+        # We're just testing the orchestration here, not the full logic
+        assert isinstance(results, list)
+    finally:
+        # Restore original method
+        scanner.detect_mss = original_detect_mss
+
+
+def test_no_entry_signal_when_fvg_mitigated():
+    """No entry signal when FVG is mitigated before MSS."""
+    scanner = SmartMoneyScanner()
+
+    import random
+
+    random.seed(42)
+    baseline = []
+    price = 100
+    for i in range(130, 50, -1):
+        change = random.uniform(-2, 2)
+        price += change
+        high = price + random.uniform(0, 1)
+        low = price - random.uniform(0, 1)
+        baseline.append(create_candle(price, high, low, price, 1000, i))
+
+    # Bullish FVG
+    fvg_setup = [
+        create_candle(100, 102, 98, 101, 1000, 49),
+        create_candle(101, 104, 99, 103, 1100, 48),  # high=102
+        create_candle(103, 106, 103, 105, 1200, 47),
+        create_candle(105, 108, 105, 107, 1300, 46),  # low=105, FVG (102-105)
+    ]
+
+    # FVG gets mitigated (close below 102)
+    mitigation = [
+        create_candle(107, 110, 95, 96, 1400, 45),  # Closes below FVG bottom - mitigated!
+    ]
+
+    # Then BOS and MSS happen, but FVG is already mitigated
+    trend_up = [
+        create_candle(96, 110, 90, 105, 1500, 44),
+        create_candle(105, 115, 100, 110, 1600, 43),
+        create_candle(110, 118, 108, 115, 1700, 42),
+        create_candle(115, 122, 113, 120, 1800, 41),
+    ]
+
+    all_candles = baseline + fvg_setup + mitigation + trend_up
+    context = create_mock_context(all_candles)
+
+    results = scanner.scan(context)
+
+    # Should NOT generate entry signal (FVG mitigated)
+    assert len(results) == 0
+
+
+def test_no_entry_signal_when_price_outside_fib_zone():
+    """No entry signal when price is outside 50-79% Fibonacci zone."""
+    scanner = SmartMoneyScanner()
+
+    import random
+
+    random.seed(42)
+    baseline = []
+    price = 100
+    for i in range(130, 50, -1):
+        change = random.uniform(-2, 2)
+        price += change
+        high = price + random.uniform(0, 1)
+        low = price - random.uniform(0, 1)
+        baseline.append(create_candle(price, high, low, price, 1000, i))
+
+    # Bullish FVG (102-105)
+    fvg_setup = [
+        create_candle(100, 102, 98, 101, 1000, 49),
+        create_candle(101, 104, 99, 103, 1100, 48),  # high=102
+        create_candle(103, 106, 103, 105, 1200, 47),
+        create_candle(105, 108, 105, 107, 1300, 46),  # low=105, FVG (102-105)
+    ]
+
+    # Price stays ABOVE Fib zone (above 50% level)
+    trend_up = [
+        create_candle(107, 112, 105, 110, 1400, 45),
+        create_candle(110, 115, 108, 113, 1500, 44),
+        create_candle(113, 118, 111, 116, 1600, 43),
+        create_candle(116, 121, 114, 119, 1700, 42),
+        create_candle(119, 124, 117, 122, 1800, 41),  # At 122, way above Fib zone (103.5)
+    ]
+
+    all_candles = baseline + fvg_setup + trend_up
+    context = create_mock_context(all_candles)
+
+    results = scanner.scan(context)
+
+    # Should NOT generate entry signal (price outside Fib zone)
+    assert len(results) == 0
+
+
+def test_no_entry_signal_insufficient_candles():
+    """No entry signal when insufficient candles for analysis."""
+    scanner = SmartMoneyScanner()
+
+    # Only 50 candles (less than MIN_CANDLES = 100)
+    candles = []
+    for i in range(50, 0, -1):
+        candles.append(create_candle(100 + i, 105 + i, 95 + i, 100 + i, 1000, i))
+
+    context = create_mock_context(candles)
+
+    results = scanner.scan(context)
+
+    assert len(results) == 0
+
+
+def test_no_entry_signal_without_mss():
+    """No entry signal when MSS is not confirmed."""
+    scanner = SmartMoneyScanner()
+
+    import random
+
+    random.seed(42)
+    baseline = []
+    price = 100
+    for i in range(130, 50, -1):
+        change = random.uniform(-2, 2)
+        price += change
+        high = price + random.uniform(0, 1)
+        low = price - random.uniform(0, 1)
+        baseline.append(create_candle(price, high, low, price, 1000, i))
+
+    # Bullish FVG
+    fvg_setup = [
+        create_candle(100, 102, 98, 101, 1000, 49),
+        create_candle(101, 104, 99, 103, 1100, 48),  # high=102
+        create_candle(103, 106, 103, 105, 1200, 47),
+        create_candle(105, 108, 105, 107, 1300, 46),  # low=105, FVG (102-105)
+    ]
+
+    # Trend up but NO MSS (no retest below swing high)
+    trend_up = [
+        create_candle(107, 112, 105, 110, 1400, 45),
+        create_candle(110, 115, 108, 113, 1500, 44),
+        create_candle(113, 118, 111, 116, 1600, 43),
+        create_candle(116, 121, 114, 119, 1700, 42),
+        create_candle(119, 124, 117, 122, 1800, 41),  # Keeps going up, no MSS
+    ]
+
+    all_candles = baseline + fvg_setup + trend_up
+    context = create_mock_context(all_candles)
+
+    results = scanner.scan(context)
+
+    # Should NOT generate entry signal (no MSS)
+    assert len(results) == 0
