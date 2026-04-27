@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Dict, List
 
 import aiohttp
+from aiohttp import ClientTimeout
 
 from src.data_provider.base import DataProvider, Quote
 from src.data_provider.exceptions import APIConnectionError
@@ -78,7 +79,7 @@ async def _fetch_batch_comma_separated(
     url = f"{base_url}/stocks/quotes/{symbol_str}/"
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, timeout=(5, 30)) as response:
+        async with session.get(url, timeout=ClientTimeout(total=30, connect=5)) as response:
             response.raise_for_status()
             data = await response.json()
 

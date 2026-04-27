@@ -117,7 +117,7 @@ class MarketDataAppProvider(DataProvider):
             ),
             bid=float(data["bid"][0]),
             ask=float(data["ask"][0]),
-            bid_size=int(data["askSize"][0]),
+            bid_size=int(data["bidSize"][0]),
             ask_size=int(data["askSize"][0]),
             last=float(data["last"][0]),
             open=float(data["open"][0]) if data.get("open") else 0.0,
