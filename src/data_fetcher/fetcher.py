@@ -36,7 +36,7 @@ class DataFetcher:
         self.rate_limit_delay = rate_limit_delay
 
     def _bulk_upsert_daily_candles(self, stock_id: int, candles) -> int:
-        """Bulk insert daily candles using ON CONFLICT DO NOTHING."""
+        """Bulk upsert daily candles; re-fetches overwrite existing rows (e.g. post-split adjustment)."""
         if not candles:
             return 0
         rows = [
@@ -51,17 +51,23 @@ class DataFetcher:
             }
             for c in candles
         ]
-        stmt = (
-            pg_insert(DailyCandle)
-            .values(rows)
-            .on_conflict_do_nothing(index_elements=["stock_id", "timestamp"])
+        insert_stmt = pg_insert(DailyCandle).values(rows)
+        stmt = insert_stmt.on_conflict_do_update(
+            index_elements=["stock_id", "timestamp"],
+            set_={
+                "open": insert_stmt.excluded.open,
+                "high": insert_stmt.excluded.high,
+                "low": insert_stmt.excluded.low,
+                "close": insert_stmt.excluded.close,
+                "volume": insert_stmt.excluded.volume,
+            },
         )
         result = self.db.execute(stmt)
         self.db.commit()
         return result.rowcount  # type: ignore[attr-defined]
 
     def _bulk_upsert_intraday_candles(self, stock_id: int, resolution: str, candles) -> int:
-        """Bulk insert intraday candles using ON CONFLICT DO NOTHING."""
+        """Bulk upsert intraday candles; re-fetches overwrite existing rows."""
         if not candles:
             return 0
         rows = [
@@ -77,14 +83,42 @@ class DataFetcher:
             }
             for c in candles
         ]
-        stmt = (
-            pg_insert(IntradayCandle)
-            .values(rows)
-            .on_conflict_do_nothing(index_elements=["stock_id", "resolution", "timestamp"])
+        insert_stmt = pg_insert(IntradayCandle).values(rows)
+        stmt = insert_stmt.on_conflict_do_update(
+            index_elements=["stock_id", "resolution", "timestamp"],
+            set_={
+                "open": insert_stmt.excluded.open,
+                "high": insert_stmt.excluded.high,
+                "low": insert_stmt.excluded.low,
+                "close": insert_stmt.excluded.close,
+                "volume": insert_stmt.excluded.volume,
+            },
         )
         result = self.db.execute(stmt)
         self.db.commit()
         return result.rowcount  # type: ignore[attr-defined]
+
+    def _detect_corporate_action(self, symbol: str, candles) -> bool:
+        """Return True on the first overnight gap that exceeds 35%, logging a warning.
+
+        Threshold catches 2:1 forward splits (50% drop), 1:10 reverse splits (900% rise),
+        and anything in between. Genuine earnings gaps rarely exceed 35% on daily data.
+        """
+        sorted_c = sorted(candles, key=lambda c: c.timestamp)
+        for prev, curr in zip(sorted_c, sorted_c[1:]):
+            if prev.close <= 0:
+                continue
+            gap = abs(curr.open / prev.close - 1)
+            if gap > 0.35:
+                logger.warning(
+                    "Possible corporate action %s: prev_close=%.2f curr_open=%.2f gap=%.1f%%",
+                    symbol,
+                    prev.close,
+                    curr.open,
+                    gap * 100,
+                )
+                return True
+        return False
 
     def sync_daily(
         self,
@@ -92,22 +126,24 @@ class DataFetcher:
         days_back: int = 365,
     ) -> None:
         """Sync daily candles for all (or specified) stocks."""
+        stock_map = {s.symbol: int(s.id) for s in self.db.query(Stock).all()}
         if symbols is None:
-            symbols = [str(s.symbol) for s in self.db.query(Stock).all()]
+            symbols = list(stock_map.keys())
 
         to_date = datetime.utcnow()
         from_date = to_date - timedelta(days=days_back)
 
         for symbol in symbols:
-            stock = self.db.query(Stock).filter_by(symbol=symbol).first()
-            if not stock:
+            stock_id = stock_map.get(str(symbol))
+            if not stock_id:
                 logger.warning(f"Stock {symbol} not found in DB — skipping")
                 continue
             try:
                 candles = self.provider.get_daily_candles(
                     symbol=symbol, from_date=from_date, to_date=to_date
                 )
-                inserted = self._bulk_upsert_daily_candles(int(stock.id), candles)
+                self._detect_corporate_action(symbol, candles)
+                inserted = self._bulk_upsert_daily_candles(stock_id, candles)
                 logger.info(f"sync_daily {symbol}: {inserted} new rows")
                 time.sleep(self.rate_limit_delay)
             except Exception as e:
@@ -123,15 +159,16 @@ class DataFetcher:
         """Sync intraday candles for 5m, 15m, 1h resolutions."""
         if resolutions is None:
             resolutions = ["5m", "15m", "1h"]
+        stock_map = {s.symbol: int(s.id) for s in self.db.query(Stock).all()}
         if symbols is None:
-            symbols = [str(s.symbol) for s in self.db.query(Stock).all()]
+            symbols = list(stock_map.keys())
 
         to_date = datetime.utcnow()
         from_date = to_date - timedelta(days=days_back)
 
         for symbol in symbols:
-            stock = self.db.query(Stock).filter_by(symbol=symbol).first()
-            if not stock:
+            stock_id = stock_map.get(str(symbol))
+            if not stock_id:
                 continue
             for resolution in resolutions:
                 try:
@@ -141,14 +178,12 @@ class DataFetcher:
                         from_date=from_date,
                         to_date=to_date,
                     )
-                    inserted = self._bulk_upsert_intraday_candles(
-                        int(stock.id), resolution, candles
-                    )
+                    inserted = self._bulk_upsert_intraday_candles(stock_id, resolution, candles)
                     logger.info(f"sync_intraday {symbol} {resolution}: {inserted} new rows")
                 except Exception as e:
                     logger.error(f"Failed to sync intraday {symbol} {resolution}: {e}")
                     self.db.rollback()
-            time.sleep(self.rate_limit_delay)  # Once per symbol, not per resolution
+            time.sleep(self.rate_limit_delay)
 
     def sync_news(
         self,
@@ -156,12 +191,13 @@ class DataFetcher:
         countback: int = 50,
     ) -> None:
         """Sync news articles for all stocks."""
+        stock_map = {s.symbol: int(s.id) for s in self.db.query(Stock).all()}
         if symbols is None:
-            symbols = [str(s.symbol) for s in self.db.query(Stock).all()]
+            symbols = list(stock_map.keys())
 
         for symbol in symbols:
-            stock = self.db.query(Stock).filter_by(symbol=symbol).first()
-            if not stock:
+            stock_id = stock_map.get(str(symbol))
+            if not stock_id:
                 continue
             try:
                 articles = self.provider.get_news(symbol=symbol, countback=countback)
@@ -169,7 +205,7 @@ class DataFetcher:
                     stmt = (
                         pg_insert(StockNews)
                         .values(
-                            stock_id=stock.id,
+                            stock_id=stock_id,
                             headline=article.headline,
                             content=article.content,
                             source=article.source,
@@ -188,18 +224,19 @@ class DataFetcher:
 
     def sync_earnings(self, symbols: Optional[List[str]] = None) -> None:
         """Sync earnings calendar."""
+        stock_map = {s.symbol: int(s.id) for s in self.db.query(Stock).all()}
         if symbols is None:
-            symbols = [str(s.symbol) for s in self.db.query(Stock).all()]
+            symbols = list(stock_map.keys())
 
         for symbol in symbols:
-            stock = self.db.query(Stock).filter_by(symbol=symbol).first()
-            if not stock:
+            stock_id = stock_map.get(str(symbol))
+            if not stock_id:
                 continue
             try:
                 earnings = self.provider.get_earnings_history(symbol=symbol)
                 rows = [
                     {
-                        "stock_id": stock.id,
+                        "stock_id": stock_id,
                         "fiscal_year": e.fiscal_year,
                         "fiscal_quarter": e.fiscal_quarter,
                         "earnings_date": e.earnings_date,
