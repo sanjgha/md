@@ -90,6 +90,36 @@ def test_fetcher_sync_news(db_session: Session):
     assert nvda.news[0].headline == "Nvidia releases new GPU"  # type: ignore[union-attr]
 
 
+def test_resync_overwrites_stale_candle(db_session: Session):
+    """Re-fetching a candle with different close (e.g. post-split adjusted) overwrites the existing row."""
+    stock = Stock(symbol="SPLITCO", name="Split Corp")
+    db_session.add(stock)
+    db_session.commit()
+
+    mock_provider = Mock(spec=DataProvider)
+
+    # First sync: unadjusted price $100
+    mock_provider.get_daily_candles.return_value = [
+        Candle(datetime(2024, 1, 2), 100.0, 102.0, 99.0, 100.0, 1_000_000),
+    ]
+    fetcher = DataFetcher(provider=mock_provider, db=db_session, rate_limit_delay=0)
+    fetcher.sync_daily(symbols=["SPLITCO"])
+
+    splitco = db_session.query(Stock).filter_by(symbol="SPLITCO").first()
+    assert float(splitco.daily_candles[0].close) == 100.0
+
+    # Second sync: adjusted price $50 (2:1 split applied retrospectively)
+    mock_provider.get_daily_candles.return_value = [
+        Candle(datetime(2024, 1, 2), 50.0, 51.0, 49.5, 50.0, 2_000_000),
+    ]
+    fetcher.sync_daily(symbols=["SPLITCO"])
+
+    db_session.expire_all()
+    splitco = db_session.query(Stock).filter_by(symbol="SPLITCO").first()
+    assert len(splitco.daily_candles) == 1  # no duplicate
+    assert float(splitco.daily_candles[0].close) == 50.0  # overwritten
+
+
 def test_fetcher_sync_earnings(db_session: Session):
     """sync_earnings creates earnings rows without duplicates."""
     stock = Stock(symbol="MSFT", name="Microsoft")

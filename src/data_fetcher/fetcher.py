@@ -36,7 +36,7 @@ class DataFetcher:
         self.rate_limit_delay = rate_limit_delay
 
     def _bulk_upsert_daily_candles(self, stock_id: int, candles) -> int:
-        """Bulk insert daily candles using ON CONFLICT DO NOTHING."""
+        """Bulk upsert daily candles; re-fetches overwrite existing rows (e.g. post-split adjustment)."""
         if not candles:
             return 0
         rows = [
@@ -51,17 +51,23 @@ class DataFetcher:
             }
             for c in candles
         ]
-        stmt = (
-            pg_insert(DailyCandle)
-            .values(rows)
-            .on_conflict_do_nothing(index_elements=["stock_id", "timestamp"])
+        insert_stmt = pg_insert(DailyCandle).values(rows)
+        stmt = insert_stmt.on_conflict_do_update(
+            index_elements=["stock_id", "timestamp"],
+            set_={
+                "open": insert_stmt.excluded.open,
+                "high": insert_stmt.excluded.high,
+                "low": insert_stmt.excluded.low,
+                "close": insert_stmt.excluded.close,
+                "volume": insert_stmt.excluded.volume,
+            },
         )
         result = self.db.execute(stmt)
         self.db.commit()
         return result.rowcount  # type: ignore[attr-defined]
 
     def _bulk_upsert_intraday_candles(self, stock_id: int, resolution: str, candles) -> int:
-        """Bulk insert intraday candles using ON CONFLICT DO NOTHING."""
+        """Bulk upsert intraday candles; re-fetches overwrite existing rows."""
         if not candles:
             return 0
         rows = [
@@ -77,10 +83,16 @@ class DataFetcher:
             }
             for c in candles
         ]
-        stmt = (
-            pg_insert(IntradayCandle)
-            .values(rows)
-            .on_conflict_do_nothing(index_elements=["stock_id", "resolution", "timestamp"])
+        insert_stmt = pg_insert(IntradayCandle).values(rows)
+        stmt = insert_stmt.on_conflict_do_update(
+            index_elements=["stock_id", "resolution", "timestamp"],
+            set_={
+                "open": insert_stmt.excluded.open,
+                "high": insert_stmt.excluded.high,
+                "low": insert_stmt.excluded.low,
+                "close": insert_stmt.excluded.close,
+                "volume": insert_stmt.excluded.volume,
+            },
         )
         result = self.db.execute(stmt)
         self.db.commit()
