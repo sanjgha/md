@@ -64,3 +64,35 @@ class FVGDetector:
                     )
 
         return fvgs
+
+    def merge_fvgs(self, fvgs: List[FVGZone]) -> List[FVGZone]:
+        """Merge overlapping FVG zones into single zones."""
+        if not fvgs:
+            return []
+
+        # Sort by bottom price
+        sorted_fvgs = sorted(fvgs, key=lambda f: f.bottom)
+
+        merged = [sorted_fvgs[0]]
+
+        for current in sorted_fvgs[1:]:
+            last = merged[-1]
+
+            # Check if overlapping: max(bottom1, bottom2) < min(top1, top2)
+            overlap_bottom = max(last.bottom, current.bottom)
+            overlap_top = min(last.top, current.top)
+
+            if overlap_bottom < overlap_top:
+                # Overlapping — merge by expanding the zone
+                merged[-1] = FVGZone(
+                    top=max(last.top, current.top),
+                    bottom=min(last.bottom, current.bottom),
+                    bullish=last.bullish,  # Assume same direction
+                    candle_index=last.candle_index,
+                    mitigated=last.mitigated or current.mitigated,
+                )
+            else:
+                # No overlap — keep separate
+                merged.append(current)
+
+        return merged
