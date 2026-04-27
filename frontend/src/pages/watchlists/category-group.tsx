@@ -15,10 +15,11 @@ import {
   createEffect,
   onCleanup,
   untrack,
+  createMemo,
 } from "solid-js";
 import { watchlistsAPI } from "~/lib/watchlists-api";
 import { SymbolRow } from "./symbol-row";
-import { navigateQuotes } from "./watchlist-utils";
+import { navigateQuotes, sortQuotes } from "./watchlist-utils";
 import type { QuoteResponse, WatchlistSummary } from "./types";
 
 interface CategoryGroupProps {
@@ -44,6 +45,22 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
 
   const [refreshing, setRefreshing] = createSignal(false);
   const [removeError, setRemoveError] = createSignal<string | null>(null);
+
+  // Sort state
+  const [sortCol, setSortCol] = createSignal<"ticker" | "last" | "chg_pct" | null>(null);
+  const [sortDir, setSortDir] = createSignal<"asc" | "desc">("asc");
+  const sortedQuotes = createMemo(() => sortQuotes(quotes(), sortCol(), sortDir()));
+
+  function handleHeaderDblClick(col: "ticker" | "last" | "chg_pct") {
+    if (sortCol() !== col) {
+      setSortCol(col);
+      setSortDir("asc");
+    } else if (sortDir() === "asc") {
+      setSortDir("desc");
+    } else {
+      setSortCol(null);
+    }
+  }
 
   async function fetchQuotes() {
     setQuotesLoading(true);
@@ -213,7 +230,7 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
           </Show>
 
           <Show when={!quotesLoading() || loaded()}>
-            <For each={quotes()}>
+            <For each={sortedQuotes()}>
               {(quote) => (
                 <SymbolRow
                   quote={quote}
