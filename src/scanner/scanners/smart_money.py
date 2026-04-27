@@ -31,7 +31,7 @@ class SmartMoneyScanner(Scanner):
         4. FVG formed before MSS (fresh setup)
         """
         candles = context.daily_candles
-        results = []
+        results: List[ScanResult] = []
 
         # Step 1: Check for sufficient candles
         if len(candles) < self.MIN_CANDLES:
