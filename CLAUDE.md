@@ -10,7 +10,7 @@ pytest tests/               # Run all tests
 pytest tests/unit/test_foo.py::test_bar  # Run a single test
 pytest tests/ --cov=src --cov-report=term-missing  # Run with coverage
 ruff check src/ tests/      # Lint
-black src/ tests/           # Format (100-char line length)
+ruff format src/ tests/     # Format (100-char line length)
 mypy src/ --ignore-missing-imports  # Type check
 make ci                     # Run full CI pipeline locally (lint + type-check + tests)
 ```
@@ -63,4 +63,5 @@ After editing `src/db/models.py`, generate + review a migration before running t
 
 - **Before starting any feature or fix**, create a Linear issue using the prescribed template in `docs/linear/templates/` (`new-issue.md`, `bug-report.md`, or `enhancement.md`). Pick up one issue at a time.
 - **Follow TDD**: write a failing test first, then implement to make it pass.
+- **Format before committing**: Run `ruff format src/ tests/` to auto-format code. Pre-commit hooks will also auto-fix lint issues.
 - **Commit messages** must follow Conventional Commits (`feat:`, `fix:`, `test:`, `refactor:`, `chore:`) — enforced by pre-commit hooks.
