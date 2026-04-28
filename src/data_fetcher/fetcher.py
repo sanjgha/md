@@ -29,11 +29,15 @@ class DataFetcher:
         provider: DataProvider,
         db: Session,
         rate_limit_delay: float = 0.1,
+        enable_earnings_sync: bool = True,
+        enable_news_sync: bool = True,
     ):
         """Initialize fetcher with provider, DB session, and rate limit delay."""
         self.provider = provider
         self.db = db
         self.rate_limit_delay = rate_limit_delay
+        self.enable_earnings_sync = enable_earnings_sync
+        self.enable_news_sync = enable_news_sync
 
     def _bulk_upsert_daily_candles(self, stock_id: int, candles) -> int:
         """Bulk upsert daily candles; re-fetches overwrite existing rows (e.g. post-split adjustment)."""
@@ -191,6 +195,10 @@ class DataFetcher:
         countback: int = 50,
     ) -> None:
         """Sync news articles for all stocks."""
+        if not self.enable_news_sync:
+            logger.info("News sync disabled via config - skipping")
+            return
+
         stock_map = {str(s.symbol): int(s.id) for s in self.db.query(Stock).all()}
         if symbols is None:
             symbols = list(stock_map.keys())
@@ -224,6 +232,10 @@ class DataFetcher:
 
     def sync_earnings(self, symbols: Optional[List[str]] = None) -> None:
         """Sync earnings calendar."""
+        if not self.enable_earnings_sync:
+            logger.info("Earnings sync disabled via config - skipping")
+            return
+
         stock_map = {str(s.symbol): int(s.id) for s in self.db.query(Stock).all()}
         if symbols is None:
             symbols = list(stock_map.keys())

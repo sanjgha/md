@@ -39,6 +39,10 @@ class Config:
         self.APP_BIND_HOST = os.getenv("APP_BIND_HOST", "127.0.0.1")
         self.APP_PORT = int(os.getenv("APP_PORT", "8000"))
 
+        # Feature flags for optional data sync
+        self.ENABLE_EARNINGS_SYNC = os.getenv("ENABLE_EARNINGS_SYNC", "true").lower() == "true"
+        self.ENABLE_NEWS_SYNC = os.getenv("ENABLE_NEWS_SYNC", "true").lower() == "true"
+
 
 @lru_cache(maxsize=1)
 def get_config() -> Config:
