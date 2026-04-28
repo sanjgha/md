@@ -14,9 +14,10 @@ logger = logging.getLogger(__name__)
 def _build_indicator_registry() -> dict:
     from src.scanner.indicators.moving_averages import SMA, EMA, WMA
     from src.scanner.indicators.momentum import RSI, MACD
-    from src.scanner.indicators.volatility import BollingerBands, ATR
+    from src.scanner.indicators.volatility import BollingerBands, ATR, BBWidthPercentile
     from src.scanner.indicators.support_resistance import SupportResistance
     from src.scanner.indicators.patterns.breakouts import BreakoutDetector
+    from src.scanner.indicators.rolling_max import RollingMax
 
     return {
         "sma": SMA(),
@@ -26,12 +27,14 @@ def _build_indicator_registry() -> dict:
         "macd": MACD(),
         "bollinger": BollingerBands(),
         "atr": ATR(),
+        "bb_width_pctile": BBWidthPercentile(),
         "support_resistance": SupportResistance(),
         "breakout": BreakoutDetector(),
+        "rolling_max": RollingMax(),
     }
 
 
-def _build_scanner_registry():
+def _build_scanner_registry(include_eod_only: bool = False):
     from src.scanner.registry import ScannerRegistry
     from src.scanner.scanners import PriceActionScanner, MomentumScanner, VolumeScanner
 
@@ -39,6 +42,10 @@ def _build_scanner_registry():
     registry.register("price_action", PriceActionScanner())
     registry.register("momentum", MomentumScanner())
     registry.register("volume", VolumeScanner())
+    if include_eod_only:
+        from src.scanner.scanners.weekly_options import WeeklyOptionsScanner
+
+        registry.register("weekly_options", WeeklyOptionsScanner())
     return registry
 
 
@@ -60,7 +67,7 @@ def run_eod_job(db: Session) -> int:
     from sqlalchemy.orm import joinedload
 
     indicators = _build_indicator_registry()
-    registry = _build_scanner_registry()
+    registry = _build_scanner_registry(include_eod_only=True)
     output = _build_output_handler()
 
     stocks = db.query(Stock).options(joinedload(Stock.daily_candles)).all()

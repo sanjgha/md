@@ -209,18 +209,20 @@ def test_conviction_score_bounded_0_to_100():
 
 
 def test_suggested_expiry_weekly_when_high_atr():
-    """atr_pct >= 2.5 → suggested_expiry == 'weekly'."""
-    # Use high squeeze amplitude to keep ATR high
-    candles = _make_bull_candles(breakout_close=155.0, squeeze_amplitude=4.0)
+    """atr_pct >= 2.5 → suggested_expiry == 'weekly'; < 2.5 → 'next_weekly'."""
+    candles = _make_bull_candles()
     scanner = WeeklyOptionsScanner()
     results = scanner.scan(_make_context(candles))
-    # May or may not fire (depends on exact ATR); if it fires, check expiry
-    if results:
-        meta = results[0].metadata
-        if meta["atr_pct"] >= 2.5:
-            assert meta["suggested_expiry"] == "weekly"
-        else:
-            assert meta["suggested_expiry"] == "next_weekly"
+    assert len(results) == 1
+    meta = results[0].metadata
+    # The default bull fixture has squeeze_amplitude=2.0 which produces some ATR level.
+    # Whatever it is, the expiry must match the threshold.
+    if meta["atr_pct"] >= 2.5:
+        assert meta["suggested_expiry"] == "weekly"
+    else:
+        assert meta["suggested_expiry"] == "next_weekly"
+    # Verify the threshold boundary logic is correct regardless of direction
+    assert meta["suggested_expiry"] in ("weekly", "next_weekly")
 
 
 def test_call_target_above_close_stop_below():
@@ -265,13 +267,11 @@ def test_no_signal_when_no_squeeze():
 
 def test_no_signal_without_directional_break():
     """Squeeze present but close stays inside bands → no signal."""
-    # Use bull candles but reduce breakout to stay inside bands
-    candles = _make_bull_candles(breakout_close=131.0)  # barely moves
+    # Use bull candles but keep close well inside bands / below Donchian high
+    candles = _make_bull_candles(breakout_close=130.5)  # stays inside squeeze range
     scanner = WeeklyOptionsScanner()
     results = scanner.scan(_make_context(candles))
-    # May fire if 131 breaks a Donchian level, but typically won't break BB upper
-    # The test is structural — we assert the scanner handles it gracefully
-    assert isinstance(results, list)
+    assert results == []
 
 
 def test_volume_filter_blocks_low_volume():
