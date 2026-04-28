@@ -81,10 +81,11 @@ def test_config_earnings_news_sync_defaults_to_true():
         "MARKETDATA_API_TOKEN": "tok",
     }
     with patch.dict(os.environ, env, clear=True):
-        get_config.cache_clear()
-        cfg = get_config()
-        assert cfg.ENABLE_EARNINGS_SYNC is True
-        assert cfg.ENABLE_NEWS_SYNC is True
+        with patch("src.config.load_dotenv"):
+            get_config.cache_clear()
+            cfg = get_config()
+            assert cfg.ENABLE_EARNINGS_SYNC is True
+            assert cfg.ENABLE_NEWS_SYNC is True
     get_config.cache_clear()
 
 
@@ -99,10 +100,11 @@ def test_config_earnings_news_sync_can_be_disabled():
         "ENABLE_NEWS_SYNC": "FALSE",
     }
     with patch.dict(os.environ, env, clear=True):
-        get_config.cache_clear()
-        cfg = get_config()
-        assert cfg.ENABLE_EARNINGS_SYNC is False
-        assert cfg.ENABLE_NEWS_SYNC is False
+        with patch("src.config.load_dotenv"):
+            get_config.cache_clear()
+            cfg = get_config()
+            assert cfg.ENABLE_EARNINGS_SYNC is False
+            assert cfg.ENABLE_NEWS_SYNC is False
     get_config.cache_clear()
 
 
@@ -117,8 +119,9 @@ def test_config_earnings_news_sync_case_insensitive():
         "ENABLE_NEWS_SYNC": "tRuE",
     }
     with patch.dict(os.environ, env, clear=True):
-        get_config.cache_clear()
-        cfg = get_config()
-        assert cfg.ENABLE_EARNINGS_SYNC is True
-        assert cfg.ENABLE_NEWS_SYNC is True
+        with patch("src.config.load_dotenv"):
+            get_config.cache_clear()
+            cfg = get_config()
+            assert cfg.ENABLE_EARNINGS_SYNC is True
+            assert cfg.ENABLE_NEWS_SYNC is True
     get_config.cache_clear()
