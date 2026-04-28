@@ -44,7 +44,13 @@ def fetch_data(symbols):
             max_retries=cfg.MAX_RETRIES,
             retry_backoff_base=cfg.RETRY_BACKOFF_BASE,
         )
-        fetcher = DataFetcher(provider=provider, db=db, rate_limit_delay=cfg.API_RATE_LIMIT_DELAY)
+        fetcher = DataFetcher(
+            provider=provider,
+            db=db,
+            rate_limit_delay=cfg.API_RATE_LIMIT_DELAY,
+            enable_earnings_sync=cfg.ENABLE_EARNINGS_SYNC,
+            enable_news_sync=cfg.ENABLE_NEWS_SYNC,
+        )
 
         logger.info("Fetching daily candles...")
         fetcher.sync_daily(symbols=list(symbols) if symbols else None)

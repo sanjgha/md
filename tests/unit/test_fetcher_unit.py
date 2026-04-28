@@ -106,3 +106,75 @@ def test_sync_daily_preloads_stock_map_with_one_query():
 
     # query() should be called once for the preload, not 3 times for symbol lookups
     assert mock_db.query.call_count == 1
+
+
+def test_sync_earnings_disabled_via_config():
+    """sync_earnings returns early when enable_earnings_sync=False."""
+    mock_db = MagicMock()
+    mock_db.query.return_value.all.return_value = []
+
+    fetcher = DataFetcher(
+        provider=Mock(),
+        db=mock_db,
+        rate_limit_delay=0,
+        enable_earnings_sync=False,
+    )
+
+    fetcher.sync_earnings(symbols=["AAPL"])
+
+    # Should not query the database when disabled
+    assert mock_db.query.call_count == 0
+
+
+def test_sync_news_disabled_via_config():
+    """sync_news returns early when enable_news_sync=False."""
+    mock_db = MagicMock()
+    mock_db.query.return_value.all.return_value = []
+
+    fetcher = DataFetcher(
+        provider=Mock(),
+        db=mock_db,
+        rate_limit_delay=0,
+        enable_news_sync=False,
+    )
+
+    fetcher.sync_news(symbols=["AAPL"])
+
+    # Should not query the database when disabled
+    assert mock_db.query.call_count == 0
+
+
+def test_sync_earnings_enabled_by_default():
+    """sync_earnings queries database when enable_earnings_sync=True (default)."""
+    mock_db = MagicMock()
+    mock_db.query.return_value.all.return_value = []
+
+    fetcher = DataFetcher(
+        provider=Mock(),
+        db=mock_db,
+        rate_limit_delay=0,
+        enable_earnings_sync=True,
+    )
+
+    fetcher.sync_earnings(symbols=["AAPL"])
+
+    # Should query the database when enabled
+    assert mock_db.query.call_count == 1
+
+
+def test_sync_news_enabled_by_default():
+    """sync_news queries database when enable_news_sync=True (default)."""
+    mock_db = MagicMock()
+    mock_db.query.return_value.all.return_value = []
+
+    fetcher = DataFetcher(
+        provider=Mock(),
+        db=mock_db,
+        rate_limit_delay=0,
+        enable_news_sync=True,
+    )
+
+    fetcher.sync_news(symbols=["AAPL"])
+
+    # Should query the database when enabled
+    assert mock_db.query.call_count == 1

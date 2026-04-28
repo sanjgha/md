@@ -70,3 +70,55 @@ def test_config_api_fields_default():
         assert cfg.APP_BIND_HOST == "127.0.0.1"
         assert cfg.APP_PORT == 8000
     get_config.cache_clear()
+
+
+def test_config_earnings_news_sync_defaults_to_true():
+    """ENABLE_EARNINGS_SYNC and ENABLE_NEWS_SYNC default to True."""
+    from src.config import get_config
+
+    env = {
+        "DATABASE_URL": "postgresql://test:test@localhost/testdb",
+        "MARKETDATA_API_TOKEN": "tok",
+    }
+    with patch.dict(os.environ, env, clear=True):
+        get_config.cache_clear()
+        cfg = get_config()
+        assert cfg.ENABLE_EARNINGS_SYNC is True
+        assert cfg.ENABLE_NEWS_SYNC is True
+    get_config.cache_clear()
+
+
+def test_config_earnings_news_sync_can_be_disabled():
+    """ENABLE_EARNINGS_SYNC and ENABLE_NEWS_SYNC can be set to false."""
+    from src.config import get_config
+
+    env = {
+        "DATABASE_URL": "postgresql://test:test@localhost/testdb",
+        "MARKETDATA_API_TOKEN": "tok",
+        "ENABLE_EARNINGS_SYNC": "false",
+        "ENABLE_NEWS_SYNC": "FALSE",
+    }
+    with patch.dict(os.environ, env, clear=True):
+        get_config.cache_clear()
+        cfg = get_config()
+        assert cfg.ENABLE_EARNINGS_SYNC is False
+        assert cfg.ENABLE_NEWS_SYNC is False
+    get_config.cache_clear()
+
+
+def test_config_earnings_news_sync_case_insensitive():
+    """ENABLE_EARNINGS_SYNC and ENABLE_NEWS_SYNC accept case-insensitive values."""
+    from src.config import get_config
+
+    env = {
+        "DATABASE_URL": "postgresql://test:test@localhost/testdb",
+        "MARKETDATA_API_TOKEN": "tok",
+        "ENABLE_EARNINGS_SYNC": "True",
+        "ENABLE_NEWS_SYNC": "tRuE",
+    }
+    with patch.dict(os.environ, env, clear=True):
+        get_config.cache_clear()
+        cfg = get_config()
+        assert cfg.ENABLE_EARNINGS_SYNC is True
+        assert cfg.ENABLE_NEWS_SYNC is True
+    get_config.cache_clear()
