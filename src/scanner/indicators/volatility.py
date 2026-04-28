@@ -53,3 +53,46 @@ class ATR(Indicator):
 
         n = len(tr) - period + 1
         return np.array([np.mean(tr[i : i + period]) for i in range(n)])
+
+
+class BBWidthPercentile(Indicator):
+    """Rolling percentile rank of Bollinger Band width — lower = tighter squeeze."""
+
+    def compute(
+        self,
+        candles: List[Candle],
+        period: int = 20,
+        lookback: int = 60,
+        std_dev: float = 2.0,
+        **kwargs,
+    ) -> np.ndarray:
+        """Return percentile rank (0-100) of today's BB width vs last `lookback` widths.
+
+        Output length: len(candles) - period - lookback + 2.
+        Compares current width against the preceding (lookback-1) historical values.
+        Midrank formula: constant series → 50, new all-time-high width → 100.
+        """
+        closes = np.array([c.close for c in candles], dtype=float)
+        min_len = period + lookback - 1
+        if len(closes) < min_len:
+            return np.array([])
+
+        # Step 1: compute BB width at each bar
+        n_bb = len(closes) - period + 1
+        bb_widths = np.zeros(n_bb)
+        for i in range(n_bb):
+            window = closes[i : i + period]
+            mean = np.mean(window)
+            std = np.std(window, ddof=0)
+            bb_widths[i] = (2 * std_dev * std) / mean if mean != 0 else 0.0
+
+        # Step 2: rolling percentile rank over `lookback` window (midrank)
+        n_out = n_bb - lookback + 1
+        result = np.zeros(n_out)
+        for i in range(n_out):
+            hist = bb_widths[i : i + lookback - 1]  # previous lookback-1 values
+            current = bb_widths[i + lookback - 1]
+            below = np.sum(hist < current)
+            equal = np.sum(hist == current)
+            result[i] = (below + 0.5 * equal) / (lookback - 1) * 100
+        return result

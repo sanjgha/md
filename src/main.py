@@ -58,9 +58,6 @@ def fetch_data(symbols):
         logger.info("Fetching earnings...")
         fetcher.sync_earnings(symbols=list(symbols) if symbols else None)
 
-        logger.info("Fetching intraday candles...")
-        fetcher.sync_intraday(symbols=list(symbols) if symbols else None)
-
         logger.info("Cleaning up old data...")
         fetcher.cleanup_old_intraday()
         fetcher.cleanup_old_quotes()
@@ -83,14 +80,17 @@ def scan():
     from src.scanner.executor import ScannerExecutor
     from src.scanner.indicators.moving_averages import SMA, EMA, WMA
     from src.scanner.indicators.momentum import RSI, MACD
-    from src.scanner.indicators.volatility import BollingerBands, ATR
+    from src.scanner.indicators.volatility import BollingerBands, ATR, BBWidthPercentile
     from src.scanner.indicators.support_resistance import SupportResistance
     from src.scanner.indicators.patterns.breakouts import BreakoutDetector
+    from src.scanner.indicators.rolling_max import RollingMax
     from src.scanner.scanners import (
         PriceActionScanner,
         MomentumScanner,
         VolumeScanner,
         SmartMoneyScanner,
+        SixMonthHighScanner,
+        WeeklyOptionsScanner,
     )
     from src.output.cli import CLIOutputHandler
     from src.output.logger import LogFileOutputHandler
@@ -113,8 +113,10 @@ def scan():
             "macd": MACD(),
             "bollinger": BollingerBands(),
             "atr": ATR(),
+            "bb_width_pctile": BBWidthPercentile(),
             "support_resistance": SupportResistance(),
             "breakout": BreakoutDetector(),
+            "rolling_max": RollingMax(),
         }
 
         scanner_registry = ScannerRegistry()
@@ -122,6 +124,8 @@ def scan():
         scanner_registry.register("momentum", MomentumScanner())
         scanner_registry.register("volume", VolumeScanner())
         scanner_registry.register("smart_money", SmartMoneyScanner())
+        scanner_registry.register("six_month_high", SixMonthHighScanner())
+        scanner_registry.register("weekly_options", WeeklyOptionsScanner())
 
         output = CompositeOutputHandler(
             [
@@ -864,14 +868,16 @@ def schedule_pre_close_cmd():
         from src.scanner.registry import ScannerRegistry
         from src.scanner.indicators.moving_averages import SMA, EMA, WMA
         from src.scanner.indicators.momentum import RSI, MACD
-        from src.scanner.indicators.volatility import BollingerBands, ATR
+        from src.scanner.indicators.volatility import BollingerBands, ATR, BBWidthPercentile
         from src.scanner.indicators.support_resistance import SupportResistance
         from src.scanner.indicators.patterns.breakouts import BreakoutDetector
+        from src.scanner.indicators.rolling_max import RollingMax
         from src.scanner.scanners import (
             PriceActionScanner,
             MomentumScanner,
             VolumeScanner,
             SmartMoneyScanner,
+            SixMonthHighScanner,
         )
         from src.output.cli import CLIOutputHandler
         from src.output.logger import LogFileOutputHandler
@@ -887,8 +893,10 @@ def schedule_pre_close_cmd():
                 "macd": MACD(),
                 "bollinger": BollingerBands(),
                 "atr": ATR(),
+                "bb_width_pctile": BBWidthPercentile(),
                 "support_resistance": SupportResistance(),
                 "breakout": BreakoutDetector(),
+                "rolling_max": RollingMax(),
             }
 
             scanner_registry = ScannerRegistry()
@@ -896,6 +904,7 @@ def schedule_pre_close_cmd():
             scanner_registry.register("momentum", MomentumScanner())
             scanner_registry.register("volume", VolumeScanner())
             scanner_registry.register("smart_money", SmartMoneyScanner())
+            scanner_registry.register("six_month_high", SixMonthHighScanner())
 
             output = CompositeOutputHandler(
                 [
