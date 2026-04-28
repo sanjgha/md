@@ -140,3 +140,44 @@ def test_get_candles_timezone_edge_case(db_session: Session):
 
     assert len(candles) == 1
     assert candles[0].open == 100.0
+
+
+def test_get_candles_daily_includes_end_date_boundary(db_session: Session):
+    """Test that daily candles on the end_date are included in results.
+
+    Bug: When querying with end_date as YYYY-MM-DD 00:00:00, candles with
+    timestamp YYYY-MM-DD HH:MM:SS were excluded because of the <= comparison.
+    Fix: Use exclusive upper bound (end_date + 1 day) to include all candles on end_date.
+    """
+    stock = Stock(symbol="TEST", name="Test Stock")
+    db_session.add(stock)
+    db_session.flush()
+
+    # Create a candle on the end_date with a time component (realistic EOD timestamp)
+    # EOD candles typically have timestamps like 2026-04-28 04:00:00 (UTC)
+    candle = DailyCandle(
+        stock_id=stock.id,
+        timestamp=datetime(2026, 4, 28, 4, 0, 0),  # 4 AM UTC = end of trading day
+        open=100.0,
+        high=105.0,
+        low=99.0,
+        close=104.0,
+        volume=1000,
+    )
+    db_session.add(candle)
+    db_session.commit()
+
+    service = StockService(db_session)
+
+    # Query as the chart panel does: from_date and to_date are date strings (YYYY-MM-DD)
+    # which parse to datetime at midnight (00:00:00)
+    candles = service.get_candles(
+        symbol="TEST",
+        resolution="D",
+        start_date=datetime(2026, 4, 1),
+        end_date=datetime(2026, 4, 28),  # Parses to 2026-04-28 00:00:00
+    )
+
+    # The candle at 2026-04-28 04:00:00 should be included
+    assert len(candles) == 1, f"Expected 1 candle, got {len(candles)}"
+    assert candles[0].close == 104.0
