@@ -1,6 +1,6 @@
 """Service layer for stocks API."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import List, cast
 
 from fastapi import HTTPException
@@ -119,13 +119,20 @@ class StockService:
         start_date: datetime,
         end_date: datetime,
     ) -> List[CandleResponse]:
-        """Fetch daily candles."""
+        """Fetch daily candles.
+
+        Uses exclusive upper bound (end_date + 1 day) to include all candles
+        on the end_date, regardless of their time component.
+        """
+        # Use exclusive upper bound to include all candles on end_date
+        exclusive_end = end_date + timedelta(days=1)
+
         stmt = (
             select(DailyCandle)
             .where(
                 DailyCandle.stock_id == stock_id,
                 DailyCandle.timestamp >= start_date,
-                DailyCandle.timestamp <= end_date,
+                DailyCandle.timestamp < exclusive_end,
             )
             .order_by(DailyCandle.timestamp.asc())
         )
