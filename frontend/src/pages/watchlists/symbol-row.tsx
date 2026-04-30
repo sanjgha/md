@@ -5,7 +5,7 @@
  * last price, change%, remove button on hover.
  */
 
-import { Component } from "solid-js";
+import { Component, createEffect } from "solid-js";
 import { Sparkline } from "./sparkline";
 import { RangeBar } from "./range-bar";
 import type { QuoteResponse } from "./types";
@@ -41,8 +41,16 @@ export const SymbolRow: Component<SymbolRowProps> = (props) => {
 
   const sparklineColor = () => getSparklineColor(props.quote);
 
+  let rowEl: HTMLDivElement | undefined;
+  createEffect(() => {
+    if (props.selected && rowEl) {
+      rowEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  });
+
   return (
     <div
+      ref={rowEl}
       class="symbol-row"
       classList={{ selected: props.selected }}
       onClick={() => props.onSelect(props.quote.symbol)}

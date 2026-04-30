@@ -35,13 +35,13 @@ export function navigateQuotes(
     return quotes[0].symbol;
   }
 
-  // Calculate next index with wraparound
+  // Calculate next index, clamped at edges (no wraparound — wrap causes unexpected jumps)
   if (direction === "down") {
-    const nextIndex = (currentIndex + 1) % quotes.length;
+    const nextIndex = Math.min(currentIndex + 1, quotes.length - 1);
     return quotes[nextIndex].symbol;
   } else {
     // direction === "up"
-    const prevIndex = (currentIndex - 1 + quotes.length) % quotes.length;
+    const prevIndex = Math.max(currentIndex - 1, 0);
     return quotes[prevIndex].symbol;
   }
 }

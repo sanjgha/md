@@ -42,10 +42,10 @@ describe("navigateQuotes", () => {
     expect(result).toBe("MSFT");
   });
 
-  it("wraps from last to first on ArrowDown", () => {
+  it("stays on last item when already at bottom on ArrowDown", () => {
     const quotes = [createQuote("AAPL"), createQuote("MSFT"), createQuote("GOOGL")];
     const result = navigateQuotes(quotes, "GOOGL", "down");
-    expect(result).toBe("AAPL");
+    expect(result).toBe("GOOGL");
   });
 
   it("navigates to previous symbol on ArrowUp", () => {
@@ -54,10 +54,10 @@ describe("navigateQuotes", () => {
     expect(result).toBe("AAPL");
   });
 
-  it("wraps from first to last on ArrowUp", () => {
+  it("stays on first item when already at top on ArrowUp", () => {
     const quotes = [createQuote("AAPL"), createQuote("MSFT"), createQuote("GOOGL")];
     const result = navigateQuotes(quotes, "AAPL", "up");
-    expect(result).toBe("GOOGL");
+    expect(result).toBe("AAPL");
   });
 
   it("handles single-item list", () => {
@@ -69,20 +69,20 @@ describe("navigateQuotes", () => {
     expect(resultUp).toBe("AAPL");
   });
 
-  it("handles two-item list with wraparound", () => {
+  it("handles two-item list with edge clamping", () => {
     const quotes = [createQuote("AAPL"), createQuote("MSFT")];
 
     const resultDown = navigateQuotes(quotes, "AAPL", "down");
     expect(resultDown).toBe("MSFT");
 
-    const resultDownWrap = navigateQuotes(quotes, "MSFT", "down");
-    expect(resultDownWrap).toBe("AAPL");
+    const resultDownAtEnd = navigateQuotes(quotes, "MSFT", "down");
+    expect(resultDownAtEnd).toBe("MSFT");
 
     const resultUp = navigateQuotes(quotes, "MSFT", "up");
     expect(resultUp).toBe("AAPL");
 
-    const resultUpWrap = navigateQuotes(quotes, "AAPL", "up");
-    expect(resultUpWrap).toBe("MSFT");
+    const resultUpAtStart = navigateQuotes(quotes, "AAPL", "up");
+    expect(resultUpAtStart).toBe("AAPL");
   });
 });
 

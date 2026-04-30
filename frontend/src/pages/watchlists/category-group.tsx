@@ -125,7 +125,8 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
       // Only handle arrow keys if not in an input
       if (e.target instanceof HTMLInputElement) return;
 
-      const currentQuotes = quotes();
+      // Use sorted order so arrow keys match what the user sees
+      const currentQuotes = sortedQuotes();
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -140,10 +141,12 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
         const currentSymbol = props.selectedSymbol;
         const currentIndex = currentQuotes.findIndex(q => q.symbol === currentSymbol);
 
-        // Calculate the next symbol BEFORE removing (while currentQuotes is still accurate)
+        // Calculate the next symbol BEFORE removing (while currentQuotes is still accurate).
+        // At last position: go to previous. Otherwise: go to next (currentIndex+1 since
+        // deletion will shift later items left).
         let nextSymbol: string | null = null;
         if (currentQuotes.length > 1) {
-          const nextIndex = currentIndex >= currentQuotes.length - 1 ? currentIndex - 1 : currentIndex;
+          const nextIndex = currentIndex >= currentQuotes.length - 1 ? currentIndex - 1 : currentIndex + 1;
           nextSymbol = currentQuotes[nextIndex].symbol;
         }
 
