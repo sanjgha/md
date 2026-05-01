@@ -36,7 +36,9 @@ class SwingPoints(Indicator):
     Only swings within the last `lookback` bars (default 60) of the input are returned.
     """
 
-    def compute(self, candles: List[Candle], lookback: int = 60, **kwargs):
+    def compute(  # type: ignore[override]
+        self, candles: List[Candle], lookback: int = 60, **kwargs
+    ) -> dict[str, np.ndarray]:
         """Detect fractal swing highs and lows within the last `lookback` bars."""
         highs = np.array([c.high for c in candles], dtype=float)
         lows = np.array([c.low for c in candles], dtype=float)

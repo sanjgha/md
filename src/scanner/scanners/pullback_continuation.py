@@ -1,7 +1,7 @@
 """Pullback continuation scanner: trend + geometry + exhaustion + trigger confluence."""
 
 import logging
-from typing import List
+from typing import List, cast
 
 import numpy as np
 
@@ -212,7 +212,13 @@ class PullbackContinuationScanner(Scanner):
 
     @staticmethod
     def _macd_histogram(macd_line: np.ndarray, signal_period: int = 9) -> np.ndarray:
-        """Return MACD histogram (macd_line − EMA(macd_line, signal_period))."""
+        """Return MACD histogram (macd_line − EMA(macd_line, signal_period)).
+
+        Note: the EMA seed drops the first ``signal_period - 1`` bars, so the
+        returned array is shorter than ``macd_line``. Consumers MUST index from
+        the tail (e.g. ``hist[-1]``); index 0 of the histogram does NOT line up
+        with index 0 of ``macd_line``.
+        """
         if len(macd_line) < signal_period:
             return np.array([])
         alpha = 2 / (signal_period + 1)
@@ -565,7 +571,8 @@ class PullbackContinuationScanner(Scanner):
             macd_arr = context.get_indicator(
                 "macd", fast_period=12, slow_period=26, signal_period=9
             )
-            swings = context.get_indicator("swing_points", lookback=60)
+            # SwingPoints returns dict[str, np.ndarray]; cache typing is ndarray-only.
+            swings = cast(dict, context.get_indicator("swing_points", lookback=60))
 
             if (
                 len(ema_9_arr) < 1
