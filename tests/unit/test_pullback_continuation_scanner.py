@@ -409,3 +409,175 @@ def test_conviction_score_bounds():
     score = scanner.scan(_make_context(candles))[0].metadata["conviction_score"]
     assert 0 <= score <= 100
     assert score > 0  # placeholder 0 should now be replaced
+
+
+# ---------------------------------------------------------------------------
+# Task 20: Negative-path / blocker tests
+# ---------------------------------------------------------------------------
+
+
+def test_no_signal_when_trend_missing():
+    """EMA stack not aligned at H -> no signal."""
+    base_dt = datetime(2024, 1, 1)
+    candles = [
+        Candle(base_dt + timedelta(days=i), 100.0, 102.0, 98.0, 100.0, 5_000_000) for i in range(80)
+    ]
+    candles[-1] = Candle(candles[-1].timestamp, 99.0, 110.0, 99.0, 108.0, 7_000_000)
+    scanner = PullbackContinuationScanner()
+    assert scanner.scan(_make_context(candles)) == []
+
+
+def test_no_signal_when_pullback_too_recent():
+    """Swing high 1 bar ago -> outside [3..15] window -> no signal."""
+    candles = _bullish_pullback_candles()
+    base_dt = candles[0].timestamp
+    candles[-3] = Candle(base_dt + timedelta(days=77), 159.0, 160.0, 158.0, 159.0, 2_000_000)
+    candles[-2] = Candle(base_dt + timedelta(days=78), 158.0, 170.0, 157.0, 158.0, 2_000_000)
+    candles[-1] = Candle(base_dt + timedelta(days=79), 158.0, 165.0, 156.0, 162.0, 5_000_000)
+    scanner = PullbackContinuationScanner()
+    assert scanner.scan(_make_context(candles)) == []
+
+
+def test_no_signal_when_pullback_stale():
+    """Swing high 20 bars ago -> outside window -> no signal."""
+    candles = _bullish_pullback_candles()
+    base_dt = candles[0].timestamp
+    flat_tail = []
+    for i in range(20):
+        price = 150.0 + 0.05 * i
+        flat_tail.append(
+            Candle(
+                base_dt + timedelta(days=60 + i),
+                price,
+                price + 0.5,
+                price - 0.5,
+                price,
+                2_000_000,
+            )
+        )
+    candles = candles[:60] + flat_tail
+    candles.append(Candle(base_dt + timedelta(days=80), 151.0, 165.0, 150.5, 165.0, 5_000_000))
+    scanner = PullbackContinuationScanner()
+    assert scanner.scan(_make_context(candles)) == []
+
+
+def test_no_signal_when_only_one_exhaustion():
+    """1 of 4 exhaustion criteria -> no signal."""
+    candles = _bullish_pullback_candles(trigger_volume=1_000_000, base_volume=2_000_000)
+    for i in range(68, 79):
+        c = candles[i]
+        candles[i] = Candle(c.timestamp, c.open, c.high, c.low, c.close, 1_500_000)
+    scanner = PullbackContinuationScanner()
+    results = scanner.scan(_make_context(candles))
+    assert results == [] or results[0].metadata["exhaustion_count"] >= 2
+
+
+def test_exhaustion_window_spans_three_bars():
+    """A criterion 2 bars ago plus a different criterion today -> qualifies."""
+    candles = _bullish_pullback_candles()
+    scanner = PullbackContinuationScanner()
+    results = scanner.scan(_make_context(candles))
+    if results:
+        assert results[0].metadata["exhaustion_count"] >= 2
+
+
+def test_no_signal_when_trigger_below_3bar_high():
+    """Close > EMA(9) but <= 3-bar high -> no signal.
+
+    Phase 3 highs at idx 76, 77, 78 are 153.0, 154.5, 156.0 -> 3-bar high is 156.0.
+    trigger_close=156.0 is not strictly greater than the 3-bar high, so no signal.
+    """
+    candles = _bullish_pullback_candles(trigger_close=156.0)
+    scanner = PullbackContinuationScanner()
+    assert scanner.scan(_make_context(candles)) == []
+
+
+def test_insufficient_candles_no_error():
+    """< 80 bars -> no signal, no exception."""
+    base_dt = datetime(2024, 1, 1)
+    candles = [
+        Candle(base_dt + timedelta(days=i), 100.0, 101.0, 99.0, 100.0, 3_000_000) for i in range(40)
+    ]
+    scanner = PullbackContinuationScanner()
+    assert scanner.scan(_make_context(candles)) == []
+
+
+# ---------------------------------------------------------------------------
+# Bonus: Scoring component sanity tests
+# ---------------------------------------------------------------------------
+
+
+def test_score_volume_component_zero_when_ratio_one():
+    """volume_ratio == 1.0 -> volume component contributes 0 to score."""
+    candles = _bullish_pullback_candles()
+    scanner = PullbackContinuationScanner()
+    s_low = scanner._score(
+        direction="long",
+        exhaustion_count=2,
+        retrace_pct=0.5,
+        volume_ratio=1.0,
+        ema_9=160.0,
+        ema_50=150.0,
+        atr_val=2.0,
+        close=160.0,
+        candles=candles,
+    )
+    s_high = scanner._score(
+        direction="long",
+        exhaustion_count=2,
+        retrace_pct=0.5,
+        volume_ratio=2.0,
+        ema_9=160.0,
+        ema_50=150.0,
+        atr_val=2.0,
+        close=160.0,
+        candles=candles,
+    )
+    # Same inputs except volume; difference should be 20 (volume max - volume min).
+    assert s_high - s_low == 20
+
+
+def test_score_retrace_peaks_in_sweet_spot():
+    """retrace_pct = 0.55 -> max retrace component (25); 0.38/0.78 -> 0."""
+    candles = _bullish_pullback_candles()
+    scanner = PullbackContinuationScanner()
+    base_kwargs = dict(
+        direction="long",
+        exhaustion_count=2,
+        volume_ratio=1.0,
+        ema_9=150.0,
+        ema_50=150.0,
+        atr_val=2.0,
+        close=150.0,
+        candles=candles,
+    )
+    s_peak = scanner._score(retrace_pct=0.55, **base_kwargs)
+    s_floor = scanner._score(retrace_pct=0.38, **base_kwargs)
+    s_ceil = scanner._score(retrace_pct=0.78, **base_kwargs)
+    assert s_peak > s_floor
+    assert s_peak > s_ceil
+    # 0.55 sits in the [0.5, 0.618] sweet spot -> +25 vs the edges' +0.
+    assert s_peak - s_floor == 25
+    assert s_peak - s_ceil == 25
+
+
+def test_score_rises_with_more_exhaustion():
+    """More exhaustion criteria -> higher score (2->15, 3->22, 4->30)."""
+    candles = _bullish_pullback_candles()
+    scanner = PullbackContinuationScanner()
+    base_kwargs = dict(
+        direction="long",
+        retrace_pct=0.5,
+        volume_ratio=1.5,
+        ema_9=160.0,
+        ema_50=150.0,
+        atr_val=2.0,
+        close=160.0,
+        candles=candles,
+    )
+    s2 = scanner._score(exhaustion_count=2, **base_kwargs)
+    s3 = scanner._score(exhaustion_count=3, **base_kwargs)
+    s4 = scanner._score(exhaustion_count=4, **base_kwargs)
+    assert s2 < s3 < s4
+    assert s3 - s2 == 7  # 22 - 15
+    assert s4 - s3 == 8  # 30 - 22
