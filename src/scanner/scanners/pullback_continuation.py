@@ -240,7 +240,9 @@ class PullbackContinuationScanner(Scanner):
         levels: list[float] = []
         cluster: list[float] = [lows[0]]
         for v in lows[1:]:
-            if v - cluster[-1] <= tol:
+            # Anchor span to the cluster's first member so chained values can't
+            # silently grow beyond the tolerance bound.
+            if v - cluster[0] <= tol:
                 cluster.append(v)
             else:
                 if len(cluster) >= self.SUPPORT_TOUCH_MIN_HITS:
@@ -260,7 +262,9 @@ class PullbackContinuationScanner(Scanner):
         levels: list[float] = []
         cluster: list[float] = [highs[0]]
         for v in highs[1:]:
-            if cluster[-1] - v <= tol:
+            # Anchor span to the cluster's first member so chained values can't
+            # silently grow beyond the tolerance bound.
+            if cluster[0] - v <= tol:
                 cluster.append(v)
             else:
                 if len(cluster) >= self.SUPPORT_TOUCH_MIN_HITS:
