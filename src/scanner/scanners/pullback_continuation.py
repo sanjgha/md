@@ -37,6 +37,23 @@ class PullbackContinuationScanner(Scanner):
     EXTENSION_MULT = 1.618
     STOP_ATR_MULT = 0.5
 
+    def _stack_at(
+        self,
+        ema_9_arr: np.ndarray,
+        ema_21_arr: np.ndarray,
+        ema_50_arr: np.ndarray,
+        anchor_neg_offset: int,
+    ) -> tuple[float, float, float]:
+        """Return (ema_9, ema_21, ema_50) at the bar identified by a negative offset.
+
+        All three EMA arrays end at "today"; offset -1 = today, -2 = yesterday, etc.
+        """
+        return (
+            float(ema_9_arr[anchor_neg_offset]),
+            float(ema_21_arr[anchor_neg_offset]),
+            float(ema_50_arr[anchor_neg_offset]),
+        )
+
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Return at most one ScanResult per stock; never raise."""
         candles = context.daily_candles
@@ -65,6 +82,21 @@ class PullbackContinuationScanner(Scanner):
             atr_pct = atr_val / close * 100
             if atr_pct < self.ATR_PCT_MIN:
                 return results
+
+            ema_9_arr = context.get_indicator("ema", period=9)
+            ema_21_arr = context.get_indicator("ema", period=21)
+            ema_50_arr = context.get_indicator("ema", period=50)
+            if len(ema_9_arr) < 1 or len(ema_21_arr) < 1 or len(ema_50_arr) < 11:
+                return results
+            for arr in (ema_9_arr, ema_21_arr, ema_50_arr):
+                if not np.all(np.isfinite(arr[-12:])):
+                    return results
+
+            ema_50_today = float(ema_50_arr[-1])
+            ema_50_10_back = float(ema_50_arr[-11])
+            ema_50_slope_10 = (  # noqa: F841 — used in Task 14 trend gating
+                (ema_50_today - ema_50_10_back) / ema_50_10_back if ema_50_10_back != 0 else 0.0
+            )
 
             # Subsequent rules (trend / geometry / exhaustion / trigger) added in later tasks.
             return results
