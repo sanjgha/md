@@ -556,6 +556,50 @@ class PullbackContinuationScanner(Scanner):
                 )
                 return results
 
+            # --- Short branch ---
+            short_geo = self._find_short_geometry(candles, swings)
+            short_signal = None
+            if short_geo and self._trend_ok_short(
+                ema_9_arr,
+                ema_21_arr,
+                ema_50_arr,
+                candles,
+                short_geo["H_idx"],
+                short_geo["L_idx"],
+                ema_50_slope_10,
+            ):
+                ema_21_today = float(ema_21_arr[-1])
+                three_bar_low = min(c.low for c in candles[-4:-1])
+                if close < ema_21_today and close < three_bar_low:
+                    count, reasons = self._exhaustion_short(
+                        candles,
+                        atr_val,
+                        rsi_arr,
+                        macd_hist,
+                        prior_bounce_high_idx=short_geo["bounce_high_idx"],
+                        prior_bounce_high=short_geo["bounce_high"],
+                    )
+                    if count >= self.EXHAUSTION_REQUIRED:
+                        short_signal = {
+                            "geo": short_geo,
+                            "exhaustion_count": count,
+                            "exhaustion_reasons": reasons,
+                            "ema_9_today": float(ema_9_arr[-1]),
+                            "ema_21_today": ema_21_today,
+                            "ema_50_today": ema_50_today,
+                            "ema_50_slope_10": ema_50_slope_10,
+                            "rsi_today": float(rsi_arr[-1]),
+                            "macd_hist_today": float(macd_hist[-1]),
+                        }
+
+            if short_signal is not None:
+                results.append(
+                    self._build_result(
+                        context, candles, atr_val, atr_pct, close, "short", short_signal
+                    )
+                )
+                return results
+
             return results
         except Exception:
             logger.exception(f"PullbackContinuationScanner failed for {context.symbol}")
