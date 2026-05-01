@@ -76,7 +76,6 @@ def fetch_data(symbols):
 def scan():
     """Run scanners on existing data."""
     from src.config import get_config
-    from src.scanner.registry import ScannerRegistry
     from src.scanner.executor import ScannerExecutor
     from src.scanner.indicators.moving_averages import SMA, EMA, WMA
     from src.scanner.indicators.momentum import RSI, MACD
@@ -84,15 +83,6 @@ def scan():
     from src.scanner.indicators.support_resistance import SupportResistance, SwingPoints
     from src.scanner.indicators.patterns.breakouts import BreakoutDetector
     from src.scanner.indicators.rolling_max import RollingMax
-    from src.scanner.scanners import (
-        PriceActionScanner,
-        MomentumScanner,
-        VolumeScanner,
-        SmartMoneyScanner,
-        SixMonthHighScanner,
-        WeeklyOptionsScanner,
-        PullbackContinuationScanner,
-    )
     from src.output.cli import CLIOutputHandler
     from src.output.logger import LogFileOutputHandler
     from src.output.composite import CompositeOutputHandler
@@ -121,14 +111,9 @@ def scan():
             "swing_points": SwingPoints(),
         }
 
-        scanner_registry = ScannerRegistry()
-        scanner_registry.register("price_action", PriceActionScanner())
-        scanner_registry.register("momentum", MomentumScanner())
-        scanner_registry.register("volume", VolumeScanner())
-        scanner_registry.register("smart_money", SmartMoneyScanner())
-        scanner_registry.register("six_month_high", SixMonthHighScanner())
-        scanner_registry.register("weekly_options", WeeklyOptionsScanner())
-        scanner_registry.register("pullback_continuation", PullbackContinuationScanner())
+        from src.scanner.registry_factory import build_scanner_registry
+
+        scanner_registry = build_scanner_registry()
 
         output = CompositeOutputHandler(
             [
@@ -868,20 +853,12 @@ def schedule_pre_close_cmd():
     def run_pre_close_scan():
         """Instantiate PreCloseExecutor and run pre-close scans."""
         from src.scanner.pre_close_executor import PreCloseExecutor
-        from src.scanner.registry import ScannerRegistry
         from src.scanner.indicators.moving_averages import SMA, EMA, WMA
         from src.scanner.indicators.momentum import RSI, MACD
         from src.scanner.indicators.volatility import BollingerBands, ATR, BBWidthPercentile
         from src.scanner.indicators.support_resistance import SupportResistance
         from src.scanner.indicators.patterns.breakouts import BreakoutDetector
         from src.scanner.indicators.rolling_max import RollingMax
-        from src.scanner.scanners import (
-            PriceActionScanner,
-            MomentumScanner,
-            VolumeScanner,
-            SmartMoneyScanner,
-            SixMonthHighScanner,
-        )
         from src.output.cli import CLIOutputHandler
         from src.output.logger import LogFileOutputHandler
         from src.output.composite import CompositeOutputHandler
@@ -902,12 +879,9 @@ def schedule_pre_close_cmd():
                 "rolling_max": RollingMax(),
             }
 
-            scanner_registry = ScannerRegistry()
-            scanner_registry.register("price_action", PriceActionScanner())
-            scanner_registry.register("momentum", MomentumScanner())
-            scanner_registry.register("volume", VolumeScanner())
-            scanner_registry.register("smart_money", SmartMoneyScanner())
-            scanner_registry.register("six_month_high", SixMonthHighScanner())
+            from src.scanner.registry_factory import build_scanner_registry
+
+            scanner_registry = build_scanner_registry()
 
             output = CompositeOutputHandler(
                 [
