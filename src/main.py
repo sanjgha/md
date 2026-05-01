@@ -81,7 +81,7 @@ def scan():
     from src.scanner.indicators.moving_averages import SMA, EMA, WMA
     from src.scanner.indicators.momentum import RSI, MACD
     from src.scanner.indicators.volatility import BollingerBands, ATR, BBWidthPercentile
-    from src.scanner.indicators.support_resistance import SupportResistance
+    from src.scanner.indicators.support_resistance import SupportResistance, SwingPoints
     from src.scanner.indicators.patterns.breakouts import BreakoutDetector
     from src.scanner.indicators.rolling_max import RollingMax
     from src.scanner.scanners import (
@@ -91,6 +91,7 @@ def scan():
         SmartMoneyScanner,
         SixMonthHighScanner,
         WeeklyOptionsScanner,
+        PullbackContinuationScanner,
     )
     from src.output.cli import CLIOutputHandler
     from src.output.logger import LogFileOutputHandler
@@ -117,6 +118,7 @@ def scan():
             "support_resistance": SupportResistance(),
             "breakout": BreakoutDetector(),
             "rolling_max": RollingMax(),
+            "swing_points": SwingPoints(),
         }
 
         scanner_registry = ScannerRegistry()
@@ -126,6 +128,7 @@ def scan():
         scanner_registry.register("smart_money", SmartMoneyScanner())
         scanner_registry.register("six_month_high", SixMonthHighScanner())
         scanner_registry.register("weekly_options", WeeklyOptionsScanner())
+        scanner_registry.register("pullback_continuation", PullbackContinuationScanner())
 
         output = CompositeOutputHandler(
             [

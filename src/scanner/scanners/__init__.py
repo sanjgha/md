@@ -1,4 +1,4 @@
-"""Scanner implementations: price action, momentum, volume, smart money, six-month high, weekly options."""
+"""Scanner implementations: price action, momentum, volume, smart money, six-month high, weekly options, pullback continuation."""
 
 from src.scanner.scanners.price_action import PriceActionScanner
 from src.scanner.scanners.momentum_scan import MomentumScanner
@@ -6,6 +6,7 @@ from src.scanner.scanners.volume_scan import VolumeScanner
 from src.scanner.scanners.smart_money import SmartMoneyScanner
 from src.scanner.scanners.six_month_high import SixMonthHighScanner
 from src.scanner.scanners.weekly_options import WeeklyOptionsScanner
+from src.scanner.scanners.pullback_continuation import PullbackContinuationScanner
 
 __all__ = [
     "PriceActionScanner",
@@ -14,4 +15,5 @@ __all__ = [
     "SmartMoneyScanner",
     "SixMonthHighScanner",
     "WeeklyOptionsScanner",
+    "PullbackContinuationScanner",
 ]

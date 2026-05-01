@@ -136,7 +136,7 @@ class TestGetQuotesIntraday:
 
         # Create daily candles (no intraday, no realtime)
         today = date.today()
-        yesterday = today.replace(day=today.day - 1)
+        yesterday = today - timedelta(days=1)
         candle1 = DailyCandle(
             stock_id=stock.id,
             timestamp=datetime.combine(today, datetime.min.time()),
