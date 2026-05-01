@@ -579,7 +579,10 @@ class PullbackContinuationScanner(Scanner):
                 or len(ema_21_arr) < 1
                 or len(ema_50_arr) < 11
                 or len(rsi_arr) < 4
-                or len(macd_arr) < 10
+                # _macd_histogram returns len(macd_arr) - signal_period + 1 = len(macd_arr) - 8.
+                # We index hist[-3] (3 bars ago) and hist[-4] (4 bars ago, prev for that cross),
+                # so we need at least 4 histogram values, i.e. len(macd_arr) >= 12.
+                or len(macd_arr) < 12
             ):
                 return results
             for arr in (ema_9_arr, ema_21_arr, ema_50_arr, rsi_arr, macd_arr):

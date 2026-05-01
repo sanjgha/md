@@ -81,6 +81,7 @@ A score below 40 still emits a signal but flags it lower-conviction in metadata 
 {
     "direction":           "long" | "short",
     "conviction_score":    int,          # 0-100
+    "low_conviction":      bool,         # True when conviction_score < 40
     "close":               float,
     "atr":                 float,
     "atr_pct":             float,        # atr / close * 100
@@ -119,12 +120,10 @@ src/scanner/
     momentum.py                     # ADD: RSIDivergence helper (uses existing RSI)
                                     # (existing EMA, RSI, MACD, ATR reused)
 src/main.py                         # register "pullback_continuation" in eod and schedule blocks
-tests/unit/scanner/
-  indicators/
-    test_swing_points.py            # NEW
-    test_rsi_divergence.py          # NEW
-  scanners/
-    test_pullback_continuation.py   # NEW
+tests/unit/
+  test_swing_points.py              # NEW
+  test_rsi_divergence.py            # NEW
+  test_pullback_continuation_scanner.py  # NEW
 ```
 
 ### New indicator: `SwingPoints`
@@ -147,7 +146,7 @@ Added to `src/scanner/indicators/momentum.py`. Pure function: takes a price seri
 
 ### Registration
 
-In `src/main.py`, add `scanner_registry.register("pullback_continuation", PullbackContinuationScanner())` to **both** registration sites (the `eod` command block and the `schedule` command block). Output flows through the existing `CompositeOutputHandler`; results land in `scanner_results` with `scanner_name = "pullback_continuation"`.
+In `src/main.py`, add `scanner_registry.register("pullback_continuation", PullbackContinuationScanner())` to the `scan` Click command's registry block — the EOD path. The pre-close registry block (`run_pre_close_scan`) is intentionally NOT modified because the trigger rule depends on the closing print. The `schedule` Click command transitively calls `eod` → `scan`, so a single registration covers all schedulers. This mirrors the `weekly_options` precedent. Output flows through the existing `CompositeOutputHandler`; results land in `scanner_results` with `scanner_name = "pullback_continuation"`.
 
 ### Schedule
 
