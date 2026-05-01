@@ -340,3 +340,63 @@ def test_emits_short_on_failed_bounce():
     r = results[0]
     assert r.metadata["direction"] == "short"
     assert r.metadata["exhaustion_count"] >= 2
+
+
+def test_metadata_complete():
+    """All required fields present and typed correctly."""
+    candles = _bullish_pullback_candles()
+    scanner = PullbackContinuationScanner()
+    results = scanner.scan(_make_context(candles))
+    assert len(results) == 1
+    meta = results[0].metadata
+    required = [
+        "direction",
+        "conviction_score",
+        "close",
+        "atr",
+        "atr_pct",
+        "ema_9",
+        "ema_21",
+        "ema_50",
+        "ema_50_slope_10",
+        "rsi_14",
+        "macd_histogram",
+        "swing_anchor_idx",
+        "swing_anchor_price",
+        "leg_size",
+        "pullback_extreme",
+        "retrace_pct",
+        "exhaustion_count",
+        "exhaustion_reasons",
+        "volume_ratio",
+        "stop_level",
+        "target_level",
+        "risk_reward",
+        "signal_date",
+    ]
+    for key in required:
+        assert key in meta, f"missing {key}"
+    assert isinstance(meta["exhaustion_reasons"], list)
+    assert isinstance(meta["swing_anchor_idx"], int)
+
+
+def test_stop_target_math_long():
+    """Long: stop = pullback_low − 0.5×ATR, target = close + 1.618 × up_leg."""
+    candles = _bullish_pullback_candles()
+    scanner = PullbackContinuationScanner()
+    meta = scanner.scan(_make_context(candles))[0].metadata
+    expected_stop = round(meta["pullback_extreme"] - 0.5 * meta["atr"], 4)
+    expected_target = round(meta["close"] + 1.618 * meta["leg_size"], 4)
+    assert meta["stop_level"] == expected_stop
+    assert meta["target_level"] == expected_target
+
+
+def test_stop_target_math_short():
+    """Short: stop = bounce_high + 0.5×ATR, target = close − 1.618 × down_leg."""
+    candles = _bearish_failed_bounce_candles()
+    scanner = PullbackContinuationScanner()
+    meta = scanner.scan(_make_context(candles))[0].metadata
+    expected_stop = round(meta["pullback_extreme"] + 0.5 * meta["atr"], 4)
+    expected_target = round(meta["close"] - 1.618 * meta["leg_size"], 4)
+    assert meta["stop_level"] == expected_stop
+    assert meta["target_level"] == expected_target

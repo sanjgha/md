@@ -404,23 +404,27 @@ class PullbackContinuationScanner(Scanner):
         sig: dict,
     ) -> ScanResult:
         geo = sig["geo"]
+        # Round inputs first so stop/target stay self-consistent with the
+        # metadata fields they're derived from (avoids rounding-order drift).
+        atr_r = round(atr_val, 4)
+        close_r = round(close, 4)
         if direction == "long":
             anchor_price = geo["H_high"]
-            leg_size = geo["up_leg"]
-            pullback_extreme = geo["pullback_low"]
-            stop_level = pullback_extreme - self.STOP_ATR_MULT * atr_val
-            target_level = close + self.EXTENSION_MULT * leg_size
+            leg_size = round(geo["up_leg"], 4)
+            pullback_extreme = round(geo["pullback_low"], 4)
+            stop_level = pullback_extreme - self.STOP_ATR_MULT * atr_r
+            target_level = close_r + self.EXTENSION_MULT * leg_size
             anchor_idx = len(candles) - 1 - geo["H_idx"]
         else:
             anchor_price = geo["L_low"]
-            leg_size = geo["down_leg"]
-            pullback_extreme = geo["bounce_high"]
-            stop_level = pullback_extreme + self.STOP_ATR_MULT * atr_val
-            target_level = close - self.EXTENSION_MULT * leg_size
+            leg_size = round(geo["down_leg"], 4)
+            pullback_extreme = round(geo["bounce_high"], 4)
+            stop_level = pullback_extreme + self.STOP_ATR_MULT * atr_r
+            target_level = close_r - self.EXTENSION_MULT * leg_size
             anchor_idx = len(candles) - 1 - geo["L_idx"]
 
-        risk = abs(close - stop_level)
-        risk_reward = abs(target_level - close) / risk if risk > 0 else 0.0
+        risk = abs(close_r - stop_level)
+        risk_reward = abs(target_level - close_r) / risk if risk > 0 else 0.0
 
         avg_vol_20 = float(np.mean([c.volume for c in candles[-21:-1]]))
         volume_ratio = float(candles[-1].volume) / avg_vol_20 if avg_vol_20 > 0 else 0.0
@@ -431,8 +435,8 @@ class PullbackContinuationScanner(Scanner):
         metadata = {
             "direction": direction,
             "conviction_score": conviction_score,
-            "close": round(close, 4),
-            "atr": round(atr_val, 4),
+            "close": close_r,
+            "atr": atr_r,
             "atr_pct": round(atr_pct, 4),
             "ema_9": round(sig["ema_9_today"], 4),
             "ema_21": round(sig["ema_21_today"], 4),
@@ -442,8 +446,8 @@ class PullbackContinuationScanner(Scanner):
             "macd_histogram": round(sig["macd_hist_today"], 6),
             "swing_anchor_idx": anchor_idx,
             "swing_anchor_price": round(anchor_price, 4),
-            "leg_size": round(leg_size, 4),
-            "pullback_extreme": round(pullback_extreme, 4),
+            "leg_size": leg_size,
+            "pullback_extreme": pullback_extreme,
             "retrace_pct": round(geo["retrace_pct"], 4),
             "exhaustion_count": sig["exhaustion_count"],
             "exhaustion_reasons": sig["exhaustion_reasons"],
