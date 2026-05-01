@@ -12,9 +12,9 @@ def test_list_scanners_returns_registered_scanners(authenticated_client):
     assert len(data) >= 3
 
     names = {s["name"] for s in data}
-    assert "momentum" in names
-    assert "price_action" in names
     assert "volume" in names
+    assert "smart_money" in names
+    assert "six_month_high" in names
 
     for scanner in data:
         assert "name" in scanner
