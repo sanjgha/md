@@ -41,8 +41,8 @@ def _seed_results(db_session, run_type="eod"):
         db_session.flush()
     result = ScannerResult(
         stock_id=stock.id,
-        scanner_name="momentum",
-        result_metadata={"reason": "overbought", "rsi": 72.5},
+        scanner_name="volume",
+        result_metadata={"reason": "volume_spike", "volume_ratio": 2.5},
         matched_at=datetime.utcnow(),
         run_type=run_type,
     )
@@ -60,7 +60,7 @@ def test_get_results_defaults_to_latest(authenticated_client, db_session):
     assert "results" in data
     assert len(data["results"]) >= 1
     assert data["results"][0]["symbol"] == "AAPL"
-    assert data["results"][0]["scanner_name"] == "momentum"
+    assert data["results"][0]["scanner_name"] == "volume"
 
 
 def test_get_results_filter_by_run_type(authenticated_client, db_session):
@@ -71,16 +71,16 @@ def test_get_results_filter_by_run_type(authenticated_client, db_session):
     assert resp.status_code == 200
     data = resp.json()
     assert data["run_type"] == "pre_close"
-    assert all(r["scanner_name"] == "momentum" for r in data["results"])
+    assert all(r["scanner_name"] == "volume" for r in data["results"])
 
 
 def test_get_results_filter_by_scanner(authenticated_client, db_session):
-    """GET /api/scanners/results?scanners=momentum returns only momentum results."""
+    """GET /api/scanners/results?scanners=volume returns only volume results."""
     _seed_results(db_session)
-    resp = authenticated_client.get("/api/scanners/results?scanners=momentum")
+    resp = authenticated_client.get("/api/scanners/results?scanners=volume")
     assert resp.status_code == 200
     data = resp.json()
-    assert all(r["scanner_name"] == "momentum" for r in data["results"])
+    assert all(r["scanner_name"] == "volume" for r in data["results"])
 
 
 def test_get_results_empty_returns_empty_list(authenticated_client, db_session):
@@ -134,7 +134,7 @@ def test_run_intraday_universe_scope(authenticated_client, db_session):
     resp = authenticated_client.post(
         "/api/scanners/run",
         json={
-            "scanners": ["momentum"],
+            "scanners": ["volume"],
             "timeframe": "15m",
             "input_scope": "universe",
         },
@@ -153,7 +153,7 @@ def test_run_intraday_empty_data_returns_empty(authenticated_client, db_session)
     resp = authenticated_client.post(
         "/api/scanners/run",
         json={
-            "scanners": ["momentum"],
+            "scanners": ["volume"],
             "timeframe": "15m",
             "input_scope": "universe",
         },
