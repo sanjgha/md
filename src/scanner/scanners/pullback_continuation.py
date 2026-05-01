@@ -94,6 +94,57 @@ class PullbackContinuationScanner(Scanner):
             "retrace_pct": retrace_pct,
         }
 
+    def _find_short_geometry(
+        self,
+        candles: list,
+        swings: dict,
+    ) -> dict | None:
+        n = len(candles)
+        today_idx = n - 1
+        highs_arr = swings.get("highs", np.empty((0, 2)))
+        lows_arr = swings.get("lows", np.empty((0, 2)))
+        if highs_arr.size == 0 or lows_arr.size == 0:
+            return None
+
+        sh = [(int(i), float(p)) for i, p in highs_arr]
+        sl = [(int(i), float(p)) for i, p in lows_arr]
+
+        candidates = [
+            (idx, price)
+            for idx, price in sl
+            if self.SWING_MIN_BARS_AGO <= (today_idx - idx) <= self.SWING_MAX_BARS_AGO
+        ]
+        if not candidates:
+            return None
+        l_idx, l_low = max(candidates, key=lambda t: t[0])
+
+        prior_highs = [(idx, price) for idx, price in sh if idx < l_idx]
+        if not prior_highs:
+            return None
+        h_idx, h_high = max(prior_highs, key=lambda t: t[0])
+
+        down_leg = h_high - l_low
+        if down_leg <= 0:
+            return None
+
+        bounce_high_idx = l_idx + 1 + int(np.argmax([candles[i].high for i in range(l_idx + 1, n)]))
+        bounce_high = float(candles[bounce_high_idx].high)
+
+        retrace_pct = (bounce_high - l_low) / down_leg
+        if retrace_pct < self.RETRACE_MIN or retrace_pct > self.RETRACE_MAX:
+            return None
+
+        return {
+            "H_idx": h_idx,
+            "H_high": h_high,
+            "L_idx": l_idx,
+            "L_low": l_low,
+            "down_leg": down_leg,
+            "bounce_high_idx": bounce_high_idx,
+            "bounce_high": bounce_high,
+            "retrace_pct": retrace_pct,
+        }
+
     def _stack_at(
         self,
         ema_9_arr: np.ndarray,
