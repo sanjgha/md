@@ -162,6 +162,54 @@ class PullbackContinuationScanner(Scanner):
             float(ema_50_arr[anchor_neg_offset]),
         )
 
+    def _trend_ok_long(
+        self,
+        ema_9_arr: np.ndarray,
+        ema_21_arr: np.ndarray,
+        ema_50_arr: np.ndarray,
+        candles: list,
+        h_idx: int,
+        ema_50_slope_10: float,
+    ) -> bool:
+        n = len(candles)
+        offset = -(n - h_idx)
+        ema_9_h, ema_21_h, ema_50_h = self._stack_at(ema_9_arr, ema_21_arr, ema_50_arr, offset)
+        close_h = float(candles[h_idx].close)
+        if not (ema_9_h > ema_21_h > ema_50_h):
+            return False
+        if not (close_h > ema_21_h):
+            return False
+        if ema_50_slope_10 <= 0:
+            return False
+        return True
+
+    def _trend_ok_short(
+        self,
+        ema_9_arr: np.ndarray,
+        ema_21_arr: np.ndarray,
+        ema_50_arr: np.ndarray,
+        candles: list,
+        h_idx: int,
+        l_idx: int,
+        ema_50_slope_10: float,
+    ) -> bool:
+        n = len(candles)
+        h_off = -(n - h_idx)
+        l_off = -(n - l_idx)
+        ema_9_h, ema_21_h, ema_50_h = self._stack_at(ema_9_arr, ema_21_arr, ema_50_arr, h_off)
+        ema_21_l = float(ema_21_arr[l_off])
+        close_h = float(candles[h_idx].close)
+        close_l = float(candles[l_idx].close)
+        if not (ema_9_h > ema_21_h > ema_50_h):
+            return False
+        if not (close_h > ema_21_h):
+            return False
+        if not (close_l < ema_21_l):
+            return False
+        if ema_50_slope_10 > 0:  # spec: flat-to-negative for short
+            return False
+        return True
+
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Return at most one ScanResult per stock; never raise."""
         candles = context.daily_candles
