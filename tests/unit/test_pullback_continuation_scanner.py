@@ -400,3 +400,11 @@ def test_stop_target_math_short():
     expected_target = round(meta["close"] - 1.618 * meta["leg_size"], 4)
     assert meta["stop_level"] == expected_stop
     assert meta["target_level"] == expected_target
+
+
+def test_conviction_score_bounds():
+    candles = _bullish_pullback_candles()
+    scanner = PullbackContinuationScanner()
+    score = scanner.scan(_make_context(candles))[0].metadata["conviction_score"]
+    assert 0 <= score <= 100
+    assert score > 0  # placeholder 0 should now be replaced

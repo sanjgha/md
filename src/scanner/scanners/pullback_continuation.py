@@ -393,6 +393,61 @@ class PullbackContinuationScanner(Scanner):
 
         return len(reasons), sorted(reasons)
 
+    def _score(
+        self,
+        *,
+        direction: str,
+        exhaustion_count: int,
+        retrace_pct: float,
+        volume_ratio: float,
+        ema_9: float,
+        ema_50: float,
+        atr_val: float,
+        close: float,
+        candles: list,
+    ) -> int:
+        """Weighted conviction score, 0-100, clamped."""
+        # Exhaustion (max 30)
+        ex_score = {2: 15.0, 3: 22.0, 4: 30.0}.get(exhaustion_count, 0.0)
+
+        # Retracement quality (max 25); peak between 0.5 and 0.618; linear ramp/decline.
+        if 0.5 <= retrace_pct <= 0.618:
+            retrace_score = 25.0
+        elif self.RETRACE_MIN <= retrace_pct < 0.5:
+            retrace_score = 25.0 * (retrace_pct - self.RETRACE_MIN) / (0.5 - self.RETRACE_MIN)
+        elif 0.618 < retrace_pct <= self.RETRACE_MAX:
+            retrace_score = 25.0 * (self.RETRACE_MAX - retrace_pct) / (self.RETRACE_MAX - 0.618)
+        else:
+            retrace_score = 0.0
+
+        # Volume (max 20): 1.0 → 0; 2.0+ → 20.
+        vol_score = max(0.0, min(20.0, (volume_ratio - 1.0) / 1.0 * 20.0))
+
+        # Trend slope (max 15): 0% → 0; 5%+ → 15.
+        slope_pct = abs(ema_9 - ema_50) / ema_50 * 100 if ema_50 != 0 else 0.0
+        slope_score = min(15.0, slope_pct / 5.0 * 15.0)
+
+        # Distance to nearest support/resistance (max 10) in ATR units.
+        if atr_val <= 0:
+            distance_score = 0.0
+        else:
+            if direction == "long":
+                levels = self._support_levels(candles, atr_val)
+                below = [lvl for lvl in levels if lvl <= close]
+                nearest = max(below) if below else None
+            else:
+                levels = self._resistance_levels(candles, atr_val)
+                above = [lvl for lvl in levels if lvl >= close]
+                nearest = min(above) if above else None
+            if nearest is None:
+                distance_score = 0.0
+            else:
+                distance_atr = abs(close - nearest) / atr_val
+                distance_score = max(0.0, min(10.0, 10.0 - distance_atr * 5.0))
+
+        total = ex_score + retrace_score + vol_score + slope_score + distance_score
+        return int(min(100, max(0, round(total))))
+
     def _build_result(
         self,
         context: ScanContext,
@@ -429,8 +484,17 @@ class PullbackContinuationScanner(Scanner):
         avg_vol_20 = float(np.mean([c.volume for c in candles[-21:-1]]))
         volume_ratio = float(candles[-1].volume) / avg_vol_20 if avg_vol_20 > 0 else 0.0
 
-        # Conviction filled by Task 19; placeholder 0 for now.
-        conviction_score = 0
+        conviction_score = self._score(
+            direction=direction,
+            exhaustion_count=sig["exhaustion_count"],
+            retrace_pct=geo["retrace_pct"],
+            volume_ratio=volume_ratio,
+            ema_9=sig["ema_9_today"],
+            ema_50=sig["ema_50_today"],
+            atr_val=atr_val,
+            close=close,
+            candles=candles,
+        )
 
         metadata = {
             "direction": direction,
