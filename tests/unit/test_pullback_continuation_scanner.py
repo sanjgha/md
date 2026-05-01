@@ -215,3 +215,19 @@ def test_universe_filter_atr():
     ]
     scanner = PullbackContinuationScanner()
     assert scanner.scan(_make_context(flat)) == []
+
+
+def test_no_signal_when_pullback_too_shallow():
+    """retrace 25% → no signal (below 0.38 floor)."""
+    candles = _bullish_pullback_candles(pullback_low_offset=8.0)
+    scanner = PullbackContinuationScanner()
+    results = scanner.scan(_make_context(candles))
+    assert results == []
+
+
+def test_no_signal_when_pullback_too_deep():
+    """retrace 85% → no signal (above 0.78 ceiling)."""
+    candles = _bullish_pullback_candles(pullback_low_offset=-15.0)
+    scanner = PullbackContinuationScanner()
+    results = scanner.scan(_make_context(candles))
+    assert results == []
