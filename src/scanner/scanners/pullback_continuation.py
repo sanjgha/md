@@ -393,6 +393,72 @@ class PullbackContinuationScanner(Scanner):
 
         return len(reasons), sorted(reasons)
 
+    def _build_result(
+        self,
+        context: ScanContext,
+        candles: list,
+        atr_val: float,
+        atr_pct: float,
+        close: float,
+        direction: str,
+        sig: dict,
+    ) -> ScanResult:
+        geo = sig["geo"]
+        if direction == "long":
+            anchor_price = geo["H_high"]
+            leg_size = geo["up_leg"]
+            pullback_extreme = geo["pullback_low"]
+            stop_level = pullback_extreme - self.STOP_ATR_MULT * atr_val
+            target_level = close + self.EXTENSION_MULT * leg_size
+            anchor_idx = len(candles) - 1 - geo["H_idx"]
+        else:
+            anchor_price = geo["L_low"]
+            leg_size = geo["down_leg"]
+            pullback_extreme = geo["bounce_high"]
+            stop_level = pullback_extreme + self.STOP_ATR_MULT * atr_val
+            target_level = close - self.EXTENSION_MULT * leg_size
+            anchor_idx = len(candles) - 1 - geo["L_idx"]
+
+        risk = abs(close - stop_level)
+        risk_reward = abs(target_level - close) / risk if risk > 0 else 0.0
+
+        avg_vol_20 = float(np.mean([c.volume for c in candles[-21:-1]]))
+        volume_ratio = float(candles[-1].volume) / avg_vol_20 if avg_vol_20 > 0 else 0.0
+
+        # Conviction filled by Task 19; placeholder 0 for now.
+        conviction_score = 0
+
+        metadata = {
+            "direction": direction,
+            "conviction_score": conviction_score,
+            "close": round(close, 4),
+            "atr": round(atr_val, 4),
+            "atr_pct": round(atr_pct, 4),
+            "ema_9": round(sig["ema_9_today"], 4),
+            "ema_21": round(sig["ema_21_today"], 4),
+            "ema_50": round(sig["ema_50_today"], 4),
+            "ema_50_slope_10": round(sig["ema_50_slope_10"], 6),
+            "rsi_14": round(sig["rsi_today"], 2),
+            "macd_histogram": round(sig["macd_hist_today"], 6),
+            "swing_anchor_idx": anchor_idx,
+            "swing_anchor_price": round(anchor_price, 4),
+            "leg_size": round(leg_size, 4),
+            "pullback_extreme": round(pullback_extreme, 4),
+            "retrace_pct": round(geo["retrace_pct"], 4),
+            "exhaustion_count": sig["exhaustion_count"],
+            "exhaustion_reasons": sig["exhaustion_reasons"],
+            "volume_ratio": round(volume_ratio, 4),
+            "stop_level": round(stop_level, 4),
+            "target_level": round(target_level, 4),
+            "risk_reward": round(risk_reward, 4),
+            "signal_date": candles[-1].timestamp.strftime("%Y-%m-%d"),
+        }
+        return ScanResult(
+            stock_id=context.stock_id,
+            scanner_name="pullback_continuation",
+            metadata=metadata,
+        )
+
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Return at most one ScanResult per stock; never raise."""
         candles = context.daily_candles
@@ -422,24 +488,74 @@ class PullbackContinuationScanner(Scanner):
             if atr_pct < self.ATR_PCT_MIN:
                 return results
 
+            # --- Indicators (long path) ---
             ema_9_arr = context.get_indicator("ema", period=9)
             ema_21_arr = context.get_indicator("ema", period=21)
             ema_50_arr = context.get_indicator("ema", period=50)
-            if len(ema_9_arr) < 1 or len(ema_21_arr) < 1 or len(ema_50_arr) < 11:
+            rsi_arr = context.get_indicator("rsi", period=14)
+            macd_arr = context.get_indicator(
+                "macd", fast_period=12, slow_period=26, signal_period=9
+            )
+            swings = context.get_indicator("swing_points", lookback=60)
+
+            if (
+                len(ema_9_arr) < 1
+                or len(ema_21_arr) < 1
+                or len(ema_50_arr) < 11
+                or len(rsi_arr) < 4
+                or len(macd_arr) < 10
+            ):
                 return results
-            for arr in (ema_9_arr, ema_21_arr, ema_50_arr):
+            for arr in (ema_9_arr, ema_21_arr, ema_50_arr, rsi_arr, macd_arr):
                 if not np.all(np.isfinite(arr[-12:])):
                     return results
 
             ema_50_today = float(ema_50_arr[-1])
             ema_50_10_back = float(ema_50_arr[-11])
-            ema_50_slope_10 = (  # noqa: F841 — used in Task 14 trend gating
+            ema_50_slope_10 = (
                 (ema_50_today - ema_50_10_back) / ema_50_10_back if ema_50_10_back != 0 else 0.0
             )
+            macd_hist = self._macd_histogram(macd_arr, signal_period=9)
 
-            swings = context.get_indicator("swing_points", lookback=60)  # noqa: F841 — wired in Task 16
+            # --- Long branch ---
+            long_geo = self._find_long_geometry(candles, swings)
+            long_signal = None
+            if long_geo and self._trend_ok_long(
+                ema_9_arr, ema_21_arr, ema_50_arr, candles, long_geo["H_idx"], ema_50_slope_10
+            ):
+                # Trigger today
+                ema_9_today = float(ema_9_arr[-1])
+                three_bar_high = max(c.high for c in candles[-4:-1])
+                if close > ema_9_today and close > three_bar_high:
+                    count, reasons = self._exhaustion_long(
+                        candles,
+                        atr_val,
+                        rsi_arr,
+                        macd_hist,
+                        prior_pullback_low_idx=long_geo["pullback_low_idx"],
+                        prior_pullback_low=long_geo["pullback_low"],
+                    )
+                    if count >= self.EXHAUSTION_REQUIRED:
+                        long_signal = {
+                            "geo": long_geo,
+                            "exhaustion_count": count,
+                            "exhaustion_reasons": reasons,
+                            "ema_9_today": ema_9_today,
+                            "ema_21_today": float(ema_21_arr[-1]),
+                            "ema_50_today": ema_50_today,
+                            "ema_50_slope_10": ema_50_slope_10,
+                            "rsi_today": float(rsi_arr[-1]),
+                            "macd_hist_today": float(macd_hist[-1]),
+                        }
 
-            # Subsequent rules (trend / geometry / exhaustion / trigger) added in later tasks.
+            if long_signal is not None:
+                results.append(
+                    self._build_result(
+                        context, candles, atr_val, atr_pct, close, "long", long_signal
+                    )
+                )
+                return results
+
             return results
         except Exception:
             logger.exception(f"PullbackContinuationScanner failed for {context.symbol}")

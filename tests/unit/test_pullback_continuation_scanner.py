@@ -53,17 +53,21 @@ def _bullish_pullback_candles(
 ) -> List[Candle]:
     """80 candles producing a clean long pullback continuation setup.
 
-    Phase 1 (60 bars): steady uptrend 80 → 150 (locks EMA stack and positive EMA(50) slope).
-    Phase 2 (8 bars):  swing high at ~160 around index 64-67, then pullback to ~150.
-    Phase 3 (11 bars): drift / form exhaustion (volume surge on penultimate, MACD/RSI conditions).
-    Phase 4 (1 bar):   trigger today — close > EMA(9) AND > 3-bar high; volume surge.
+    Phase 1a (50 bars): steady uptrend 80 → 130 (locks EMA stack and positive EMA(50) slope).
+    Phase 1b (10 bars): minor dip + recovery 130 → 125 → 136 — creates an early swing low
+                        used as L for the up-leg measurement.
+    Phase 2  (8 bars):  rise to swing high (H) at index 65 (~163), then sharp drop.
+    Phase 3  (11 bars): pullback bottoms ~145 then drifts back up to ~155;
+                        last bar carries a volume surge.
+    Phase 4  (1 bar):   trigger today (index 79) — close > EMA(9) AND > 3-bar high;
+                        volume surge.
     """
     base_dt = datetime(2024, 1, 1)
     candles: List[Candle] = []
 
-    # Phase 1: trending up, 60 bars, 80 → 150
-    for i in range(60):
-        price = 80.0 + i * (70.0 / 59.0)
+    # Phase 1a: 50 bars rising 80 → 130
+    for i in range(50):
+        price = 80.0 + i * (50.0 / 49.0)
         candles.append(
             Candle(
                 timestamp=base_dt + timedelta(days=i),
@@ -75,8 +79,22 @@ def _bullish_pullback_candles(
             )
         )
 
-    # Phase 2: swing high then pullback (8 bars)
-    leg = [152.0, 156.0, 159.0, 161.0, 159.0, 156.0, 152.0, 149.5 + pullback_low_offset]
+    # Phase 1b: 10 bars dip + recovery — creates a fractal swing low (L) at idx 53.
+    dip = [130.0, 128.0, 126.0, 125.0, 126.0, 128.0, 130.0, 132.0, 134.0, 136.0]
+    for i, price in enumerate(dip):
+        candles.append(
+            Candle(
+                timestamp=base_dt + timedelta(days=50 + i),
+                open=price,
+                high=price + 1.0,
+                low=price - 1.0,
+                close=price,
+                volume=base_volume,
+            )
+        )
+
+    # Phase 2: rise to swing high (H) at idx 65, then drop. 8 bars — idx 60..67.
+    leg = [140.0, 145.0, 150.0, 155.0, 160.0, 162.0, 158.0, 152.0]
     for i, price in enumerate(leg):
         candles.append(
             Candle(
@@ -89,8 +107,20 @@ def _bullish_pullback_candles(
             )
         )
 
-    # Phase 3: 11 bars of base / exhaustion — small bounces, vol surge on last
-    consolidation = [150.0, 151.5, 152.0, 151.0, 152.5, 153.0, 153.5, 154.0, 155.0, 156.0, 157.0]
+    # Phase 3: pullback bottoms at idx 70 then drifts up. 11 bars idx 68..78.
+    consolidation = [
+        148.0,
+        146.0,
+        145.0 + pullback_low_offset,
+        146.0,
+        147.0,
+        148.0,
+        149.0,
+        150.5,
+        152.0,
+        153.5,
+        155.0,
+    ]
     for i, price in enumerate(consolidation):
         vol = int(base_volume * 1.3) if i == len(consolidation) - 1 else base_volume
         candles.append(
@@ -104,13 +134,13 @@ def _bullish_pullback_candles(
             )
         )
 
-    # Phase 4: trigger today (index 79) — close above 3-bar high, volume surge
+    # Phase 4: trigger today (index 79) — close above 3-bar high, volume surge.
     candles.append(
         Candle(
             timestamp=base_dt + timedelta(days=79),
-            open=157.5,
+            open=156.0,
             high=trigger_close + 1.0,
-            low=157.0,
+            low=155.5,
             close=trigger_close,
             volume=trigger_volume,
         )
@@ -231,3 +261,16 @@ def test_no_signal_when_pullback_too_deep():
     scanner = PullbackContinuationScanner()
     results = scanner.scan(_make_context(candles))
     assert results == []
+
+
+def test_emits_long_on_clean_pullback():
+    """Trend up, retrace ~50%, ≥2 exhaustion, trigger today → exactly one long signal."""
+    candles = _bullish_pullback_candles()
+    scanner = PullbackContinuationScanner()
+    results = scanner.scan(_make_context(candles))
+    assert len(results) == 1
+    r = results[0]
+    assert r.scanner_name == "pullback_continuation"
+    assert r.metadata["direction"] == "long"
+    assert r.metadata["exhaustion_count"] >= 2
+    assert 0.38 <= r.metadata["retrace_pct"] <= 0.78
