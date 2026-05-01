@@ -73,3 +73,30 @@ class MACD(Indicator):
         for v in values[period:]:
             ema.append(alpha * v + (1 - alpha) * ema[-1])
         return np.array(ema)
+
+
+def rsi_divergence(
+    prices: np.ndarray,
+    rsi: np.ndarray,
+    prior_pivot: int,
+    current_pivot: int,
+) -> tuple[bool, bool]:
+    """Detect classical bullish/bearish RSI divergence between two pivots.
+
+    Bullish: price[current] < price[prior] AND rsi[current] > rsi[prior].
+    Bearish: price[current] > price[prior] AND rsi[current] < rsi[prior].
+    Both indices must be in-bounds; returns (False, False) otherwise.
+    """
+    if prior_pivot < 0 or current_pivot < 0:
+        return (False, False)
+    if prior_pivot >= len(prices) or current_pivot >= len(prices):
+        return (False, False)
+    if prior_pivot >= len(rsi) or current_pivot >= len(rsi):
+        return (False, False)
+
+    p_prior, p_curr = float(prices[prior_pivot]), float(prices[current_pivot])
+    r_prior, r_curr = float(rsi[prior_pivot]), float(rsi[current_pivot])
+
+    bull = p_curr < p_prior and r_curr > r_prior
+    bear = p_curr > p_prior and r_curr < r_prior
+    return (bull, bear)
