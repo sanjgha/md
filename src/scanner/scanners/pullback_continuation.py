@@ -210,6 +210,185 @@ class PullbackContinuationScanner(Scanner):
             return False
         return True
 
+    @staticmethod
+    def _macd_histogram(macd_line: np.ndarray, signal_period: int = 9) -> np.ndarray:
+        """Return MACD histogram (macd_line − EMA(macd_line, signal_period))."""
+        if len(macd_line) < signal_period:
+            return np.array([])
+        alpha = 2 / (signal_period + 1)
+        sig = [float(np.mean(macd_line[:signal_period]))]
+        for v in macd_line[signal_period:]:
+            sig.append(alpha * float(v) + (1 - alpha) * sig[-1])
+        sig_arr = np.array(sig)
+        # macd_line and sig_arr are aligned at the tail.
+        min_len = min(len(macd_line), len(sig_arr))
+        return macd_line[-min_len:] - sig_arr[-min_len:]
+
+    def _support_levels(self, candles: list, atr_val: float) -> list[float]:
+        """Return prices that have been tested ≥2× in the last 60 bars within ±0.5×ATR.
+
+        Cluster lows over the lookback window; a cluster of ≥SUPPORT_TOUCH_MIN_HITS lows
+        within SUPPORT_ATR_TOLERANCE×ATR of each other becomes a level (its mean).
+        """
+        lookback = self.SUPPORT_TOUCH_LOOKBACK
+        tail = candles[-lookback:] if len(candles) >= lookback else candles
+        lows = sorted(c.low for c in tail)
+        if not lows or atr_val <= 0:
+            return []
+        tol = self.SUPPORT_ATR_TOLERANCE * atr_val
+
+        levels: list[float] = []
+        cluster: list[float] = [lows[0]]
+        for v in lows[1:]:
+            if v - cluster[-1] <= tol:
+                cluster.append(v)
+            else:
+                if len(cluster) >= self.SUPPORT_TOUCH_MIN_HITS:
+                    levels.append(float(np.mean(cluster)))
+                cluster = [v]
+        if len(cluster) >= self.SUPPORT_TOUCH_MIN_HITS:
+            levels.append(float(np.mean(cluster)))
+        return levels
+
+    def _resistance_levels(self, candles: list, atr_val: float) -> list[float]:
+        lookback = self.SUPPORT_TOUCH_LOOKBACK
+        tail = candles[-lookback:] if len(candles) >= lookback else candles
+        highs = sorted((c.high for c in tail), reverse=True)
+        if not highs or atr_val <= 0:
+            return []
+        tol = self.SUPPORT_ATR_TOLERANCE * atr_val
+        levels: list[float] = []
+        cluster: list[float] = [highs[0]]
+        for v in highs[1:]:
+            if cluster[-1] - v <= tol:
+                cluster.append(v)
+            else:
+                if len(cluster) >= self.SUPPORT_TOUCH_MIN_HITS:
+                    levels.append(float(np.mean(cluster)))
+                cluster = [v]
+        if len(cluster) >= self.SUPPORT_TOUCH_MIN_HITS:
+            levels.append(float(np.mean(cluster)))
+        return levels
+
+    def _exhaustion_long(
+        self,
+        candles: list,
+        atr_val: float,
+        rsi_arr: np.ndarray,
+        macd_hist: np.ndarray,
+        prior_pullback_low_idx: int,
+        prior_pullback_low: float,
+    ) -> tuple[int, list[str]]:
+        """Return (count, reasons) — count of distinct exhaustion criteria fired in last 3 bars."""
+        from src.scanner.indicators.momentum import rsi_divergence
+
+        n = len(candles)
+        levels = self._support_levels(candles, atr_val)
+        tol = self.SUPPORT_ATR_TOLERANCE * atr_val
+        avg_vol_20 = float(np.mean([c.volume for c in candles[-21:-1]])) if n >= 21 else 0.0
+
+        reasons: set[str] = set()
+        closes = np.array([c.close for c in candles], dtype=float)
+
+        for k in range(self.EXHAUSTION_WINDOW):
+            bar_idx = n - 1 - k
+            bar = candles[bar_idx]
+
+            # support_hold
+            for lvl in levels:
+                if abs(bar.low - lvl) <= tol and bar.close > lvl:
+                    reasons.add("support_hold")
+                    break
+
+            # rsi_div — current pivot is bar_idx, prior is prior_pullback_low_idx
+            if len(rsi_arr) > 0 and bar_idx < n and prior_pullback_low_idx < n:
+                rsi_offset_today = -(n - bar_idx)
+                rsi_offset_prior = -(n - prior_pullback_low_idx)
+                if abs(rsi_offset_today) <= len(rsi_arr) and abs(rsi_offset_prior) <= len(rsi_arr):
+                    bull, _ = rsi_divergence(
+                        closes,
+                        np.concatenate([np.full(n - len(rsi_arr), np.nan), rsi_arr]),
+                        prior_pivot=prior_pullback_low_idx,
+                        current_pivot=bar_idx,
+                    )
+                    if bull and bar.low < prior_pullback_low:
+                        reasons.add("rsi_div")
+
+            # volume_surge
+            if avg_vol_20 > 0 and bar.volume > self.VOLUME_SURGE_RATIO * avg_vol_20:
+                reasons.add("volume_surge")
+
+            # macd_cross — histogram crossed from negative to ≥0 on this bar
+            if len(macd_hist) >= 2:
+                hist_today_off = -(n - bar_idx)
+                hist_prev_off = hist_today_off - 1
+                if abs(hist_today_off) <= len(macd_hist) and abs(hist_prev_off) <= len(macd_hist):
+                    h_today = float(macd_hist[hist_today_off])
+                    h_prev = float(macd_hist[hist_prev_off])
+                    if h_prev < 0 and h_today >= 0:
+                        reasons.add("macd_cross")
+
+        return len(reasons), sorted(reasons)
+
+    def _exhaustion_short(
+        self,
+        candles: list,
+        atr_val: float,
+        rsi_arr: np.ndarray,
+        macd_hist: np.ndarray,
+        prior_bounce_high_idx: int,
+        prior_bounce_high: float,
+    ) -> tuple[int, list[str]]:
+        from src.scanner.indicators.momentum import rsi_divergence
+
+        n = len(candles)
+        levels = self._resistance_levels(candles, atr_val)
+        tol = self.SUPPORT_ATR_TOLERANCE * atr_val
+        avg_vol_20 = float(np.mean([c.volume for c in candles[-21:-1]])) if n >= 21 else 0.0
+
+        reasons: set[str] = set()
+        closes = np.array([c.close for c in candles], dtype=float)
+
+        for k in range(self.EXHAUSTION_WINDOW):
+            bar_idx = n - 1 - k
+            bar = candles[bar_idx]
+
+            # resistance_fail
+            for lvl in levels:
+                if abs(bar.high - lvl) <= tol and bar.close < lvl:
+                    reasons.add("resistance_fail")
+                    break
+
+            # rsi_div — bearish
+            if len(rsi_arr) > 0 and prior_bounce_high_idx < n:
+                rsi_offset_today = -(n - bar_idx)
+                rsi_offset_prior = -(n - prior_bounce_high_idx)
+                if abs(rsi_offset_today) <= len(rsi_arr) and abs(rsi_offset_prior) <= len(rsi_arr):
+                    _, bear = rsi_divergence(
+                        closes,
+                        np.concatenate([np.full(n - len(rsi_arr), np.nan), rsi_arr]),
+                        prior_pivot=prior_bounce_high_idx,
+                        current_pivot=bar_idx,
+                    )
+                    if bear and bar.high > prior_bounce_high:
+                        reasons.add("rsi_div")
+
+            # volume_surge
+            if avg_vol_20 > 0 and bar.volume > self.VOLUME_SURGE_RATIO * avg_vol_20:
+                reasons.add("volume_surge")
+
+            # macd_cross — from ≥0 to < 0
+            if len(macd_hist) >= 2:
+                hist_today_off = -(n - bar_idx)
+                hist_prev_off = hist_today_off - 1
+                if abs(hist_today_off) <= len(macd_hist) and abs(hist_prev_off) <= len(macd_hist):
+                    h_today = float(macd_hist[hist_today_off])
+                    h_prev = float(macd_hist[hist_prev_off])
+                    if h_prev >= 0 and h_today < 0:
+                        reasons.add("macd_cross")
+
+        return len(reasons), sorted(reasons)
+
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Return at most one ScanResult per stock; never raise."""
         candles = context.daily_candles
