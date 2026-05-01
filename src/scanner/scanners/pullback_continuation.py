@@ -499,6 +499,7 @@ class PullbackContinuationScanner(Scanner):
         metadata = {
             "direction": direction,
             "conviction_score": conviction_score,
+            "low_conviction": conviction_score < self.LOW_CONVICTION_THRESHOLD,
             "close": close_r,
             "atr": atr_r,
             "atr_pct": round(atr_pct, 4),

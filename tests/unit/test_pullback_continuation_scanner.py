@@ -352,6 +352,7 @@ def test_metadata_complete():
     required = [
         "direction",
         "conviction_score",
+        "low_conviction",
         "close",
         "atr",
         "atr_pct",
