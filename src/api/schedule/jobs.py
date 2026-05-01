@@ -17,7 +17,7 @@ def _build_indicator_registry() -> dict:
     from src.scanner.indicators.moving_averages import SMA, EMA, WMA
     from src.scanner.indicators.momentum import RSI, MACD
     from src.scanner.indicators.volatility import BollingerBands, ATR, BBWidthPercentile
-    from src.scanner.indicators.support_resistance import SupportResistance
+    from src.scanner.indicators.support_resistance import SupportResistance, SwingPoints
     from src.scanner.indicators.patterns.breakouts import BreakoutDetector
     from src.scanner.indicators.rolling_max import RollingMax
 
@@ -31,6 +31,7 @@ def _build_indicator_registry() -> dict:
         "atr": ATR(),
         "bb_width_pctile": BBWidthPercentile(),
         "support_resistance": SupportResistance(),
+        "swing_points": SwingPoints(),
         "breakout": BreakoutDetector(),
         "rolling_max": RollingMax(),
     }
