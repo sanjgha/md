@@ -8,6 +8,8 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from src.scanner.registry_factory import build_scanner_registry
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,21 +36,6 @@ def _build_indicator_registry() -> dict:
     }
 
 
-def _build_scanner_registry(include_eod_only: bool = False):
-    from src.scanner.registry import ScannerRegistry
-    from src.scanner.scanners import PriceActionScanner, MomentumScanner, VolumeScanner
-
-    registry = ScannerRegistry()
-    registry.register("price_action", PriceActionScanner())
-    registry.register("momentum", MomentumScanner())
-    registry.register("volume", VolumeScanner())
-    if include_eod_only:
-        from src.scanner.scanners.weekly_options import WeeklyOptionsScanner
-
-        registry.register("weekly_options", WeeklyOptionsScanner())
-    return registry
-
-
 def _build_output_handler():
     from src.output.logger import LogFileOutputHandler
     from src.output.composite import CompositeOutputHandler
@@ -67,7 +54,7 @@ def run_eod_job(db: Session) -> int:
     from sqlalchemy.orm import joinedload
 
     indicators = _build_indicator_registry()
-    registry = _build_scanner_registry(include_eod_only=True)
+    registry = build_scanner_registry()
     output = _build_output_handler()
 
     stocks = db.query(Stock).options(joinedload(Stock.daily_candles)).all()
@@ -95,7 +82,7 @@ def run_pre_close_job(db: Session) -> int:
     from src.scanner.pre_close_executor import PreCloseExecutor
 
     indicators = _build_indicator_registry()
-    registry = _build_scanner_registry()
+    registry = build_scanner_registry()
     output = _build_output_handler()
 
     executor = PreCloseExecutor(
