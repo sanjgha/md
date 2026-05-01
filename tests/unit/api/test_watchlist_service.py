@@ -1268,3 +1268,84 @@ class TestGetUserCategories:
         assert categories[2].name == "Research"
         assert categories[3].name == "Archived"
         assert categories[4].name == "Custom"
+
+
+class TestGetWatchlistsGroupedFiltersUnregistered:
+    """Auto-generated watchlists for unregistered scanners are excluded from grouped view."""
+
+    def test_unregistered_scanner_watchlist_excluded(self, db_session: Session):
+        from src.db.models import WatchlistCategory
+        from typing import cast
+
+        user = User(username="filteruser", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        category = WatchlistCategory(
+            user_id=cast(int, user.id),
+            name="Scanners",
+        )
+        db_session.add(category)
+        db_session.commit()
+
+        # Watchlist for a registered scanner — should appear
+        active_wl = Watchlist(
+            user_id=cast(int, user.id),
+            name="Volume - Today",
+            is_auto_generated=True,
+            scanner_name="volume",
+            watchlist_mode="scanner_output",
+            category_id=cast(int, category.id),
+        )
+        # Watchlist for a deregistered scanner — should be hidden
+        dead_wl = Watchlist(
+            user_id=cast(int, user.id),
+            name="Momentum - Today",
+            is_auto_generated=True,
+            scanner_name="momentum",
+            watchlist_mode="scanner_output",
+            category_id=cast(int, category.id),
+        )
+        # User-created watchlist with no scanner — always shown
+        manual_wl = Watchlist(
+            user_id=cast(int, user.id),
+            name="My Picks",
+            is_auto_generated=False,
+            scanner_name=None,
+            watchlist_mode="static",
+            category_id=cast(int, category.id),
+        )
+        db_session.add_all([active_wl, dead_wl, manual_wl])
+        db_session.commit()
+
+        service = WatchlistService(db_session)
+        result = service.get_watchlists_grouped(cast(int, user.id))
+
+        all_names = [w.name for group in result for w in group.watchlists]
+        assert "Volume - Today" in all_names
+        assert "My Picks" in all_names
+        assert "Momentum - Today" not in all_names
+
+    def test_unregistered_scanner_watchlist_excluded_from_uncategorized(self, db_session: Session):
+        from typing import cast
+
+        user = User(username="filteruser2", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        dead_wl = Watchlist(
+            user_id=cast(int, user.id),
+            name="Price Action - History",
+            is_auto_generated=True,
+            scanner_name="price_action",
+            watchlist_mode="scanner_output",
+            category_id=None,
+        )
+        db_session.add(dead_wl)
+        db_session.commit()
+
+        service = WatchlistService(db_session)
+        result = service.get_watchlists_grouped(cast(int, user.id))
+
+        all_names = [w.name for group in result for w in group.watchlists]
+        assert "Price Action - History" not in all_names
