@@ -1349,3 +1349,27 @@ class TestGetWatchlistsGroupedFiltersUnregistered:
 
         all_names = [w.name for group in result for w in group.watchlists]
         assert "Price Action - History" not in all_names
+
+    def test_auto_generated_with_no_scanner_name_is_visible(self, db_session: Session):
+        from typing import cast
+
+        user = User(username="filteruser3", password_hash="hash")
+        db_session.add(user)
+        db_session.commit()
+
+        orphan_wl = Watchlist(
+            user_id=cast(int, user.id),
+            name="Orphan Watchlist",
+            is_auto_generated=True,
+            scanner_name=None,
+            watchlist_mode="scanner_output",
+            category_id=None,
+        )
+        db_session.add(orphan_wl)
+        db_session.commit()
+
+        service = WatchlistService(db_session)
+        result = service.get_watchlists_grouped(cast(int, user.id))
+
+        all_names = [w.name for group in result for w in group.watchlists]
+        assert "Orphan Watchlist" in all_names

@@ -746,6 +746,8 @@ class WatchlistService:
         def _is_visible(watchlist) -> bool:
             if not watchlist.is_auto_generated:
                 return True
+            if watchlist.scanner_name is None:
+                return True  # malformed auto-generated row — show rather than silently hide
             return watchlist.scanner_name in REGISTERED_SCANNER_NAMES
 
         # Get all categories for the user, ordered by sort_order
