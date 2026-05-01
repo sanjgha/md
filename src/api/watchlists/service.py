@@ -741,6 +741,14 @@ class WatchlistService:
             Ordered by category sort_order.
         """
         from src.db.models import WatchlistSymbol, WatchlistCategory
+        from src.scanner.registry_factory import REGISTERED_SCANNER_NAMES
+
+        def _is_visible(watchlist) -> bool:
+            if not watchlist.is_auto_generated:
+                return True
+            if watchlist.scanner_name is None:
+                return True  # malformed auto-generated row — show rather than silently hide
+            return watchlist.scanner_name in REGISTERED_SCANNER_NAMES
 
         # Get all categories for the user, ordered by sort_order
         categories = (
@@ -763,6 +771,7 @@ class WatchlistService:
                 .order_by(Watchlist.created_at.desc())
                 .all()
             )
+            watchlists = [w for w in watchlists if _is_visible(w)]
 
             # Build watchlist summaries with symbol counts
             watchlist_summaries = []
@@ -820,6 +829,7 @@ class WatchlistService:
             .order_by(Watchlist.created_at.desc())
             .all()
         )
+        uncategorized_watchlists = [w for w in uncategorized_watchlists if _is_visible(w)]
 
         if uncategorized_watchlists:
             uncategorized_summaries = []
