@@ -3,6 +3,8 @@
 import logging
 from typing import List
 
+import numpy as np
+
 from src.scanner.base import Scanner, ScanResult
 from src.scanner.context import ScanContext
 
@@ -45,7 +47,26 @@ class PullbackContinuationScanner(Scanner):
             return results
 
         try:
-            # All rule logic added in subsequent tasks.
+            atr_arr = context.get_indicator("atr", period=14)
+            if len(atr_arr) < 1:
+                return results
+
+            close = float(candles[-1].close)
+            if close < self.PRICE_MIN:
+                return results
+
+            avg_dollar_vol = float(np.mean([c.close * c.volume for c in candles[-21:-1]]))
+            if avg_dollar_vol < self.AVG_DOLLAR_VOL_MIN:
+                return results
+
+            atr_val = float(atr_arr[-1])
+            if not np.isfinite(atr_val) or atr_val == 0:
+                return results
+            atr_pct = atr_val / close * 100
+            if atr_pct < self.ATR_PCT_MIN:
+                return results
+
+            # Subsequent rules (trend / geometry / exhaustion / trigger) added in later tasks.
             return results
         except Exception:
             logger.exception(f"PullbackContinuationScanner failed for {context.symbol}")
