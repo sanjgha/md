@@ -403,7 +403,7 @@ class DataFetcher:
 
         # Determine date range to fetch for each stock
         to_date = datetime.utcnow()
-        symbol_date_ranges: Dict[str, Tuple[datetime, datetime]] = {}
+        symbol_date_ranges: Dict[str, Optional[Tuple[datetime, datetime]]] = {}
 
         for symbol, stock_id in stock_map.items():
             if stock_id in latest_by_stock:
@@ -411,8 +411,7 @@ class DataFetcher:
                 from_date = latest_by_stock[stock_id] + timedelta(days=1)
                 # Don't fetch future dates
                 if from_date > to_date:
-                    # Data is already up to date
-                    symbol_date_ranges[symbol] = None
+                    # Data is already up to date - skip this symbol
                     continue
                 symbol_date_ranges[symbol] = (from_date, to_date)
             else:
@@ -440,7 +439,7 @@ class DataFetcher:
         logger.info(f"Date ranges to fetch: {len(range_to_symbols)} unique range(s)")
 
         # Fetch each unique date range once
-        total_inserted = 0
+        total_inserted: int = 0
         for (from_date, to_date), symbols_in_range in range_to_symbols.items():
             num_days = (to_date - from_date).days + 1
             logger.info(
@@ -453,11 +452,11 @@ class DataFetcher:
             )
 
             for symbol, candles in all_candles.items():
-                stock_id = stock_map.get(symbol)
-                if not stock_id:
+                sid = stock_map.get(symbol)
+                if sid is None:
                     continue
-                inserted = self._bulk_upsert_daily_candles(stock_id, candles)
-                total_inserted += inserted
+                inserted = self._bulk_upsert_daily_candles(sid, candles)
+                total_inserted += inserted or 0
                 logger.debug(f"sync_daily_incremental {symbol}: {inserted} rows")
 
         logger.info(
