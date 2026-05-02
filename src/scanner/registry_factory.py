@@ -3,7 +3,14 @@
 from src.scanner.registry import ScannerRegistry
 
 REGISTERED_SCANNER_NAMES: frozenset[str] = frozenset(
-    {"volume", "smart_money", "six_month_high", "weekly_options", "pullback_continuation"}
+    {
+        "volume",
+        "smart_money",
+        "SmartMoneyScanner",  # legacy name stored by class.__name__ before normalisation
+        "six_month_high",
+        "weekly_options",
+        "pullback_continuation",
+    }
 )
 
 

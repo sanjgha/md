@@ -1042,13 +1042,15 @@ class WatchlistGenerationService:
         """
         watchlist_name = f"{self._format_scanner_name(scanner_name)} - Today"
 
-        # Look for existing watchlist
+        # Look for existing watchlist — order by id asc so duplicates always resolve to
+        # the same (oldest) row and the update is deterministic across runs.
         existing = (
             self.db.query(Watchlist)
             .filter(Watchlist.user_id == user_id)
             .filter(Watchlist.name == watchlist_name)
             .filter(Watchlist.scanner_name == scanner_name)
             .filter(Watchlist.watchlist_mode == mode)
+            .order_by(Watchlist.id.asc())
             .first()
         )
 
@@ -1109,13 +1111,14 @@ class WatchlistGenerationService:
         """
         watchlist_name = f"{self._format_scanner_name(scanner_name)} - History"
 
-        # Look for existing watchlist
+        # Look for existing watchlist — order by id asc for deterministic duplicate resolution.
         existing = (
             self.db.query(Watchlist)
             .filter(Watchlist.user_id == user_id)
             .filter(Watchlist.name == watchlist_name)
             .filter(Watchlist.scanner_name == scanner_name)
             .filter(Watchlist.watchlist_mode == mode)
+            .order_by(Watchlist.id.asc())
             .first()
         )
 
