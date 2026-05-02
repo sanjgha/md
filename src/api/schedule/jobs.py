@@ -48,6 +48,30 @@ def _build_output_handler():
     )
 
 
+def _generate_watchlists(db: Session, results: list) -> None:
+    """Generate/update auto watchlists from a completed scan's results."""
+    from datetime import date
+    from src.db.models import User
+    from src.api.watchlists.service import WatchlistGenerationService
+
+    try:
+        user = db.query(User).order_by(User.id).first()
+        if not user:
+            return
+        service = WatchlistGenerationService(db)
+        scanner_names = set(r.scanner_name for r in results)
+        for scanner_name in scanner_names:
+            watchlist = service.generate_from_scanner_results(
+                scanner_name=scanner_name,
+                scan_date=date.today(),
+                user_id=user.id,
+            )
+            if watchlist:
+                logger.info("Generated watchlist: %s", watchlist.name)
+    except Exception:
+        logger.exception("Watchlist generation failed after EOD job")
+
+
 def run_eod_job(db: Session) -> int:
     """Run EOD scan against daily candles. Returns count of matched results."""
     from src.scanner.executor import ScannerExecutor
@@ -75,6 +99,8 @@ def run_eod_job(db: Session) -> int:
     }
     results = executor.run_eod(stocks_with_candles)
     logger.info("EOD job complete: %d results", len(results))
+
+    _generate_watchlists(db, results)
     return len(results)
 
 

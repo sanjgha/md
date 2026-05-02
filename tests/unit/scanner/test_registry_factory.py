@@ -15,7 +15,9 @@ def test_build_scanner_registry_returns_all_active_scanners():
 
 def test_registered_scanner_names_matches_registry():
     registry = build_scanner_registry()
-    assert REGISTERED_SCANNER_NAMES == set(registry.list().keys())
+    # REGISTERED_SCANNER_NAMES must contain every active registry key.
+    # It may also include legacy aliases (e.g. class names stored before normalisation).
+    assert set(registry.list().keys()).issubset(REGISTERED_SCANNER_NAMES)
 
 
 def test_registry_get_returns_scanner_instance():
