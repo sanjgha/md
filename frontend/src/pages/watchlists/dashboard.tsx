@@ -14,10 +14,12 @@ import { ChartPane } from "./chart-pane";
 
 export function ShowWatchlistsDashboard() {
   const [selectedSymbol, setSelectedSymbol] = createSignal<string | null>(null);
+  const [selectedWatchlistId, setSelectedWatchlistId] = createSignal<number | null>(null);
   const [showCreateModal, setShowCreateModal] = createSignal(false);
 
-  function handleSymbolSelect(symbol: string | null) {
+  function handleSymbolSelect(symbol: string | null, watchlistId: number | null) {
     setSelectedSymbol(symbol);
+    setSelectedWatchlistId(watchlistId);
   }
 
   return (
@@ -43,6 +45,7 @@ export function ShowWatchlistsDashboard() {
           </div>
           <WatchlistPanel
             selectedSymbol={selectedSymbol()}
+            selectedWatchlistId={selectedWatchlistId()}
             onSymbolSelect={handleSymbolSelect}
           />
         </aside>

@@ -31,7 +31,8 @@ function saveExpandedIds(ids: Set<number>) {
 
 interface WatchlistPanelProps {
   selectedSymbol: string | null;
-  onSymbolSelect: (symbol: string | null) => void;
+  selectedWatchlistId: number | null;
+  onSymbolSelect: (symbol: string | null, watchlistId: number | null) => void;
 }
 
 export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
@@ -93,6 +94,7 @@ export const WatchlistPanel: Component<WatchlistPanelProps> = (props) => {
                     watchlist={wl}
                     initiallyExpanded={expandedIds().has(wl.id)}
                     selectedSymbol={props.selectedSymbol}
+                    selectedWatchlistId={props.selectedWatchlistId}
                     refreshSignal={refreshCounter()}
                     onSymbolSelect={props.onSymbolSelect}
                     onExpandChange={handleExpandChange}

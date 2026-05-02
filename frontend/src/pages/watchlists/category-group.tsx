@@ -26,8 +26,9 @@ interface CategoryGroupProps {
   watchlist: WatchlistSummary;
   initiallyExpanded: boolean;
   selectedSymbol: string | null;
+  selectedWatchlistId: number | null;
   refreshSignal: number;
-  onSymbolSelect: (symbol: string | null) => void;
+  onSymbolSelect: (symbol: string | null, watchlistId: number | null) => void;
   onExpandChange: (watchlistId: number, expanded: boolean) => void;
 }
 
@@ -99,7 +100,7 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
     setQuotes(original.filter((q) => q.symbol !== symbol));
     // Clear selection if removing the currently selected symbol
     if (props.selectedSymbol === symbol) {
-      props.onSymbolSelect(null);
+      props.onSymbolSelect(null, null);
     }
     try {
       await watchlistsAPI.symbols.remove(props.watchlist.id, symbol);
@@ -117,25 +118,24 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
       fetchQuotes();
     }
 
-    // Keyboard navigation: only respond when this group contains the selected symbol
+    // Keyboard navigation: only respond when the selection originated from this watchlist.
+    // Using selectedWatchlistId (not symbol membership) avoids a race where multiple
+    // groups share a symbol — SolidJS propagates signal updates synchronously, so a
+    // symbol-only guard sees the already-updated value in subsequent group handlers.
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Guard: only handle if this group contains the selected symbol
-      if (!quotes().some(q => q.symbol === props.selectedSymbol)) return;
-
-      // Only handle arrow keys if not in an input
+      if (props.selectedWatchlistId !== props.watchlist.id) return;
       if (e.target instanceof HTMLInputElement) return;
 
-      // Use sorted order so arrow keys match what the user sees
       const currentQuotes = sortedQuotes();
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
         const nextSymbol = navigateQuotes(currentQuotes, props.selectedSymbol, "down");
-        props.onSymbolSelect(nextSymbol);
+        props.onSymbolSelect(nextSymbol, props.watchlist.id);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         const nextSymbol = navigateQuotes(currentQuotes, props.selectedSymbol, "up");
-        props.onSymbolSelect(nextSymbol);
+        props.onSymbolSelect(nextSymbol, props.watchlist.id);
       } else if (e.key === "ArrowLeft" && props.selectedSymbol !== null) {
         e.preventDefault();
         const currentSymbol = props.selectedSymbol;
@@ -150,11 +150,8 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
           nextSymbol = currentQuotes[nextIndex].symbol;
         }
 
-        // Remove the selected symbol
         handleRemove(currentSymbol);
-
-        // Select the pre-calculated next symbol
-        props.onSymbolSelect(nextSymbol);
+        props.onSymbolSelect(nextSymbol, nextSymbol ? props.watchlist.id : null);
       }
     };
 
@@ -273,7 +270,7 @@ export const CategoryGroup: Component<CategoryGroupProps> = (props) => {
                 <SymbolRow
                   quote={quote}
                   selected={props.selectedSymbol === quote.symbol}
-                  onSelect={(sym) => props.onSymbolSelect(sym)}
+                  onSelect={(sym) => props.onSymbolSelect(sym, props.watchlist.id)}
                   onRemove={handleRemove}
                 />
               )}
