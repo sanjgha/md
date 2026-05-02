@@ -53,7 +53,8 @@ def fetch_data(symbols):
         )
 
         logger.info("Fetching daily candles...")
-        fetcher.sync_daily(symbols=list(symbols) if symbols else None)
+        sync_type = fetcher.sync_daily_smart(symbols=list(symbols) if symbols else None)
+        logger.info(f"Sync type: {sync_type}")
 
         logger.info("Fetching earnings...")
         fetcher.sync_earnings(symbols=list(symbols) if symbols else None)
@@ -191,7 +192,10 @@ def eod(symbols):
     try:
         # Run fetch-data
         runner = CliRunner()
-        result = runner.invoke(fetch_data, list(symbols))
+        args = []
+        for s in symbols:
+            args.extend(["--symbols", s])
+        result = runner.invoke(fetch_data, args)
         if result.exit_code != 0:
             logger.error(f"Data fetch failed: {result.output}")
             click.echo(f"Error: {result.output}", err=True)
