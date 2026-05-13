@@ -130,7 +130,7 @@ def _uptrend_with_pullback() -> tuple[List[Candle], List[Candle]]:
         closes[-1] * 0.96,  # bar n-4: deep pullback, will touch EMA_9
         closes[-1] * 0.96,  # bar n-3
         closes[-1] * 0.98,  # bar n-2
-        closes[-1] * 1.02,  # bar n-1 (today): reclaim above EMA_9
+        closes[-1] * 1.012,  # bar n-1 (today): reclaim above EMA_9, RSI stays ≤ 70
     ]
     daily = _candles(closes)
     bench = _candles(list(np.linspace(100, 110, n)))
@@ -200,3 +200,79 @@ def test_rejects_when_close_below_ema9_today():
         volume=daily[-1].volume,
     )
     assert EmaPullbackRsScanner().scan(_ctx(daily, bench)) == []
+
+
+def test_rejects_when_rsi_below_40():
+    # Engineer the happy-path setup, but compress closes so RSI ends < 40.
+    daily, bench = _uptrend_with_pullback()
+    # Replace last 30 bars with a slow decline → RSI(14) drops below 40.
+    decline = list(np.linspace(daily[-31].close, daily[-31].close * 0.85, 30))
+    new_candles = []
+    for i, close in enumerate(decline):
+        ts = daily[-30 + i].timestamp
+        new_candles.append(
+            Candle(
+                timestamp=ts,
+                open=close * 1.001,
+                high=close * 1.005,
+                low=close * 0.995,
+                close=close,
+                volume=5_000_000,
+            )
+        )
+    daily = daily[:-30] + new_candles
+    assert EmaPullbackRsScanner().scan(_ctx(daily, bench)) == []
+
+
+def test_rejects_when_rsi_above_70():
+    # Vertical run-up at the end → RSI > 70.
+    daily, bench = _uptrend_with_pullback()
+    sprint = list(np.linspace(daily[-31].close, daily[-31].close * 1.40, 30))
+    new_candles = []
+    for i, close in enumerate(sprint):
+        ts = daily[-30 + i].timestamp
+        new_candles.append(
+            Candle(
+                timestamp=ts,
+                open=close * 0.999,
+                high=close * 1.005,
+                low=close * 0.995,
+                close=close,
+                volume=5_000_000,
+            )
+        )
+    daily = daily[:-30] + new_candles
+    assert EmaPullbackRsScanner().scan(_ctx(daily, bench)) == []
+
+
+def test_result_metadata_shape():
+    daily, bench = _uptrend_with_pullback()
+    results = EmaPullbackRsScanner().scan(_ctx(daily, bench))
+    assert len(results) == 1
+    md = results[0].metadata
+    expected_keys = {
+        "close",
+        "atr_14",
+        "atr_pct",
+        "ema_9",
+        "ema_21",
+        "ema_50",
+        "ema_50_slope_10",
+        "rsi_14",
+        "rs_today",
+        "rs_sma_today",
+        "mansfield_rs",
+        "rs_line_21_bars_ago",
+        "rs_slope_pct",
+        "benchmark_symbol",
+        "pullback_touch_idx_offset",
+        "pullback_touch_low",
+        "pullback_touch_ema_9",
+        "pullback_touch_ema_21",
+        "signal_date",
+    }
+    assert set(md.keys()) == expected_keys
+    assert md["benchmark_symbol"] == "SPY"
+    assert 40 <= md["rsi_14"] <= 70
+    assert md["mansfield_rs"] > 0
+    assert md["pullback_touch_idx_offset"] < 0  # in the past, not today

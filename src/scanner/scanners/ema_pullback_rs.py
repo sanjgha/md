@@ -142,6 +142,52 @@ class EmaPullbackRsScanner(Scanner):
                 }
         return most_recent_touch
 
+    def _build_result(
+        self,
+        context: ScanContext,
+        candles,
+        close: float,
+        atr_val: float,
+        atr_pct: float,
+        ema_9_arr,
+        ema_21_arr,
+        ema_50_arr,
+        ema_50_slope_10: float,
+        rsi_today: float,
+        rs: dict,
+        touch: dict,
+    ) -> ScanResult:
+        """Build a ScanResult with full metadata for an emitted signal."""
+        rs_line = rs["rs_line"]
+        rs_21_ago = float(rs_line[-1 - self.RS_SLOPE_LOOKBACK])
+        rs_slope_pct = (rs["rs_today"] - rs_21_ago) / rs_21_ago * 100.0 if rs_21_ago != 0 else 0.0
+        metadata = {
+            "close": round(close, 4),
+            "atr_14": round(atr_val, 4),
+            "atr_pct": round(atr_pct, 4),
+            "ema_9": round(float(ema_9_arr[-1]), 4),
+            "ema_21": round(float(ema_21_arr[-1]), 4),
+            "ema_50": round(float(ema_50_arr[-1]), 4),
+            "ema_50_slope_10": round(ema_50_slope_10, 6),
+            "rsi_14": round(rsi_today, 2),
+            "rs_today": round(rs["rs_today"], 4),
+            "rs_sma_today": round(rs["rs_sma_today"], 4),
+            "mansfield_rs": round(rs["mansfield"], 4),
+            "rs_line_21_bars_ago": round(rs_21_ago, 4),
+            "rs_slope_pct": round(rs_slope_pct, 4),
+            "benchmark_symbol": self.BENCHMARK_SYMBOL,
+            "pullback_touch_idx_offset": int(touch["touch_offset"]),
+            "pullback_touch_low": round(touch["touch_low"], 4),
+            "pullback_touch_ema_9": round(touch["touch_ema_9"], 4),
+            "pullback_touch_ema_21": round(touch["touch_ema_21"], 4),
+            "signal_date": candles[-1].timestamp.strftime("%Y-%m-%d"),
+        }
+        return ScanResult(
+            stock_id=context.stock_id,
+            scanner_name="ema_pullback_rs",
+            metadata=metadata,
+        )
+
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Return at most one ScanResult per stock; never raises."""
         try:
@@ -173,8 +219,29 @@ class EmaPullbackRsScanner(Scanner):
             if close <= float(ema_9_arr[-1]):
                 return []
 
-            # Remaining gates implemented in subsequent tasks.
-            return []
+            rsi_arr = context.get_indicator("rsi", period=self.RSI_PERIOD)
+            if len(rsi_arr) < 1 or not np.isfinite(rsi_arr[-1]):
+                return []
+            rsi_today = float(rsi_arr[-1])
+            if not (self.RSI_MIN <= rsi_today <= self.RSI_MAX):
+                return []
+
+            return [
+                self._build_result(
+                    context,
+                    candles,
+                    close,
+                    atr_val,
+                    atr_pct,
+                    ema_9_arr,
+                    ema_21_arr,
+                    ema_50_arr,
+                    ema_50_slope_10,
+                    rsi_today,
+                    rs,
+                    touch,
+                )
+            ]
         except Exception:
             logger.exception("EmaPullbackRsScanner failed for %s", context.symbol)
             return []
