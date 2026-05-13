@@ -148,6 +148,7 @@ def test_scan_context_accepts_benchmark_candles():
         benchmark_candles=spy_candles,
     )
     assert len(ctx.benchmark_candles) == 1
+    assert ctx.benchmark_candles[0].close == 100
 
 
 def test_executor_loads_benchmark_candles_once_per_run(monkeypatch):
