@@ -113,3 +113,39 @@ def test_volume_scanner_too_few_candles():
     scanner = VolumeScanner()
     results = scanner.scan(context)
     assert results == []
+
+
+def test_scan_context_defaults_benchmark_candles_to_empty_list():
+    """Existing scanners that don't pass benchmark_candles should still construct cleanly."""
+    from src.scanner.context import ScanContext
+    from src.scanner.indicators.cache import IndicatorCache
+
+    ctx = ScanContext(
+        stock_id=1,
+        symbol="AAPL",
+        daily_candles=[],
+        intraday_candles={},
+        indicator_cache=IndicatorCache({}),
+    )
+    assert ctx.benchmark_candles == []
+
+
+def test_scan_context_accepts_benchmark_candles():
+    from datetime import datetime
+    from src.data_provider.base import Candle
+    from src.scanner.context import ScanContext
+    from src.scanner.indicators.cache import IndicatorCache
+
+    spy_candles = [
+        Candle(timestamp=datetime(2025, 1, 1), open=100, high=100, low=100, close=100, volume=1)
+    ]
+    ctx = ScanContext(
+        stock_id=1,
+        symbol="AAPL",
+        daily_candles=[],
+        intraday_candles={},
+        indicator_cache=IndicatorCache({}),
+        benchmark_candles=spy_candles,
+    )
+    assert len(ctx.benchmark_candles) == 1
+    assert ctx.benchmark_candles[0].close == 100
