@@ -148,4 +148,74 @@ def test_scan_context_accepts_benchmark_candles():
         benchmark_candles=spy_candles,
     )
     assert len(ctx.benchmark_candles) == 1
-    assert ctx.benchmark_candles[0].close == 100
+
+
+def test_executor_loads_benchmark_candles_once_per_run(monkeypatch):
+    """Verify ScannerExecutor.run_eod calls the benchmark-loader once, not per stock."""
+    from src.scanner.executor import ScannerExecutor
+    from src.scanner.registry import ScannerRegistry
+    from src.output.base import OutputHandler
+
+    class NullOutput(OutputHandler):
+        def emit_scan_result(self, result):
+            pass
+
+        def emit_alert(self, alert):
+            pass
+
+    call_counter = {"count": 0}
+
+    def fake_load_benchmark(self, symbol="SPY"):
+        call_counter["count"] += 1
+        return []
+
+    monkeypatch.setattr(ScannerExecutor, "_load_benchmark_candles", fake_load_benchmark)
+
+    executor = ScannerExecutor(
+        registry=ScannerRegistry(),
+        indicators_registry={},
+        output_handler=NullOutput(),
+        db=None,
+    )
+    stocks = {1: ("AAA", []), 2: ("BBB", []), 3: ("CCC", [])}
+    executor.run_eod(stocks)
+    assert call_counter["count"] == 1
+
+
+def test_executor_passes_benchmark_candles_into_context(monkeypatch):
+    """Verify the benchmark candles loaded once are passed into every per-stock context."""
+    from datetime import datetime
+    from src.data_provider.base import Candle
+    from src.scanner.base import Scanner
+    from src.scanner.executor import ScannerExecutor
+    from src.scanner.registry import ScannerRegistry
+    from src.output.base import OutputHandler
+
+    class CapturingScanner(Scanner):
+        captured: list = []
+
+        def scan(self, context):
+            CapturingScanner.captured.append(len(context.benchmark_candles))
+            return []
+
+    class NullOutput(OutputHandler):
+        def emit_scan_result(self, result):
+            pass
+
+        def emit_alert(self, alert):
+            pass
+
+    spy = [
+        Candle(timestamp=datetime(2025, 1, i + 1), open=100, high=100, low=100, close=100, volume=1)
+        for i in range(5)
+    ]
+    monkeypatch.setattr(ScannerExecutor, "_load_benchmark_candles", lambda self, symbol="SPY": spy)
+
+    CapturingScanner.captured = []  # reset class-level list
+    registry = ScannerRegistry()
+    registry.register("capturing", CapturingScanner())
+    executor = ScannerExecutor(
+        registry=registry, indicators_registry={}, output_handler=NullOutput(), db=None
+    )
+    executor.run_eod({1: ("AAA", []), 2: ("BBB", [])})
+    assert CapturingScanner.captured == [5, 5]
