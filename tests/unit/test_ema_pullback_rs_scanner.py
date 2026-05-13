@@ -296,27 +296,51 @@ def test_never_raises_on_pathological_input():
 
 
 def test_returns_empty_when_today_is_the_touching_bar():
-    """Same-bar wick-and-reclaim: today touches EMA_9 AND closes above it. Reject."""
+    """Same-bar wick-and-reclaim: today's low touches the 9/21 zone AND closes above EMA_9.
+
+    Earlier bars are made non-qualifying. The scanner must NOT emit because
+    `_find_pullback_touch` only scans offsets [-5..-2] — today (offset -1)
+    is excluded by design.
+
+    Regression test: if _find_pullback_touch ever included today in its scan,
+    this fixture (today wicks into the 9/21 band AND closes above EMA_9) would
+    cause the scanner to emit a (false) result.
+
+    Fixture construction:
+    - Bars k=5 and k=2 naturally touch EMA_9 in _uptrend_with_pullback().
+      We neutralise them by pinning their low to close * 0.9995 (just above EMA_9)
+      and giving them an upside wick (high = close * 1.03) to keep ATR above 1.5%.
+    - Bars k=4 and k=3 are too deep (close below EMA_9) — they fail the lower-bound
+      check and never emit a touch; left unmodified.
+    - Today (k=1, offset=-1): low = close * 0.97, which sits between EMA_21 and EMA_9
+      so it IS a valid touch if ever scanned, but the correct loop stops at k=2.
+    """
     daily, bench = _uptrend_with_pullback()
-    last = daily[-1]
-    # Make today's low pierce far below close (touches EMA_9 zone)
-    daily[-1] = Candle(
-        timestamp=last.timestamp,
-        open=last.close * 0.98,
-        high=last.close * 1.01,
-        low=last.close * 0.93,
-        close=last.close,
-        volume=last.volume,
-    )
-    # Erase earlier touches by pinning the low equal to the close (no downside wick).
-    for k in range(2, 6):
+
+    # Neutralise bars that naturally touch EMA_9 in the pullback window:
+    # replace their downside wick with a flat bottom (low ≈ close) and add an
+    # upside spike (high = close * 1.03) so the True Range stays large enough
+    # to keep ATR% above the 1.5 % threshold.
+    for k in [5, 2]:
         b = daily[-k]
         daily[-k] = Candle(
             timestamp=b.timestamp,
-            open=b.close,
-            high=b.high,
-            low=b.close,
+            open=b.close * 0.999,
+            high=b.close * 1.03,  # upside wick preserves ATR
+            low=b.close * 0.9995,  # tiny downside, stays above EMA_9
             close=b.close,
             volume=b.volume,
         )
+
+    # Today: wick pierces EMA_9 zone (close * 0.97 ≈ between EMA_21 and EMA_9).
+    last = daily[-1]
+    daily[-1] = Candle(
+        timestamp=last.timestamp,
+        open=last.close * 0.999,
+        high=last.close * 1.001,
+        low=last.close * 0.97,
+        close=last.close,
+        volume=last.volume,
+    )
+
     assert EmaPullbackRsScanner().scan(_ctx(daily, bench)) == []
