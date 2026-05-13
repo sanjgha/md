@@ -7,6 +7,7 @@ import numpy as np
 
 from src.scanner.base import Scanner, ScanResult
 from src.scanner.context import ScanContext
+from src.scanner.indicators.relative_strength import compute_mansfield_rs
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,28 @@ class EmaPullbackRsScanner(Scanner):
             return (False, slope)
         return (True, slope)
 
+    def _rs_ok(self, context: ScanContext) -> dict | None:
+        """Returns the Mansfield dict on pass, else None.
+
+        Reject when:
+          - compute_mansfield_rs returns None (insufficient aligned bars or NaN/zero inputs)
+          - mansfield <= 0 (not durably outperforming benchmark)
+          - rs_slope_ok is False (RS line not rising recently)
+        """
+        rs = compute_mansfield_rs(
+            context.daily_candles,
+            context.benchmark_candles,
+            sma_period=self.RS_SMA_PERIOD,
+            slope_lookback=self.RS_SLOPE_LOOKBACK,
+        )
+        if rs is None:
+            return None
+        if rs["mansfield"] <= 0:
+            return None
+        if not rs["rs_slope_ok"]:
+            return None
+        return rs
+
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Return at most one ScanResult per stock; never raises."""
         try:
@@ -98,6 +121,10 @@ class EmaPullbackRsScanner(Scanner):
             ema_50_arr = context.get_indicator("ema", period=50)
             trend_ok, ema_50_slope_10 = self._trend_ok(ema_9_arr, ema_21_arr, ema_50_arr)
             if not trend_ok:
+                return []
+
+            rs = self._rs_ok(context)
+            if rs is None:
                 return []
 
             # Remaining gates implemented in subsequent tasks.

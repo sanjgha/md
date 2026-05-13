@@ -143,3 +143,29 @@ def test_emits_result_when_all_gates_pass():
     results = EmaPullbackRsScanner().scan(_ctx(daily, bench))
     assert len(results) == 1
     assert results[0].scanner_name == "ema_pullback_rs"
+
+
+def test_rejects_when_mansfield_zero_or_negative():
+    # Stock and benchmark identical → ratio constant → mansfield ~0, slope flat.
+    closes = list(np.linspace(50, 150, 300))
+    daily = _candles(closes)
+    bench = _candles(closes)
+    assert EmaPullbackRsScanner().scan(_ctx(daily, bench)) == []
+
+
+def test_rejects_when_rs_slope_not_rising():
+    # Stock outperforms cumulatively but flat-lined in the last ~30 bars → slope fails.
+    n = 300
+    stock_closes = list(np.linspace(50, 150, n - 30)) + [150.0] * 30
+    bench_closes = list(np.linspace(100, 110, n))
+    daily = _candles(stock_closes)
+    bench = _candles(bench_closes)
+    # Note: other gates may also reject this; the assertion is just that no result is emitted.
+    assert EmaPullbackRsScanner().scan(_ctx(daily, bench)) == []
+
+
+def test_rejects_when_benchmark_alignment_too_short():
+    daily = _candles([100.0] * 300)
+    # Benchmark covers different date range with very small overlap.
+    bench = _candles([100.0] * 100, start=datetime(2030, 1, 1))
+    assert EmaPullbackRsScanner().scan(_ctx(daily, bench)) == []
