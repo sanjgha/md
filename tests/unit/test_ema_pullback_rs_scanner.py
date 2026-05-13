@@ -63,6 +63,7 @@ def test_scanner_class_attributes():
     assert scanner.RS_SLOPE_LOOKBACK == 21
     assert scanner.PULLBACK_WINDOW == 5
     assert scanner.RSI_MIN == 40.0
+    assert scanner.ATR_PERIOD == 14
     assert scanner.RSI_MAX == 70.0
 
 

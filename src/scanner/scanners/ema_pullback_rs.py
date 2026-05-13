@@ -37,6 +37,9 @@ class EmaPullbackRsScanner(Scanner):
     RSI_MIN = 40.0
     RSI_MAX = 70.0
 
+    # ATR for liquidity gate
+    ATR_PERIOD = 14
+
     def _liquidity_ok(self, candles, atr_arr) -> tuple[bool, float, float, float]:
         """Returns (ok, close, atr_val, atr_pct). atr_val=0 / atr_pct=0 on failure."""
         close = float(candles[-1].close)
@@ -85,7 +88,7 @@ class EmaPullbackRsScanner(Scanner):
             if not context.benchmark_candles:
                 return []
 
-            atr_arr = context.get_indicator("atr", period=14)
+            atr_arr = context.get_indicator("atr", period=self.ATR_PERIOD)
             ok, close, atr_val, atr_pct = self._liquidity_ok(candles, atr_arr)
             if not ok:
                 return []
