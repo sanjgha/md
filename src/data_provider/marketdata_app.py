@@ -51,7 +51,7 @@ class MarketDataAppProvider(DataProvider):
 
     def _request_with_retry(self, url: str, **kwargs) -> dict:
         """Make GET request with exponential backoff. Always uses timeout=(5, 30)."""
-        last_error = None
+        last_error: Optional[requests.exceptions.RequestException] = None
         kwargs.setdefault("timeout", (5, 30))
 
         for attempt in range(self.max_retries):

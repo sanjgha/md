@@ -10,6 +10,7 @@ REGISTERED_SCANNER_NAMES: frozenset[str] = frozenset(
         "six_month_high",
         "weekly_options",
         "pullback_continuation",
+        "ema_pullback_rs",
     }
 )
 
@@ -21,6 +22,7 @@ def build_scanner_registry() -> ScannerRegistry:
     from src.scanner.scanners.six_month_high import SixMonthHighScanner
     from src.scanner.scanners.weekly_options import WeeklyOptionsScanner
     from src.scanner.scanners.pullback_continuation import PullbackContinuationScanner
+    from src.scanner.scanners.ema_pullback_rs import EmaPullbackRsScanner
 
     registry = ScannerRegistry()
     registry.register("volume", VolumeScanner())
@@ -28,4 +30,5 @@ def build_scanner_registry() -> ScannerRegistry:
     registry.register("six_month_high", SixMonthHighScanner())
     registry.register("weekly_options", WeeklyOptionsScanner())
     registry.register("pullback_continuation", PullbackContinuationScanner())
+    registry.register("ema_pullback_rs", EmaPullbackRsScanner())
     return registry

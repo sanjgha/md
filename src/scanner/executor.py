@@ -3,10 +3,11 @@
 import logging
 from typing import Dict, List, Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.data_provider.base import Candle
-from src.db.models import ScannerResult as ScannerResultModel
+from src.db.models import DailyCandle, ScannerResult as ScannerResultModel, Stock
 from src.output.base import OutputHandler
 from src.scanner.base import ScanResult
 from src.scanner.context import ScanContext
@@ -18,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 class ScannerExecutor:
     """Executes scanners for stocks with batch commits and ORM-to-dataclass conversion."""
+
+    BENCHMARK_FETCH_LIMIT = 320  # ≥ MIN_CANDLES (280) + buffer for holiday/missing-day alignment
 
     def __init__(
         self,
@@ -46,12 +49,42 @@ class ScannerExecutor:
             for c in orm_candles
         ]
 
+    def _load_benchmark_candles(self, symbol: str = "SPY") -> List[Candle]:
+        """Fetch up to BENCHMARK_FETCH_LIMIT recent daily candles for the benchmark symbol.
+
+        Returns [] if no DB session, the symbol isn't found, or no candles exist.
+        Logs a single warning if the benchmark is missing — RS-aware scanners will then
+        no-op for every stock in this run, which is the correct fail-safe.
+        """
+        if self.db is None:
+            return []
+        stock = self.db.execute(select(Stock).where(Stock.symbol == symbol)).scalar_one_or_none()
+        if stock is None:
+            logger.warning(
+                "Benchmark symbol %s not found in stocks table; RS scanners will no-op for this run.",
+                symbol,
+            )
+            return []
+        rows = (
+            self.db.execute(
+                select(DailyCandle)
+                .where(DailyCandle.stock_id == stock.id)
+                .order_by(DailyCandle.timestamp.desc())
+                .limit(self.BENCHMARK_FETCH_LIMIT)
+            )
+            .scalars()
+            .all()
+        )
+        # Reverse to chronological order.
+        return self._to_candles(list(reversed(rows)))
+
     def run_eod(
         self,
         stocks_with_candles: Dict[int, tuple],
     ) -> List[ScanResult]:
         """Run all scanners for each stock. Batch-commit all results per stock."""
         all_results: List[ScanResult] = []
+        benchmark_candles = self._load_benchmark_candles()
 
         for stock_id, (symbol, daily_candles) in stocks_with_candles.items():
             indicator_cache = IndicatorCache(self.indicators_registry)
@@ -61,6 +94,7 @@ class ScannerExecutor:
                 daily_candles=daily_candles,
                 intraday_candles={},
                 indicator_cache=indicator_cache,
+                benchmark_candles=benchmark_candles,
             )
 
             stock_results: List[ScanResult] = []

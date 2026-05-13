@@ -1,6 +1,6 @@
 """Scan context module for passing data to scanner instances."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List
 import numpy as np
 from src.data_provider.base import Candle
@@ -16,6 +16,7 @@ class ScanContext:
     daily_candles: List[Candle]
     intraday_candles: Dict[str, List[Candle]]
     indicator_cache: IndicatorCache
+    benchmark_candles: List[Candle] = field(default_factory=list)
 
     def get_indicator(self, name: str, **kwargs) -> np.ndarray:
         """Retrieve (or calculate once) an indicator from the cache."""

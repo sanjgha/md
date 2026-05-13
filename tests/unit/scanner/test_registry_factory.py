@@ -10,6 +10,7 @@ def test_build_scanner_registry_returns_all_active_scanners():
         "six_month_high",
         "weekly_options",
         "pullback_continuation",
+        "ema_pullback_rs",
     }
 
 
@@ -31,3 +32,13 @@ def test_registry_get_unknown_returns_none():
     registry = build_scanner_registry()
     assert registry.get("momentum") is None
     assert registry.get("price_action") is None
+
+
+def test_ema_pullback_rs_in_registered_names():
+    assert "ema_pullback_rs" in REGISTERED_SCANNER_NAMES
+
+
+def test_ema_pullback_rs_built_into_registry():
+    scanner = build_scanner_registry().get("ema_pullback_rs")
+    assert scanner is not None
+    assert scanner.timeframe == "daily"
