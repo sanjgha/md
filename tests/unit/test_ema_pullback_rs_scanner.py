@@ -276,3 +276,47 @@ def test_result_metadata_shape():
     assert 40 <= md["rsi_14"] <= 70
     assert md["mansfield_rs"] > 0
     assert md["pullback_touch_idx_offset"] < 0  # in the past, not today
+
+
+def test_never_raises_on_pathological_input():
+    # Empty candles
+    assert EmaPullbackRsScanner().scan(_ctx([], [])) == []
+    # NaN injected on the last close
+    daily = _candles([100.0] * 300)
+    daily[-1] = Candle(
+        timestamp=daily[-1].timestamp,
+        open=100,
+        high=100,
+        low=100,
+        close=float("nan"),
+        volume=1_000_000,
+    )
+    bench = _candles([100.0] * 300)
+    assert EmaPullbackRsScanner().scan(_ctx(daily, bench)) == []
+
+
+def test_returns_empty_when_today_is_the_touching_bar():
+    """Same-bar wick-and-reclaim: today touches EMA_9 AND closes above it. Reject."""
+    daily, bench = _uptrend_with_pullback()
+    last = daily[-1]
+    # Make today's low pierce far below close (touches EMA_9 zone)
+    daily[-1] = Candle(
+        timestamp=last.timestamp,
+        open=last.close * 0.98,
+        high=last.close * 1.01,
+        low=last.close * 0.93,
+        close=last.close,
+        volume=last.volume,
+    )
+    # Erase earlier touches by pinning the low equal to the close (no downside wick).
+    for k in range(2, 6):
+        b = daily[-k]
+        daily[-k] = Candle(
+            timestamp=b.timestamp,
+            open=b.close,
+            high=b.high,
+            low=b.close,
+            close=b.close,
+            volume=b.volume,
+        )
+    assert EmaPullbackRsScanner().scan(_ctx(daily, bench)) == []
