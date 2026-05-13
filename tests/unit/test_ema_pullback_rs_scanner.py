@@ -169,3 +169,21 @@ def test_rejects_when_benchmark_alignment_too_short():
     # Benchmark covers different date range with very small overlap.
     bench = _candles([100.0] * 100, start=datetime(2030, 1, 1))
     assert EmaPullbackRsScanner().scan(_ctx(daily, bench)) == []
+
+
+def test_rejects_when_no_pullback_touch_in_window():
+    # Steady uptrend with no recent pullback into the 9/21 zone.
+    n = 300
+    closes = list(np.linspace(50, 150, n))
+    daily = _candles(closes)
+    bench = _candles(list(np.linspace(100, 110, n)))
+    assert EmaPullbackRsScanner().scan(_ctx(daily, bench)) == []
+
+
+def test_rejects_when_close_below_ema9_today():
+    # Build an uptrend, then have today's close drop below EMA_9 — failed reclaim.
+    n = 300
+    closes = list(np.linspace(50, 150, n - 1)) + [80.0]  # collapse on the last bar
+    daily = _candles(closes)
+    bench = _candles(list(np.linspace(100, 110, n)))
+    assert EmaPullbackRsScanner().scan(_ctx(daily, bench)) == []

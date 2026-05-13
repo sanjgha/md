@@ -102,6 +102,46 @@ class EmaPullbackRsScanner(Scanner):
             return None
         return rs
 
+    def _find_pullback_touch(
+        self,
+        candles,
+        ema_9_arr,
+        ema_21_arr,
+        atr_arr,
+    ) -> dict | None:
+        """Scan the last PULLBACK_WINDOW bars (excluding today) for a qualifying pullback touch.
+
+        A touch is valid when the bar's low reached EMA_9 but stayed above
+        EMA_21 − EMA21_BUFFER_ATR × ATR.  Returns a dict with keys
+        {touch_offset, touch_low, touch_ema_9, touch_ema_21}, or None if no
+        touch is found.  Today (offset -1) is excluded; the touch must be a
+        prior bar, not the entry bar.
+        """
+        if (
+            len(ema_9_arr) < self.PULLBACK_WINDOW + 1
+            or len(ema_21_arr) < self.PULLBACK_WINDOW + 1
+            or len(atr_arr) < self.PULLBACK_WINDOW + 1
+        ):
+            return None
+
+        most_recent_touch: dict | None = None
+        # Scan from oldest (-PULLBACK_WINDOW) to newest (-2) so we end with the most recent touch.
+        for k in range(self.PULLBACK_WINDOW, 1, -1):
+            bar = candles[-k]
+            e9 = float(ema_9_arr[-k])
+            e21 = float(ema_21_arr[-k])
+            atr = float(atr_arr[-k])
+            if not (np.isfinite(e9) and np.isfinite(e21) and np.isfinite(atr) and atr > 0):
+                continue
+            if bar.low <= e9 and bar.low >= e21 - self.EMA21_BUFFER_ATR * atr:
+                most_recent_touch = {
+                    "touch_offset": -k,
+                    "touch_low": float(bar.low),
+                    "touch_ema_9": e9,
+                    "touch_ema_21": e21,
+                }
+        return most_recent_touch
+
     def scan(self, context: ScanContext) -> List[ScanResult]:
         """Return at most one ScanResult per stock; never raises."""
         try:
@@ -125,6 +165,12 @@ class EmaPullbackRsScanner(Scanner):
 
             rs = self._rs_ok(context)
             if rs is None:
+                return []
+
+            touch = self._find_pullback_touch(candles, ema_9_arr, ema_21_arr, atr_arr)
+            if touch is None:
+                return []
+            if close <= float(ema_9_arr[-1]):
                 return []
 
             # Remaining gates implemented in subsequent tasks.
