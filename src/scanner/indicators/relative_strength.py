@@ -20,8 +20,8 @@ def compute_mansfield_rs(
     """Align stock + benchmark by timestamp, compute Dorsey ratio, Mansfield, slope.
 
     Returns dict with keys (rs_line, rs_sma, rs_today, rs_sma_today, mansfield,
-    rs_slope_ok), or None if fewer than `sma_period` aligned bars or if any
-    relevant tail value is NaN/inf.
+    rs_slope_ok), or None if inputs are empty / insufficient aligned bars /
+    any input value is NaN/inf / benchmark contains a zero close.
     """
     if not stock_candles or not benchmark_candles:
         return None
@@ -45,13 +45,6 @@ def compute_mansfield_rs(
 
     weights = np.ones(sma_period) / sma_period
     rs_sma = np.convolve(rs_line, weights, mode="valid")
-
-    if not np.all(np.isfinite(rs_sma[-1:])) or not np.all(
-        np.isfinite(rs_line[-(slope_lookback + 1) :])
-    ):
-        return None
-    if rs_sma[-1] == 0:
-        return None
 
     rs_today = float(rs_line[-1])
     rs_sma_today = float(rs_sma[-1])

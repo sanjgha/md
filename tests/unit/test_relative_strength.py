@@ -120,3 +120,22 @@ def test_returns_expected_keys():
         "mansfield",
         "rs_slope_ok",
     }
+
+
+def test_returns_none_when_stock_candles_empty():
+    bench = _make_candles([100.0] * 300)
+    assert compute_mansfield_rs([], bench, sma_period=260, slope_lookback=21) is None
+
+
+def test_returns_none_when_benchmark_candles_empty():
+    stock = _make_candles([100.0] * 300)
+    assert compute_mansfield_rs(stock, [], sma_period=260, slope_lookback=21) is None
+
+
+def test_returns_none_when_benchmark_contains_zero():
+    n = 300
+    stock = _make_candles(list(np.linspace(100, 130, n)))
+    bench_closes = [100.0] * n
+    bench_closes[0] = 0.0  # poison one bar — still aligned, but zero
+    bench = _make_candles(bench_closes)
+    assert compute_mansfield_rs(stock, bench, sma_period=260, slope_lookback=21) is None
