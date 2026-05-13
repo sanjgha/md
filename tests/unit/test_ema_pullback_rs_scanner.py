@@ -181,9 +181,22 @@ def test_rejects_when_no_pullback_touch_in_window():
 
 
 def test_rejects_when_close_below_ema9_today():
-    # Build an uptrend, then have today's close drop below EMA_9 — failed reclaim.
-    n = 300
-    closes = list(np.linspace(50, 150, n - 1)) + [80.0]  # collapse on the last bar
-    daily = _candles(closes)
-    bench = _candles(list(np.linspace(100, 110, n)))
+    """Earlier bars set up a valid pullback + touch; today closes below EMA_9 — reclaim fails.
+
+    Verified: close=prev*0.998 places today above EMA_21 (trend stack intact)
+    but below EMA_9 (reclaim check fails), isolating Gate 5 as the rejection point.
+    """
+    daily, bench = _uptrend_with_pullback()
+    # Replace today's close with a value slightly below the previous bar (closes[-2]).
+    # prev*0.998 lands above EMA_21 (trend stack passes) but below EMA_9 (reclaim fails).
+    prev = daily[-2].close
+    today_ts = daily[-1].timestamp
+    daily[-1] = Candle(
+        timestamp=today_ts,
+        open=prev * 0.999,
+        high=prev * 1.001,
+        low=prev * 0.99,
+        close=prev * 0.998,  # above EMA_21, below EMA_9 — reclaim check is the gating factor
+        volume=daily[-1].volume,
+    )
     assert EmaPullbackRsScanner().scan(_ctx(daily, bench)) == []
