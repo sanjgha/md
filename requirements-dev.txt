@@ -1,6 +1,6 @@
 # Development & testing dependencies
-ruff==0.15.12
-mypy==2.0.0
+ruff==0.15.13
+mypy==2.1.0
 pytest==9.0.3
 pytest-cov==7.1.0
 detect-secrets==1.5.0
